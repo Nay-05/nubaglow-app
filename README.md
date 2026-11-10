@@ -1,4 +1,11 @@
 # NubaGlow App — Proyecto Unificado (Ingeniería de Software)
+enlace a render: https://nubaglow-app.onrender.com
+numero de grupo: 11
+nombre de la apps: nubaglow-app
+integrantes:
+arancibia morales shirley
+chambi lopez naydelin
+cruz romero lilian ariel
 
 Proyecto oficial de e-commerce y gestión Beauty-Tech para **Nuba Beauty**, unificando la experiencia visual de `proyecto_landing` con las funcionalidades de seguridad y control de acceso basado en roles (RBAC) de `NubaGlow-Seguridad`.
 
