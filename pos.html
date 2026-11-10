@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Punto de Venta (POS) | NubaGlow</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%2232%22><text y=%2226%22 font-size=%2226%22>✨</text></svg>">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            roseQuartz: '#F4C2C2',
+            roseGold: '#E8A5A5',
+            roseDeep: '#C97A7E',
+            roseDark: '#8F3E43',
+            nudeCream: '#FFF8F5',
+            nudeSoft: '#FDF6F0',
+            glowGold: '#E6C387',
+            champagne: '#F5E5C9',
+            neutralDark: '#222222'
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Estilos del Sistema de Diseño NubaGlow -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#FFF8F5] text-neutral-800 antialiased selection:bg-[#F4C2C2] selection:text-neutral-900 relative min-h-screen flex flex-col justify-between">
+
+  <!-- Destellos suaves de fondo -->
+  <div class="glow-blob-1 top-0 left-[-150px]"></div>
+  <div class="glow-blob-2 bottom-0 right-[-150px]"></div>
+
+  <!-- Encabezado y Navegación Principal -->
+  <header class="sticky top-0 z-40 glass-panel border-b border-white/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo NubaGlow -->
+      <a href="index.html" class="flex items-center gap-2.5 group">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#E8A5A5] via-[#F4C2C2] to-[#E6C387] p-0.5 shadow-md">
+          <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+            <svg class="w-5 h-5 text-[#C97A7E] animate-sparkle" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L14.2 8.8L21 11L14.2 13.2L12 20L9.8 13.2L3 11L9.8 8.8L12 2Z"></path>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="text-xl font-extrabold text-neutral-900 tracking-tight">Nuba<span class="text-[#C97A7E]">Glow</span></span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full badge-rose uppercase ml-1">Punto de Venta</span>
+        </div>
+      </a>
+
+      <!-- Enlaces del sistema -->
+      <nav class="hidden md:flex items-center gap-6 text-xs sm:text-sm font-semibold text-neutral-600">
+        <a href="index.html" class="hover:text-[#C97A7E] transition-colors">Tienda & Catálogo</a>
+        <a href="inventario.html" class="hover:text-[#C97A7E] transition-colors">Inventario</a>
+        <a href="envios.html" class="hover:text-[#C97A7E] transition-colors">Envíos</a>
+      </nav>
+
+      <!-- Estado de Autenticación en Cabecera -->
+      <div id="auth-header-container">
+        <!-- Inyectado por js/auth.js -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+    
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <!-- Columna Izquierda: Catálogo de Productos para Mostrador (8 cols) -->
+      <div class="lg:col-span-7 xl:col-span-8">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div>
+            <h1 class="text-2xl font-black text-neutral-900 tracking-tight">Mostrador de Ventas (POS)</h1>
+            <p class="text-xs text-neutral-500">Haz clic en un producto para agregarlo a la cuenta del cliente.</p>
+          </div>
+
+          <!-- Filtros de categoría -->
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button onclick="renderizarProductosPOS('todos')" class="text-xs px-3 py-1.5 rounded-xl font-bold bg-white border border-rose-200 text-neutral-700 hover:bg-rose-50 shadow-sm">
+              Todos
+            </button>
+            <button onclick="renderizarProductosPOS('Skincare')" class="text-xs px-3 py-1.5 rounded-xl font-bold bg-white border border-rose-200 text-neutral-700 hover:bg-rose-50 shadow-sm">
+              Skincare
+            </button>
+            <button onclick="renderizarProductosPOS('Maquillaje')" class="text-xs px-3 py-1.5 rounded-xl font-bold bg-white border border-rose-200 text-neutral-700 hover:bg-rose-50 shadow-sm">
+              Maquillaje
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid de Productos -->
+        <div id="pos-productos-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <!-- Inyectado por js/pos.js -->
+        </div>
+
+      </div>
+
+      <!-- Columna Derecha: Ticket de Venta Actual (4-5 cols) -->
+      <div class="lg:col-span-5 xl:col-span-4">
+        <div class="glass-panel p-6 rounded-3xl border border-rose-200 shadow-xl sticky top-28 flex flex-col justify-between">
+          
+          <div>
+            <!-- Cabecera del Ticket -->
+            <div class="flex items-center justify-between pb-4 border-b border-rose-100 mb-4">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🧾</span>
+                <h3 class="font-black text-neutral-900 text-sm sm:text-base">Ticket de Venta Actual</h3>
+              </div>
+              <button onclick="vaciarTicket()" class="text-xs text-neutral-400 hover:text-red-500 font-bold" title="Limpiar venta">
+                Vaciar
+              </button>
+            </div>
+
+            <!-- Lista de Artículos -->
+            <div id="ticket-items" class="space-y-2 max-h-64 overflow-y-auto mb-4 pr-1">
+              <!-- Inyectado por js/pos.js -->
+            </div>
+          </div>
+
+          <!-- Opciones de Cobro y Totales -->
+          <div class="pt-4 border-t border-rose-100">
+            
+            <!-- Selector de Método de Pago -->
+            <div class="mb-4">
+              <label class="block text-[11px] font-bold text-neutral-500 uppercase tracking-wider mb-2">Método de Cobro:</label>
+              <div class="flex gap-2">
+                <button type="button" id="metodo-efectivo" onclick="seleccionarMetodoPago('Efectivo')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-[#8F3E43] text-white shadow-sm">
+                  💵 Efectivo
+                </button>
+                <button type="button" id="metodo-qr" onclick="seleccionarMetodoPago('QR')" class="flex-1 py-2 rounded-xl text-xs font-bold bg-white text-neutral-700 border border-rose-200">
+                  ⚡ QR Simple
+                </button>
+              </div>
+            </div>
+
+            <!-- Panel de Cálculo de Efectivo -->
+            <div id="panel-pago-efectivo" class="mb-4 p-3 rounded-2xl bg-[#FFF8F5] border border-rose-100 space-y-2 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-neutral-600">Monto recibido (Bs):</span>
+                <input type="number" id="input-efectivo-recibido" placeholder="0.00" class="w-24 text-right input-glow text-xs py-1 px-2 font-bold">
+              </div>
+              <div class="flex items-center justify-between pt-1 border-t border-rose-100/60">
+                <span class="font-bold text-neutral-600">Cambio a entregar:</span>
+                <span id="cambio-efectivo" class="font-bold text-neutral-600">Bs. 0.00</span>
+              </div>
+            </div>
+
+            <!-- Totales -->
+            <div class="space-y-1.5 text-xs mb-5">
+              <div class="flex justify-between text-neutral-500">
+                <span>Subtotal:</span>
+                <span id="ticket-subtotal" class="font-bold text-neutral-800">Bs. 0</span>
+              </div>
+              <div class="pt-2 border-t border-rose-100 flex justify-between text-base">
+                <span class="font-extrabold text-neutral-900">Total a Cobrar:</span>
+                <span id="ticket-total" class="font-black text-xl text-[#8F3E43]">Bs. 0</span>
+              </div>
+            </div>
+
+            <!-- Botón Cobrar -->
+            <button 
+              id="btn-cobrar" 
+              onclick="procesarCobro()" 
+              disabled 
+              class="w-full btn-rose-primary py-3.5 rounded-2xl text-xs sm:text-sm font-bold shadow-md hover:shadow-xl transition-all disabled:opacity-50">
+              Cobrar Venta (Bs. 0)
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modal de Recibo / Confirmación de Venta -->
+  <div id="modal-recibo" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel max-w-sm w-full rounded-3xl p-7 border border-[#E6C387] shadow-2xl text-center animate-scale-in">
+      
+      <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 text-2xl mx-auto flex items-center justify-center mb-4">
+        ✓
+      </div>
+
+      <h3 class="text-xl font-black text-neutral-900 mb-1">¡Venta Registrada con Éxito!</h3>
+      <p class="text-xs text-neutral-500 mb-5">Comprobante de venta en mostrador Nuba Beauty</p>
+
+      <div class="bg-[#FFF8F5] p-4 rounded-2xl border border-rose-200 text-xs space-y-2 text-left mb-6">
+        <div class="flex justify-between">
+          <span class="text-neutral-500">Nro. de Comprobante:</span>
+          <span id="recibo-nro" class="font-mono font-bold text-neutral-900">POS-000000</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-neutral-500">Método de Pago:</span>
+          <span id="recibo-metodo" class="font-bold text-[#8F3E43]">Efectivo</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-neutral-500">Fecha y Hora:</span>
+          <span id="recibo-fecha" class="text-neutral-700">--</span>
+        </div>
+        <div class="pt-2 border-t border-rose-200 flex justify-between text-sm">
+          <span class="font-extrabold text-neutral-900">Total Cobrado:</span>
+          <span id="recibo-total" class="font-black text-[#8F3E43]">Bs. 0</span>
+        </div>
+      </div>
+
+      <button onclick="finalizarVenta()" class="w-full btn-rose-primary py-3.5 rounded-2xl text-xs font-bold shadow-md">
+        Realizar Nueva Venta
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-6 border-t border-rose-100 bg-white/70 text-center text-xs text-neutral-400 relative z-10">
+    <p>© 2026 NubaGlow App • Terminal de Punto de Venta (POS) en Tienda Sucre</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/auth.js"></script>
+  <script src="js/pos.js"></script>
+</body>
+</html>

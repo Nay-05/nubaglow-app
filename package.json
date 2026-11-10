@@ -1,0 +1,24 @@
+{
+  "name": "nubaglow-app-unificado",
+  "version": "1.0.0",
+  "description": "Proyecto unificado NubaGlow App - Landing, E-commerce, Seguridad y Roles (Ingeniería de Software)",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -l 3000",
+    "dev": "npx serve . -l 3000",
+    "backend": "npm --prefix backend run dev",
+    "backend:install": "npm --prefix backend install"
+  },
+  "keywords": [
+    "nubaglow",
+    "beauty-tech",
+    "seguridad",
+    "rbac",
+    "bolivia",
+    "sucre",
+    "sqlite",
+    "express"
+  ],
+  "author": "Nuba Beauty - Ingeniería de Software",
+  "license": "MIT"
+}

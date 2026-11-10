@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administración y Seguridad | NubaGlow</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%2232%22><text y=%2226%22 font-size=%2226%22>✨</text></svg>">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            roseQuartz: '#F4C2C2',
+            roseGold: '#E8A5A5',
+            roseDeep: '#C97A7E',
+            roseDark: '#8F3E43',
+            nudeCream: '#FFF8F5',
+            nudeSoft: '#FDF6F0',
+            glowGold: '#E6C387',
+            champagne: '#F5E5C9',
+            neutralDark: '#222222'
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Estilos del Sistema de Diseño NubaGlow -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#FFF8F5] text-neutral-800 antialiased selection:bg-[#F4C2C2] selection:text-neutral-900 relative min-h-screen flex flex-col justify-between">
+
+  <!-- Destellos suaves de fondo -->
+  <div class="glow-blob-1 top-0 left-[-150px]"></div>
+  <div class="glow-blob-2 top-[40%] right-[-150px]"></div>
+
+  <!-- Encabezado y Navegación Principal -->
+  <header class="sticky top-0 z-40 glass-panel border-b border-white/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo NubaGlow -->
+      <a href="index.html" class="flex items-center gap-2.5 group">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#E8A5A5] via-[#F4C2C2] to-[#E6C387] p-0.5 shadow-md">
+          <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+            <svg class="w-5 h-5 text-[#C97A7E] animate-sparkle" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L14.2 8.8L21 11L14.2 13.2L12 20L9.8 13.2L3 11L9.8 8.8L12 2Z"></path>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="text-xl font-extrabold text-neutral-900 tracking-tight">Nuba<span class="text-[#C97A7E]">Glow</span></span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full badge-gold uppercase ml-1">Panel Admin</span>
+        </div>
+      </a>
+
+      <!-- Enlaces entre secciones del sistema -->
+      <nav class="hidden md:flex items-center gap-6 text-xs sm:text-sm font-semibold text-neutral-600">
+        <a href="index.html" class="hover:text-[#C97A7E] transition-colors">Tienda & Catálogo</a>
+        <a href="pos.html" class="hover:text-[#C97A7E] transition-colors">Punto de Venta (POS)</a>
+        <a href="inventario.html" class="hover:text-[#C97A7E] transition-colors">Control de Stock</a>
+        <a href="envios.html" class="hover:text-[#C97A7E] transition-colors">Envíos & Logística</a>
+      </nav>
+
+      <!-- Estado de Autenticación en Cabecera -->
+      <div id="auth-header-container">
+        <!-- Inyectado por js/auth.js -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
+    
+    <!-- Encabezado de la página -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full badge-rose text-xs font-bold mb-2">
+          <span>🛡️</span>
+          <span>Módulo de Seguridad • Control de Acceso por Roles (RBAC)</span>
+        </div>
+        <h1 class="text-3xl font-extrabold text-neutral-900 tracking-tight">Gestión de Usuarios</h1>
+        <p class="text-xs sm:text-sm text-neutral-500 mt-1">
+          Administra las cuentas y permisos del personal (Administrador, Vendedor, Almacén, Logística y Clientes).
+        </p>
+      </div>
+
+      <button onclick="abrirModalCrear()" class="btn-rose-primary px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md">
+        <span>+</span>
+        <span>Crear Nuevo Usuario</span>
+      </button>
+    </div>
+
+    <!-- Tarjetas de Métricas -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="glass-panel p-5 rounded-2xl border border-rose-100 shadow-sm">
+        <span class="text-xs text-neutral-500 font-semibold block">Total de Usuarios</span>
+        <span id="metric-total" class="text-2xl font-black text-neutral-900 block mt-1">0</span>
+      </div>
+      <div class="glass-panel p-5 rounded-2xl border border-rose-100 shadow-sm">
+        <span class="text-xs text-neutral-500 font-semibold block">Administradores</span>
+        <span id="metric-admin" class="text-2xl font-black text-[#8F3E43] block mt-1">0</span>
+      </div>
+      <div class="glass-panel p-5 rounded-2xl border border-rose-100 shadow-sm">
+        <span class="text-xs text-neutral-500 font-semibold block">Personal Operativo</span>
+        <span id="metric-staff" class="text-2xl font-black text-blue-700 block mt-1">0</span>
+      </div>
+      <div class="glass-panel p-5 rounded-2xl border border-rose-100 shadow-sm">
+        <span class="text-xs text-neutral-500 font-semibold block">Clientes Registrados</span>
+        <span id="metric-clientes" class="text-2xl font-black text-purple-700 block mt-1">0</span>
+      </div>
+    </div>
+
+    <!-- Barra de Filtro y Búsqueda -->
+    <div class="glass-panel p-4 rounded-2xl border border-rose-100 mb-6 flex flex-col sm:flex-row items-center gap-3 justify-between">
+      <div class="w-full sm:w-80">
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="Buscar por nombre o correo..." 
+          class="input-glow w-full text-xs"
+        >
+      </div>
+
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <label class="text-xs font-semibold text-neutral-500 whitespace-nowrap">Filtrar por rol:</label>
+        <select id="rol-filter" class="input-glow text-xs py-2 bg-white">
+          <option value="todos">Todos los roles</option>
+          <option value="administrador">Administradores</option>
+          <option value="vendedor">Vendedores</option>
+          <option value="almacen">Almacén</option>
+          <option value="logistica">Logística</option>
+          <option value="cliente">Clientes</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tabla de Usuarios -->
+    <div class="glass-panel rounded-3xl border border-rose-100 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="table-glow">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre y Apellido</th>
+              <th>Correo Electrónico</th>
+              <th>Rol Asignado</th>
+              <th>Fecha Registro</th>
+              <th class="text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="usuarios-tbody">
+            <!-- Inyectado por js/panel.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal para Crear / Editar Usuario -->
+  <div id="modal-usuario" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel max-w-md w-full rounded-3xl p-6 sm:p-8 border border-rose-200 shadow-2xl relative animate-scale-in">
+      
+      <div class="flex items-center justify-between pb-4 border-b border-rose-100 mb-5">
+        <h3 id="modal-titulo" class="text-lg font-black text-neutral-900">Nuevo Usuario</h3>
+        <button onclick="cerrarModal()" class="text-neutral-400 hover:text-neutral-700 text-sm p-1">✕</button>
+      </div>
+
+      <form id="form-usuario" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-neutral-700 uppercase mb-1">Nombre Completo *</label>
+          <input type="text" id="input-nombre" required placeholder="Ej. Camila Morales" class="input-glow w-full text-xs">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-neutral-700 uppercase mb-1">Correo Electrónico *</label>
+          <input type="email" id="input-email" required placeholder="ejemplo@nuba.bo" class="input-glow w-full text-xs">
+        </div>
+
+        <div id="password-container">
+          <label class="block text-xs font-bold text-neutral-700 uppercase mb-1">Contraseña *</label>
+          <input type="password" id="input-password" placeholder="••••••••" class="input-glow w-full text-xs">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-neutral-700 uppercase mb-1">Rol en el Sistema *</label>
+          <select id="input-rol" class="input-glow w-full text-xs bg-white">
+            <option value="vendedor">Vendedor/a (Punto de Venta)</option>
+            <option value="almacen">Gestor/a de Almacén (Inventario)</option>
+            <option value="logistica">Encargado/a de Logística (Envíos)</option>
+            <option value="cliente">Cliente (Catálogo y Compras)</option>
+            <option value="administrador">Administrador/a (Acceso Total)</option>
+          </select>
+        </div>
+
+        <div class="flex gap-3 pt-4 border-t border-rose-100 mt-6">
+          <button type="button" onclick="cerrarModal()" class="flex-1 btn-secondary-glow py-3 rounded-xl text-xs font-bold">
+            Cancelar
+          </button>
+          <button type="submit" class="flex-1 btn-rose-primary py-3 rounded-xl text-xs font-bold">
+            Guardar Usuario
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-6 border-t border-rose-100 bg-white/70 text-center text-xs text-neutral-400 relative z-10">
+    <p>© 2026 NubaGlow App • Sistema de Seguridad y Gestión de Identidades</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/auth.js"></script>
+  <script src="js/panel.js"></script>
+</body>
+</html>

@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NubaGlow App | Cosméticos, Skincare & Beauty-Tech en Bolivia</title>
+  <meta name="description" content="NubaGlow App by Nuba Beauty: Catálogo inteligente de cosméticos y skincare con recomendación de IA, pagos QR Simple y seguimiento en tiempo real en Sucre y toda Bolivia.">
+  
+  <!-- Favicon con destello Glow -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%2232%22><text y=%2226%22 font-size=%2226%22>✨</text></svg>">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN con configuración personalizada -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            roseQuartz: '#F4C2C2',
+            roseGold: '#E8A5A5',
+            roseDeep: '#C97A7E',
+            roseDark: '#8F3E43',
+            nudeCream: '#FFF8F5',
+            nudeSoft: '#FDF6F0',
+            glowGold: '#E6C387',
+            champagne: '#F5E5C9',
+            neutralDark: '#222222'
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Estilos del Sistema de Diseño NubaGlow -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#FFF8F5] text-neutral-800 antialiased selection:bg-[#F4C2C2] selection:text-neutral-900 relative min-h-screen">
+
+  <!-- ========================================================
+       FONDO CON DESTELLOS SUAVES (GLOW BLOBS)
+       ======================================================== -->
+  <div class="glow-blob-1 top-0 left-[-150px]"></div>
+  <div class="glow-blob-2 top-[35%] right-[-150px]"></div>
+  <div class="glow-blob-1 bottom-[10%] left-[10%] opacity-50"></div>
+
+  <!-- ========================================================
+       BARRA DE COBERTURA SUPERIOR (TOP NOTIFICATION BAR)
+       ======================================================== -->
+  <div class="bg-gradient-to-r from-[#F4C2C2] via-[#FDF6F0] to-[#E6C387] py-2 px-4 text-center text-xs font-semibold text-neutral-800 border-b border-rose-200/50 relative z-40">
+    <div class="max-w-7xl mx-auto flex items-center justify-center gap-2 flex-wrap">
+      <span class="inline-flex items-center gap-1.5 bg-white/70 px-2.5 py-0.5 rounded-full text-[11px] shadow-sm font-bold text-[#8F3E43]">
+        <svg class="w-3.5 h-3.5 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+        </svg>
+        Cobertura Bolivia
+      </span>
+      <span>Despachos locales en <strong>Sucre</strong> y envíos a todo el país (La Paz, Cochabamba, Santa Cruz y más)</span>
+      <span class="hidden md:inline text-neutral-400">•</span>
+      <span class="hidden md:inline font-normal text-neutral-700">Pagos instantáneos con <strong>QR Simple</strong> ⚡</span>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       A. ENCABEZADO Y NAVEGACIÓN (HEADER / NAVBAR)
+       ======================================================== -->
+  <header class="sticky top-0 z-40 glass-panel border-b border-white/60 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo NubaGlow con destello brillante en el isotipo -->
+      <a href="#inicio" class="flex items-center gap-2.5 group">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#E8A5A5] via-[#F4C2C2] to-[#E6C387] p-0.5 shadow-md group-hover:scale-105 transition-transform">
+          <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+            <!-- Isotipo de Destello Brillante (Glow Sparkle) -->
+            <svg class="w-6 h-6 text-[#C97A7E] animate-sparkle" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L14.2 8.8L21 11L14.2 13.2L12 20L9.8 13.2L3 11L9.8 8.8L12 2Z"></path>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-2xl font-extrabold tracking-tight text-neutral-900 group-hover:text-[#8F3E43] transition-colors">
+              Nuba<span class="text-[#C97A7E]">Glow</span>
+            </span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full badge-gold uppercase tracking-wider">App</span>
+          </div>
+          <span class="text-[10px] font-medium text-neutral-400 block -mt-1 tracking-wider uppercase">by Nuba Beauty</span>
+        </div>
+      </a>
+
+      <!-- Menú de Navegación Desktop -->
+      <nav class="hidden lg:flex items-center gap-8 text-sm font-semibold text-neutral-600">
+        <a href="#inicio" class="hover:text-[#C97A7E] transition-colors">Inicio</a>
+        <a href="#catalogo" class="hover:text-[#C97A7E] transition-colors">Catálogo</a>
+        <a href="#asistente-ia" class="hover:text-[#C97A7E] transition-colors flex items-center gap-1.5">
+          <span>Asistente IA</span>
+          <span class="w-2 h-2 rounded-full bg-[#E6C387] animate-ping"></span>
+        </a>
+        <a href="#caracteristicas" class="hover:text-[#C97A7E] transition-colors">Características</a>
+        <a href="#beneficios" class="hover:text-[#C97A7E] transition-colors">Beneficios</a>
+        <a href="#rastreo" class="hover:text-[#C97A7E] transition-colors">Envíos</a>
+        <a href="#contacto" class="hover:text-[#C97A7E] transition-colors">Contacto</a>
+      </nav>
+
+      <!-- Botones de Acción (Header) -->
+      <div class="flex items-center gap-3">
+        <!-- Botón Ver Catálogo -->
+        <a href="#catalogo" class="hidden sm:inline-flex btn-secondary-glow text-xs sm:text-sm px-4 py-2.5 rounded-2xl items-center gap-2">
+          <svg class="w-4 h-4 text-[#C97A7E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+          </svg>
+          <span>Ver Catálogo</span>
+        </a>
+
+        <!-- Botón Mi Carrito -->
+        <button class="open-cart-btn relative btn-rose-primary text-xs sm:text-sm px-4 py-2.5 rounded-2xl flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+          </svg>
+          <span class="font-bold">Mi Carrito</span>
+          <span class="cart-count-badge bg-[#8F3E43] text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center -mr-1 shadow-sm">1</span>
+        </button>
+
+        <!-- Contenedor dinámico de Login / Sesión de Usuario -->
+        <div id="auth-header-container">
+          <!-- Renderizado por js/auth.js -->
+        </div>
+
+        <!-- Botón Toggle Menú Móvil -->
+        <button id="mobile-menu-toggle" class="lg:hidden p-2 rounded-xl text-neutral-700 hover:bg-rose-50 transition-colors" aria-label="Abrir menú">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Menú Móvil Desplegable -->
+  <div id="mobile-menu" class="hidden fixed inset-0 z-50 bg-neutral-900/40 backdrop-blur-sm">
+    <div class="absolute right-0 top-0 bottom-0 w-80 max-w-[85%] bg-white p-6 shadow-2xl flex flex-col justify-between overflow-y-auto">
+      <div>
+        <div class="flex items-center justify-between pb-5 border-b border-neutral-100">
+          <div class="flex items-center gap-2">
+            <span class="text-xl font-black text-neutral-900">Nuba<span class="text-[#C97A7E]">Glow</span></span>
+            <span class="badge-gold text-[10px] px-2 py-0.5 rounded-full font-bold">App</span>
+          </div>
+          <button id="mobile-menu-close" class="p-2 text-neutral-400 hover:text-neutral-700">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <nav class="flex flex-col gap-4 mt-6 text-sm font-semibold text-neutral-700">
+          <a href="#inicio" class="mobile-nav-link py-2 hover:text-[#C97A7E] flex items-center justify-between">
+            <span>Inicio</span>
+            <span>→</span>
+          </a>
+          <a href="#catalogo" class="mobile-nav-link py-2 hover:text-[#C97A7E] flex items-center justify-between">
+            <span>Catálogo Dinámico</span>
+            <span class="text-xs bg-rose-50 text-[#C97A7E] px-2 py-0.5 rounded-md">Stock Real</span>
+          </a>
+          <a href="#asistente-ia" class="mobile-nav-link py-2 hover:text-[#C97A7E] flex items-center justify-between">
+            <span>Asistente IA</span>
+            <span class="badge-gold text-[10px] px-2 py-0.5 rounded-md font-bold">✨ Nuevo</span>
+          </a>
+          <a href="#caracteristicas" class="mobile-nav-link py-2 hover:text-[#C97A7E] flex items-center justify-between">
+            <span>Características</span>
+            <span>→</span>
+          </a>
+          <a href="#beneficios" class="mobile-nav-link py-2 hover:text-[#C97A7E] flex items-center justify-between">
+            <span>Beneficios</span>
+            <span>→</span>
+          </a>
+          <a href="#rastreo" class="mobile-nav-link py-2 hover:text-[#C97A7E] flex items-center justify-between">
+            <span>Envíos & Rastreo en Vivo</span>
+            <span>→</span>
+          </a>
+          <a href="#contacto" class="mobile-nav-link py-2 hover:text-[#C97A7E] flex items-center justify-between">
+            <span>Contacto y Soporte</span>
+            <span>→</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="pt-6 border-t border-neutral-100 space-y-2">
+        <a href="login.html" class="w-full btn-secondary-glow py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2">
+          <span>🔐 Iniciar Sesión / Roles</span>
+        </a>
+        <div class="grid grid-cols-2 gap-2 pt-2">
+          <a href="pos.html" class="p-2 rounded-xl bg-rose-50 text-[11px] font-bold text-center text-[#8F3E43]">🛍️ POS</a>
+          <a href="inventario.html" class="p-2 rounded-xl bg-rose-50 text-[11px] font-bold text-center text-[#8F3E43]">📦 Stock</a>
+          <a href="envios.html" class="p-2 rounded-xl bg-rose-50 text-[11px] font-bold text-center text-[#8F3E43]">🚚 Envíos</a>
+          <a href="panel.html" class="p-2 rounded-xl bg-rose-50 text-[11px] font-bold text-center text-[#8F3E43]">👑 Panel Admin</a>
+        </div>
+        <button class="open-cart-btn w-full btn-rose-primary py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 mt-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+          </svg>
+          <span>Abrir Mi Carrito de Compras</span>
+        </button>
+        <p class="text-center text-[11px] text-neutral-400 pt-2">Nuba Beauty • Sucre, Bolivia</p>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- ========================================================
+         B. SECCIÓN HERO (PORTADA PRINCIPAL)
+         ======================================================== -->
+    <section id="inicio" class="relative pt-12 pb-20 md:pt-20 md:pb-28 overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          
+          <!-- Columna Texto y Copywriting -->
+          <div class="lg:col-span-7 text-center lg:text-left">
+            
+            <!-- Badge de bienvenida -->
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full badge-rose text-xs font-bold mb-6 shadow-sm">
+              <span class="animate-sparkle text-sm">✨</span>
+              <span>Plataforma Oficial E-commerce & Retail de Nuba Beauty</span>
+            </div>
+
+            <!-- Titular Principal (H1) -->
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-neutral-900 tracking-tight leading-[1.12] mb-6">
+              Tu belleza, tu rutina, <br class="hidden sm:inline">
+              tu brillo único con <span class="bg-gradient-to-r from-[#8F3E43] via-[#C97A7E] to-[#E6C387] bg-clip-text text-transparent">NubaGlow</span>
+            </h1>
+
+            <!-- Subtítulo -->
+            <p class="text-base sm:text-lg text-neutral-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed mb-8">
+              Descubre la mejor selección de cosméticos y maquillaje en Bolivia. Encuentra la rutina ideal para tu tipo de piel con nuestro Asistente de IA y recibe tus productos con seguimiento en tiempo real.
+            </p>
+
+            <!-- Botones de Acción (CTA) -->
+            <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-10">
+              <a href="#catalogo" class="w-full sm:w-auto btn-rose-primary px-8 py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                </svg>
+                <span>Explorar Catálogo</span>
+              </a>
+
+              <a href="#asistente-ia" class="w-full sm:w-auto btn-secondary-glow px-7 py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm">
+                <span class="text-base">✨</span>
+                <span>Probar Asistente IA</span>
+              </a>
+            </div>
+
+            <!-- Insignia de Cobertura Geográfica -->
+            <div class="inline-flex items-start sm:items-center gap-3 p-3.5 rounded-2xl bg-white/80 border border-rose-100 shadow-sm max-w-xl text-left">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#F4C2C2] to-[#E6C387] flex items-center justify-center text-white shrink-0 shadow-sm">
+                <svg class="w-5 h-5 text-[#4A1A1E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+              <div class="text-xs">
+                <span class="font-bold text-neutral-900 block">Despachos locales en Sucre y envíos a todo el país</span>
+                <span class="text-neutral-500">La Paz, Cochabamba, Santa Cruz, Tarija, Oruro, Potosí y más ciudades con trazabilidad en vivo.</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Elemento Visual: Mockup de Smartphone con Ficha de Skincare, Badge IA y QR Simple -->
+          <div class="lg:col-span-5 flex justify-center relative">
+            <div class="relative w-full max-w-[340px] sm:max-w-[380px]">
+              
+              <!-- Glow halo detrás del smartphone -->
+              <div class="absolute inset-0 bg-gradient-to-tr from-[#F4C2C2]/40 to-[#E6C387]/30 rounded-[45px] filter blur-2xl transform scale-105"></div>
+
+              <!-- Smartphone Frame con efecto glassmorphism -->
+              <div class="animate-float relative bg-white border-[7px] border-neutral-800 rounded-[42px] shadow-2xl p-4 overflow-hidden">
+                
+                <!-- Notch / Isla superior del smartphone -->
+                <div class="w-36 h-4 bg-neutral-800 rounded-b-2xl mx-auto mb-4 flex items-center justify-center">
+                  <div class="w-3 h-3 rounded-full bg-neutral-900 mr-2"></div>
+                  <div class="w-10 h-1.5 rounded-full bg-neutral-700"></div>
+                </div>
+
+                <!-- Cabecera de la App simulada -->
+                <div class="flex items-center justify-between pb-3 border-b border-rose-100 mb-3">
+                  <div class="flex items-center gap-1.5">
+                    <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#E8A5A5] to-[#E6C387] flex items-center justify-center text-[10px] text-white">✨</div>
+                    <span class="text-xs font-black text-neutral-800">NubaGlow</span>
+                  </div>
+                  <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    ● En vivo
+                  </span>
+                </div>
+
+                <!-- Ficha de Skincare en la pantalla de la app -->
+                <div class="bg-[#FFF8F5] rounded-2xl p-3 border border-rose-100 mb-3 shadow-inner">
+                  <div class="relative h-40 rounded-xl overflow-hidden mb-2 bg-white">
+                    <img src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=600&q=80" alt="Serum NubaGlow" class="w-full h-full object-cover">
+                    <!-- Badge Flotante de IA -->
+                    <div class="absolute top-2 left-2 badge-gold text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">
+                      ✨ Recomendado por IA
+                    </div>
+                    <!-- Stock en vivo -->
+                    <div class="absolute bottom-2 right-2 bg-white/95 px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-700 shadow-sm flex items-center gap-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot"></span> Stock: 9 uds
+                    </div>
+                  </div>
+
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <h4 class="text-xs font-black text-neutral-900 leading-tight">Serum Glow Vitamina C</h4>
+                      <p class="text-[10px] text-neutral-500">Tratamiento Iluminador • Piel Mixta/Seca</p>
+                    </div>
+                    <span class="text-xs font-black text-[#8F3E43]">Bs. 145</span>
+                  </div>
+                </div>
+
+                <!-- Tarjeta de Pago QR Simple Simulada dentro del Mockup -->
+                <div class="glass-panel p-3 rounded-2xl border border-rose-200 shadow-sm flex items-center gap-3">
+                  <div class="w-12 h-12 bg-white rounded-xl p-1 border border-neutral-200 shrink-0 flex items-center justify-center">
+                    <!-- Mini QR Code SVG -->
+                    <svg class="w-full h-full text-neutral-900" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm10-2h8v8h-8V2zm2 2v4h4V4h-4zM2 14h8v8H2v-8zm2 2v4h4v-4H4zm14 2h2v4h-2v-4zm-4-4h2v2h-2v-2zm2 2h2v2h-2v-2zm2-2h4v2h-4v-2zm0 6h4v2h-4v-2zm-4-2h2v2h-2v-2z"></path>
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-[10px] uppercase font-bold text-neutral-400 block">Cobro Instantáneo</span>
+                    <span class="text-xs font-extrabold text-neutral-900 flex items-center gap-1">
+                      QR Simple Bolivia ⚡
+                    </span>
+                    <span class="text-[10px] text-neutral-500 block">Aprobación bancaria en 3 segundos</span>
+                  </div>
+                </div>
+
+                <!-- Barra inferior simulada de la app -->
+                <div class="mt-3 pt-2 border-t border-neutral-100 flex justify-around text-neutral-400 text-[10px]">
+                  <span class="text-[#8F3E43] font-bold">Catálogo</span>
+                  <span>Rutinas IA</span>
+                  <span>Mi Carrito</span>
+                  <span>Rastreo</span>
+                </div>
+
+              </div>
+
+              <!-- Badges Flotantes decorativos exteriores -->
+              <div class="hidden sm:flex absolute -left-6 top-28 glass-panel px-3 py-2 rounded-2xl border border-white shadow-xl items-center gap-2">
+                <span class="text-base">🧪</span>
+                <div class="text-[11px]">
+                  <strong class="text-neutral-900 block">Formulaciones Claras</strong>
+                  <span class="text-neutral-500">100% Originales & Testeadas</span>
+                </div>
+              </div>
+
+              <div class="hidden sm:flex absolute -right-6 bottom-20 glass-panel px-3 py-2 rounded-2xl border border-white shadow-xl items-center gap-2">
+                <span class="text-base">🚚</span>
+                <div class="text-[11px]">
+                  <strong class="text-neutral-900 block">Entrega Express</strong>
+                  <span class="text-neutral-500">Mismo día en Sucre</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         C. SECCIÓN DE CARACTERÍSTICAS CLAVE (FEATURES GRID)
+         ======================================================== -->
+    <section id="caracteristicas" class="py-20 bg-white relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="badge-gold text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-3 inline-block">
+            Tecnología Beauty-Tech
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
+            Innovación y tecnología diseñada para el cuidado de tu piel
+          </h2>
+          <p class="text-neutral-500 text-sm sm:text-base mt-4">
+            Unimos dermocosmética avanzada y herramientas digitales para que disfrutes de compras ágiles, asesoría certera y stock transparente.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-7">
+          
+          <!-- Tarjeta 1 — Catálogo con Filtro Inteligente -->
+          <div class="glass-panel p-7 rounded-3xl hover-lift border border-rose-100 flex flex-col justify-between">
+            <div>
+              <div class="w-13 h-13 w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#F4C2C2] to-[#FFF8F5] flex items-center justify-center text-[#8F3E43] mb-6 shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-neutral-900 mb-2">Filtro Avanzado por Tipo de Piel</h3>
+              <p class="text-xs sm:text-sm text-neutral-600 leading-relaxed">
+                Encuentra productos específicos para piel seca, grasa, mixta o sensible con disponibilidad de inventario actualizada en tiempo real.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-rose-100/60 flex items-center gap-1.5 text-xs font-bold text-[#C97A7E]">
+              <span>Piel seca, grasa, mixta, sensible</span>
+            </div>
+          </div>
+
+          <!-- Tarjeta 2 — Asistente Virtual cosmetológico -->
+          <div class="glass-panel p-7 rounded-3xl hover-lift border border-rose-100 flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#E6C387] to-[#FFF8F5] flex items-center justify-center text-[#614614] mb-6 shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-neutral-900 mb-2">Asistente de Rutinas con IA</h3>
+              <p class="text-xs sm:text-sm text-neutral-600 leading-relaxed">
+                Responde un test corto y recibe combinaciones personalizadas de skincare para el día y la noche creadas por inteligencia artificial.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-rose-100/60 flex items-center gap-1.5 text-xs font-bold text-[#CFA45B]">
+              <span>Rutinas AM & PM a tu medida</span>
+            </div>
+          </div>
+
+          <!-- Tarjeta 3 — Pagos Digitales Rápidos -->
+          <div class="glass-panel p-7 rounded-3xl hover-lift border border-rose-100 flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#F4C2C2] to-[#E8A5A5] flex items-center justify-center text-[#4A1A1E] mb-6 shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-neutral-900 mb-2">Pago Instantáneo con QR Simple</h3>
+              <p class="text-xs sm:text-sm text-neutral-600 leading-relaxed">
+                Genera tu código QR y paga directamente desde tu banca móvil en segundos y sin complicaciones.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-rose-100/60 flex items-center gap-1.5 text-xs font-bold text-[#8F3E43]">
+              <span>Compatible con todos los bancos bolivianos</span>
+            </div>
+          </div>
+
+          <!-- Tarjeta 4 — Trazabilidad Logística -->
+          <div class="glass-panel p-7 rounded-3xl hover-lift border border-rose-100 flex flex-col justify-between">
+            <div>
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#E8A5A5] to-[#E6C387] flex items-center justify-center text-[#4A1A1E] mb-6 shadow-sm">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-neutral-900 mb-2">Seguimiento de Pedidos en Tiempo Real</h3>
+              <p class="text-xs sm:text-sm text-neutral-600 leading-relaxed">
+                Rastrea la ubicación de tu compra desde el almacén hasta tu puerta con un mapa interactivo y notificaciones inmediatas.
+              </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-rose-100/60 flex items-center gap-1.5 text-xs font-bold text-[#C97A7E]">
+              <span>Rastreo GPS Sucre & Departamental</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================
+         E. BLOQUE INTERACTIVO DESTACADO: RECOMENDADOR DE RUTINAS IA
+         ======================================================== -->
+    <section id="asistente-ia" class="py-20 bg-gradient-to-b from-white via-[#FFF8F5] to-white relative">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center max-w-2xl mx-auto mb-12">
+          <span class="badge-gold text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
+            ✨ Cosmetología & Inteligencia Artificial
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
+            ¿Tienes dudas sobre qué producto elegir?
+          </h2>
+          <p class="text-neutral-600 text-sm sm:text-base mt-3">
+            Conversa con nuestro asistente inteligente para evaluar tu tipo de piel y armar tu rutina ideal en menos de un minuto.
+          </p>
+        </div>
+
+        <!-- Ventana de Chat Interactivo del Asistente IA -->
+        <div class="glass-card-glow rounded-[32px] overflow-hidden border border-[#E6C387]/40 shadow-2xl">
+          
+          <!-- Barra superior del Asistente -->
+          <div class="bg-gradient-to-r from-[#F4C2C2]/90 via-[#FFF8F5] to-[#E6C387]/80 p-4 sm:p-5 flex items-center justify-between border-b border-rose-200/60">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-lg">
+                ✨
+              </div>
+              <div>
+                <h3 class="text-sm sm:text-base font-extrabold text-neutral-900 flex items-center gap-1.5">
+                  NubaGlow AI Skin Advisor
+                  <span class="badge-gold text-[10px] px-2 py-0.5 rounded-full font-bold">Activo</span>
+                </h3>
+                <p class="text-[11px] text-neutral-600">Recomendaciones personalizadas para el clima de Bolivia</p>
+              </div>
+            </div>
+
+            <!-- Badge de confianza -->
+            <div class="hidden sm:flex items-center gap-1.5 text-xs text-neutral-700 font-semibold bg-white/80 px-3 py-1.5 rounded-xl border border-white">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
+              <span>Stock Sincronizado</span>
+            </div>
+          </div>
+
+          <!-- Sugerencias Rápidas / Demo Buttons -->
+          <div class="bg-[#FFF8F5]/90 px-4 sm:px-6 py-3 border-b border-rose-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <span class="text-xs font-bold text-neutral-500 whitespace-nowrap">Prueba rápida:</span>
+            <button class="ai-suggestion-chip text-xs bg-white hover:bg-rose-50 text-neutral-800 font-semibold px-3 py-1.5 rounded-full border border-rose-200 transition-all hover:scale-105 whitespace-nowrap shadow-sm" data-prompt="Recomiéndame una rutina para piel mixta">
+              🌸 Rutina para piel mixta
+            </button>
+            <button class="ai-suggestion-chip text-xs bg-white hover:bg-rose-50 text-neutral-800 font-semibold px-3 py-1.5 rounded-full border border-rose-200 transition-all hover:scale-105 whitespace-nowrap shadow-sm" data-prompt="Quiero una base de maquillaje ligera con acabado natural">
+              💄 Base de maquillaje ligera
+            </button>
+            <button class="ai-suggestion-chip text-xs bg-white hover:bg-rose-50 text-neutral-800 font-semibold px-3 py-1.5 rounded-full border border-rose-200 transition-all hover:scale-105 whitespace-nowrap shadow-sm" data-prompt="¿Qué serum hidratante nocturno me recomiendas para piel deshidratada?">
+              🌙 Serum hidratante nocturno
+            </button>
+            <button class="ai-suggestion-chip text-xs bg-white hover:bg-rose-50 text-neutral-800 font-semibold px-3 py-1.5 rounded-full border border-rose-200 transition-all hover:scale-105 whitespace-nowrap shadow-sm" data-prompt="Tengo piel grasa y con tendencia a brillo en la frente">
+              💧 Piel grasa y brillo
+            </button>
+          </div>
+
+          <!-- Contenedor de Mensajes de Conversación -->
+          <div id="ai-chat-messages" class="p-4 sm:p-6 h-96 overflow-y-auto space-y-4 bg-white/70">
+            <!-- Mensaje de bienvenida inicial de la IA -->
+            <div class="flex items-start gap-2.5 max-w-[92%] sm:max-w-[85%]">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#E6C387] to-[#F4C2C2] flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm">
+                ✨
+              </div>
+              <div class="glass-panel text-neutral-800 text-xs sm:text-sm p-4 rounded-2xl rounded-tl-none border border-rose-100 shadow-sm leading-relaxed">
+                <p class="font-bold text-neutral-900 mb-1">¡Hola! Soy tu asistente de belleza inteligente en NubaGlow 👋</p>
+                <p class="text-neutral-600 mb-2">Cuéntame sobre tu piel: ¿sientes tirantez al despertar, brillo al mediodía o buscas un maquillaje que no tape tus poros? También puedes hacer clic en una de las sugerencias rápidas arriba.</p>
+                <div class="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 text-[11px] text-amber-900 flex items-center gap-2">
+                  <span>💡</span>
+                  <span>Te sugeriré solo fórmulas disponibles en nuestro almacén central con entrega inmediata en Sucre y envíos a toda Bolivia.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Caja de Entrada de Texto -->
+          <div class="p-3 sm:p-4 bg-white border-t border-rose-100 flex items-center gap-2">
+            <input 
+              type="text" 
+              id="ai-chat-input" 
+              placeholder="Escribe tu consulta sobre tu piel o producto... (ej. ¿Qué protector solar no deja brillo?)" 
+              class="flex-1 bg-[#FFF8F5] border border-rose-200 rounded-2xl px-4 py-3 text-xs sm:text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#E8A5A5] transition-all">
+            
+            <button 
+              id="ai-chat-send" 
+              class="btn-rose-primary px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all">
+              <span>Preguntar</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+              </svg>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================
+         F. CATÁLOGO INTERACTIVO EN VIVO CON FILTRO POR TIPO DE PIEL
+         ======================================================== -->
+    <section id="catalogo" class="py-20 bg-[#FFF8F5] relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+          <div>
+            <span class="badge-rose text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
+              Catálogo Interactivo en Tiempo Real
+            </span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
+              Cosméticos & Cuidado Facial Seleccionado
+            </h2>
+            <p id="filter-results-count" class="text-xs sm:text-sm text-neutral-500 mt-1 font-medium">
+              Cargando disponibilidad de inventario...
+            </p>
+          </div>
+
+          <!-- Filtros por Tipo de Piel -->
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button data-filter="all" class="filter-btn active text-xs px-4 py-2 rounded-xl font-semibold bg-white text-neutral-700 border border-rose-200 transition-all hover:bg-rose-50 shadow-sm">
+              Todos los tipos
+            </button>
+            <button data-filter="grasa" class="filter-btn text-xs px-4 py-2 rounded-xl font-semibold bg-white text-neutral-700 border border-rose-200 transition-all hover:bg-rose-50 shadow-sm">
+              Piel Grasa
+            </button>
+            <button data-filter="seca" class="filter-btn text-xs px-4 py-2 rounded-xl font-semibold bg-white text-neutral-700 border border-rose-200 transition-all hover:bg-rose-50 shadow-sm">
+              Piel Seca
+            </button>
+            <button data-filter="mixta" class="filter-btn text-xs px-4 py-2 rounded-xl font-semibold bg-white text-neutral-700 border border-rose-200 transition-all hover:bg-rose-50 shadow-sm">
+              Piel Mixta
+            </button>
+            <button data-filter="sensible" class="filter-btn text-xs px-4 py-2 rounded-xl font-semibold bg-white text-neutral-700 border border-rose-200 transition-all hover:bg-rose-50 shadow-sm">
+              Piel Sensible
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid de Productos Renderizados Dinámicamente desde JS -->
+        <div id="catalog-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+          <!-- Inyectado por initCatalog() -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================
+         D. SECCIÓN DE BENEFICIOS
+         ======================================================== -->
+    <section id="beneficios" class="py-20 bg-white relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <span class="badge-gold text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
+            Garantía Nuba Beauty
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
+            ¿Por qué comprar en NubaGlow?
+          </h2>
+          <p class="text-neutral-500 text-sm sm:text-base mt-3">
+            Elevamos el estándar de la cosmética en Bolivia mediante transparencia digital, respaldo profesional y seguridad garantizada.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
+          <!-- Beneficio 1 — Stock Real Garantizado -->
+          <div class="p-8 rounded-3xl bg-[#FFF8F5] border border-rose-100 text-center hover-lift flex flex-col items-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#F4C2C2] to-[#E8A5A5] flex items-center justify-center text-2xl text-[#4A1A1E] mb-6 shadow-md">
+              📦
+            </div>
+            <h3 class="text-xl font-bold text-neutral-900 mb-3">Stock Real Garantizado</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Sincronización automática que evita quiebres de stock o esperas innecesarias. Lo que ves en pantalla está físicamente reservado en nuestro almacén.
+            </p>
+            <div class="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span> Inventario 100% verificado
+            </div>
+          </div>
+
+          <!-- Beneficio 2 — Recomendación Científica y Personalizada -->
+          <div class="p-8 rounded-3xl bg-[#FFF8F5] border border-[#E6C387]/50 text-center hover-lift flex flex-col items-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#F5E5C9] to-[#E6C387] flex items-center justify-center text-2xl text-[#4D3710] mb-6 shadow-md">
+              🔬
+            </div>
+            <h3 class="text-xl font-bold text-neutral-900 mb-3">Recomendación Científica y Personalizada</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Algoritmos que analizan tus preferencias para sugerirte exactamente lo que tu piel necesita, considerando factores climáticos de Bolivia como altitud y radiación UV.
+            </p>
+            <div class="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-[#8F3E43] bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+              ✨ Cero recomendaciones genéricas
+            </div>
+          </div>
+
+          <!-- Beneficio 3 — Compras 100% Seguras -->
+          <div class="p-8 rounded-3xl bg-[#FFF8F5] border border-rose-100 text-center hover-lift flex flex-col items-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#F4C2C2] to-[#E6C387] flex items-center justify-center text-2xl text-[#4A1A1E] mb-6 shadow-md">
+              🛡️
+            </div>
+            <h3 class="text-xl font-bold text-neutral-900 mb-3">Compras 100% Seguras</h3>
+            <p class="text-sm text-neutral-600 leading-relaxed">
+              Procesos de pago cifrados y confirmación directa de entrega. Paga desde tu aplicación bancaria oficial con QR Simple sin compartir tarjetas ni contraseñas.
+            </p>
+            <div class="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-neutral-700 bg-white px-3 py-1 rounded-full border border-neutral-200">
+              🔒 Certificación bancaria boliviana
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================
+         SECCIÓN DE TRAZABILIDAD LOGÍSTICA & SEGUIMIENTO EN VIVO
+         ======================================================== -->
+    <section id="rastreo" class="py-20 bg-gradient-to-b from-white to-[#FFF8F5] relative">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center max-w-2xl mx-auto mb-12">
+          <span class="badge-rose text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
+            Trazabilidad Logística Bolivia
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
+            Rastrea tu pedido en tiempo real
+          </h2>
+          <p class="text-neutral-600 text-sm sm:text-base mt-2">
+            Ingresa tu código de guía oficial NubaGlow o prueba una de nuestras órdenes de demostración en Sucre y ciudades capitales.
+          </p>
+
+          <!-- Sugerencias de Códigos Demo -->
+          <div class="flex items-center justify-center gap-2 mt-4 flex-wrap">
+            <span class="text-xs font-semibold text-neutral-400">Ver demostración:</span>
+            <button class="tracking-demo-pill text-xs px-3 py-1 rounded-full bg-white border border-rose-200 text-[#8F3E43] font-bold hover:bg-rose-50 shadow-sm" data-code="NG-SUC-8924">
+              📍 Sucre (En Delivery)
+            </button>
+            <button class="tracking-demo-pill text-xs px-3 py-1 rounded-full bg-white border border-rose-200 text-neutral-700 font-bold hover:bg-rose-50 shadow-sm" data-code="NG-LPZ-5011">
+              ✈️ La Paz (En Almacén Central)
+            </button>
+            <button class="tracking-demo-pill text-xs px-3 py-1 rounded-full bg-white border border-rose-200 text-neutral-700 font-bold hover:bg-rose-50 shadow-sm" data-code="NG-SCZ-3329">
+              ✅ Santa Cruz (Entregado)
+            </button>
+          </div>
+        </div>
+
+        <!-- Buscador de Guía -->
+        <div class="max-w-xl mx-auto mb-8 flex items-center gap-2">
+          <div class="relative flex-1">
+            <span class="absolute left-4 top-3.5 text-neutral-400">🔍</span>
+            <input 
+              type="text" 
+              id="tracking-code-input" 
+              value="NG-SUC-8924"
+              placeholder="Ingresa tu código de guía (ej. NG-SUC-8924)" 
+              class="w-full bg-white border border-rose-200 rounded-2xl pl-11 pr-4 py-3 text-xs sm:text-sm text-neutral-800 uppercase font-mono font-bold tracking-wider placeholder:normal-case placeholder:font-sans focus:outline-none focus:ring-2 focus:ring-[#E8A5A5] shadow-sm">
+          </div>
+          <button 
+            id="tracking-search-btn" 
+            class="btn-rose-primary px-6 py-3 rounded-2xl text-xs sm:text-sm font-bold shadow-sm whitespace-nowrap">
+            Rastrear
+          </button>
+        </div>
+
+        <!-- Tarjeta de Resultados del Rastreo -->
+        <div id="tracking-result-card" class="max-w-3xl mx-auto">
+          <!-- Inyectado dinámicamente por initOrderTracking() -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================
+         F. SECCIÓN DE CONTACTO Y SOPORTE
+         ======================================================== -->
+    <section id="contacto" class="py-20 bg-white relative">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          <!-- Información y canales directos -->
+          <div class="lg:col-span-5">
+            <span class="badge-gold text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">
+              Atención Personalizada
+            </span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight mb-4">
+              Estamos para atenderte
+            </h2>
+            <p class="text-neutral-600 text-sm sm:text-base leading-relaxed mb-8">
+              ¿Tienes preguntas sobre los ingredientes de un producto, envíos a tu provincia o necesitas orientación cosmética directa? Escríbenos y una especialista de Nuba Beauty te responderá a la brevedad.
+            </p>
+
+            <div class="space-y-4">
+              <div class="flex items-start gap-4 p-4 rounded-2xl bg-[#FFF8F5] border border-rose-100">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#F4C2C2] to-[#E6C387] flex items-center justify-center text-lg text-[#4A1A1E] shrink-0">
+                  📍
+                </div>
+                <div class="text-xs sm:text-sm">
+                  <strong class="text-neutral-900 block font-bold">Punto Central Nuba Beauty</strong>
+                  <span class="text-neutral-500">Sucre, Chuquisaca – Bolivia</span>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4 p-4 rounded-2xl bg-[#FFF8F5] border border-rose-100">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg shrink-0">
+                  💬
+                </div>
+                <div class="text-xs sm:text-sm">
+                  <strong class="text-neutral-900 block font-bold">Atención por WhatsApp Directo</strong>
+                  <a href="https://wa.me/59170000000?text=Hola%20NubaGlow,%20quisiera%20asesoria%20cosmetica" target="_blank" class="text-[#8F3E43] font-semibold hover:underline">
+                    +591 (Sucre) Consultas de Belleza y Stock →
+                  </a>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-4 p-4 rounded-2xl bg-[#FFF8F5] border border-rose-100">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 text-[#8F3E43] flex items-center justify-center text-lg shrink-0">
+                  ✉️
+                </div>
+                <div class="text-xs sm:text-sm">
+                  <strong class="text-neutral-900 block font-bold">Correo Electrónico</strong>
+                  <span class="text-neutral-500">soporte@nubaglow.bo / contacto@nubabeauty.bo</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Formulario de Contacto -->
+          <div class="lg:col-span-7">
+            <div class="glass-panel p-8 sm:p-10 rounded-3xl border border-rose-100 shadow-xl">
+              <h3 class="text-xl font-extrabold text-neutral-900 mb-6">Envíanos tu consulta</h3>
+              
+              <form id="contact-form" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5">Nombre Completo *</label>
+                    <input 
+                      type="text" 
+                      name="name" 
+                      required 
+                      placeholder="Ej. Camila Morales" 
+                      class="w-full bg-[#FFF8F5] border border-rose-200 rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#E8A5A5]">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5">Correo Electrónico *</label>
+                    <input 
+                      type="email" 
+                      name="email" 
+                      required 
+                      placeholder="camila@ejemplo.com" 
+                      class="w-full bg-[#FFF8F5] border border-rose-200 rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#E8A5A5]">
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5">Ciudad en Bolivia *</label>
+                  <select 
+                    name="city" 
+                    required 
+                    class="w-full bg-[#FFF8F5] border border-rose-200 rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#E8A5A5] text-neutral-800">
+                    <option value="Sucre">Sucre (Chuquisaca)</option>
+                    <option value="La Paz">La Paz / El Alto</option>
+                    <option value="Cochabamba">Cochabamba</option>
+                    <option value="Santa Cruz">Santa Cruz de la Sierra</option>
+                    <option value="Tarija">Tarija</option>
+                    <option value="Oruro">Oruro</option>
+                    <option value="Potosí">Potosí</option>
+                    <option value="Beni">Beni (Trinidad)</option>
+                    <option value="Pando">Pando (Cobija)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5">Consulta de Soporte o Skincare *</label>
+                  <textarea 
+                    name="message" 
+                    rows="4" 
+                    required 
+                    placeholder="Cuéntanos sobre tu tipo de piel, dudas de productos o requerimientos de envío..." 
+                    class="w-full bg-[#FFF8F5] border border-rose-200 rounded-xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#E8A5A5]"></textarea>
+                </div>
+
+                <button 
+                  type="submit" 
+                  class="w-full btn-rose-primary py-3.5 rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all">
+                  <span>Enviar Mensaje a NubaGlow</span>
+                </button>
+              </form>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================================================
+       PIE DE PÁGINA (FOOTER)
+       ======================================================== -->
+  <footer class="bg-white border-t border-rose-100 pt-16 pb-12 relative z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-neutral-100">
+        
+        <!-- Marca y descripción -->
+        <div class="lg:col-span-2">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#E8A5A5] to-[#E6C387] flex items-center justify-center text-white text-sm shadow-sm">
+              ✨
+            </div>
+            <span class="text-2xl font-black text-neutral-900">
+              Nuba<span class="text-[#C97A7E]">Glow</span>
+            </span>
+          </div>
+          <p class="text-xs sm:text-sm text-neutral-500 max-w-sm leading-relaxed mb-4">
+            La plataforma beauty-tech de Nuba Beauty que une cosmética de vanguardia, inteligencia artificial para el cuidado de tu piel y pagos instantáneos por QR Simple.
+          </p>
+          <div class="flex items-center gap-3 text-neutral-400">
+            <span class="text-xs font-bold text-neutral-700">Síguenos:</span>
+            <a href="#" class="w-8 h-8 rounded-full bg-[#FFF8F5] hover:bg-rose-100 text-[#8F3E43] flex items-center justify-center transition-colors text-xs font-bold">IG</a>
+            <a href="#" class="w-8 h-8 rounded-full bg-[#FFF8F5] hover:bg-rose-100 text-[#8F3E43] flex items-center justify-center transition-colors text-xs font-bold">TK</a>
+            <a href="#" class="w-8 h-8 rounded-full bg-[#FFF8F5] hover:bg-rose-100 text-[#8F3E43] flex items-center justify-center transition-colors text-xs font-bold">FB</a>
+          </div>
+        </div>
+
+        <!-- Enlaces de interés -->
+        <div>
+          <h4 class="text-xs font-bold text-neutral-900 uppercase tracking-wider mb-4">Enlaces de Interés</h4>
+          <ul class="space-y-2.5 text-xs text-neutral-600">
+            <li><a href="#inicio" class="hover:text-[#C97A7E] transition-colors">Inicio</a></li>
+            <li><a href="#catalogo" class="hover:text-[#C97A7E] transition-colors">Catálogo de Belleza</a></li>
+            <li><a href="#asistente-ia" class="hover:text-[#C97A7E] transition-colors">Recomendador de Rutinas IA</a></li>
+            <li><a href="#rastreo" class="hover:text-[#C97A7E] transition-colors">Módulo de Rastreo de Pedido</a></li>
+          </ul>
+        </div>
+
+        <!-- Políticas & Términos -->
+        <div>
+          <h4 class="text-xs font-bold text-neutral-900 uppercase tracking-wider mb-4">Términos Legales</h4>
+          <ul class="space-y-2.5 text-xs text-neutral-600">
+            <li><a href="#contacto" class="hover:text-[#C97A7E] transition-colors">Términos y Condiciones</a></li>
+            <li><a href="#contacto" class="hover:text-[#C97A7E] transition-colors">Políticas de Envío</a></li>
+            <li><a href="#contacto" class="hover:text-[#C97A7E] transition-colors">Garantía de Originalidad</a></li>
+            <li><a href="#contacto" class="hover:text-[#C97A7E] transition-colors">Privacidad de Datos</a></li>
+          </ul>
+        </div>
+
+        <!-- Cobertura y Métodos de Pago -->
+        <div>
+          <h4 class="text-xs font-bold text-neutral-900 uppercase tracking-wider mb-4">Pagos & Envíos</h4>
+          <p class="text-xs text-neutral-500 mb-3">Aceptamos cobros seguros con QR Simple interbancario:</p>
+          <div class="flex flex-wrap gap-1.5 mb-4">
+            <span class="text-[10px] bg-[#FFF8F5] border border-rose-200 text-[#8F3E43] font-bold px-2 py-0.5 rounded">QR Simple</span>
+            <span class="text-[10px] bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded">BNB</span>
+            <span class="text-[10px] bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded">BCP</span>
+            <span class="text-[10px] bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded">Banco Unión</span>
+            <span class="text-[10px] bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded">Mercantil</span>
+          </div>
+          <span class="text-[11px] text-neutral-400 block">Sede Central: Sucre, Chuquisaca, Bolivia</span>
+        </div>
+
+      </div>
+
+      <!-- Créditos -->
+      <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-500 gap-4">
+        <p>© 2026 NubaGlow App – Nuba Beauty. Todos los derechos reservados.</p>
+        <p class="flex items-center gap-1">
+          Desarrollado con estética Beauty-Tech • Hecho para brillar en Bolivia ✨
+        </p>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ========================================================
+       DRAWER LATERAL DE CARRITO DE COMPRAS
+       ======================================================== -->
+  <div id="cart-drawer-backdrop" class="modal-backdrop fixed inset-0 z-50 hidden transition-opacity"></div>
+  <aside id="cart-drawer" class="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-white z-50 shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between">
+    
+    <!-- Header del Carrito -->
+    <div class="p-5 border-b border-neutral-100 flex items-center justify-between bg-[#FFF8F5]">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#F4C2C2] to-[#E6C387] flex items-center justify-center text-xs text-[#4A1A1E]">
+          🛍️
+        </div>
+        <div>
+          <h3 class="text-sm font-extrabold text-neutral-900">Mi Carrito NubaGlow</h3>
+          <span class="text-[11px] text-neutral-500">Productos con stock en tiempo real</span>
+        </div>
+      </div>
+      <button id="close-cart-btn" class="p-2 text-neutral-400 hover:text-neutral-700 rounded-lg">
+        ✕
+      </button>
+    </div>
+
+    <!-- Lista de Artículos -->
+    <div id="cart-drawer-items" class="p-5 flex-1 overflow-y-auto space-y-3">
+      <!-- Inyectado por renderCartDrawer() -->
+    </div>
+
+    <!-- Opciones de Envío & Totales -->
+    <div class="p-5 border-t border-neutral-100 bg-[#FFF8F5]/50 space-y-3">
+      
+      <!-- Selector de Ciudad para calcular flete -->
+      <div>
+        <label class="block text-[11px] font-bold text-neutral-600 uppercase mb-1">Destino de Entrega:</label>
+        <select id="cart-shipping-city" class="w-full bg-white border border-rose-200 rounded-xl px-3 py-2 text-xs text-neutral-800 focus:outline-none">
+          <option value="sucre">Sucre (Entrega Express Local)</option>
+          <option value="lapaz">La Paz / El Alto (Envío Nacional)</option>
+          <option value="cochabamba">Cochabamba (Envío Nacional)</option>
+          <option value="santacruz">Santa Cruz (Envío Nacional)</option>
+          <option value="tarija">Tarija (Envío Nacional)</option>
+          <option value="oruro">Oruro (Envío Nacional)</option>
+          <option value="potosi">Potosí (Envío Nacional)</option>
+          <option value="beni">Beni / Pando (Envío Nacional)</option>
+        </select>
+      </div>
+
+      <div class="space-y-1.5 text-xs">
+        <div class="flex justify-between text-neutral-500">
+          <span>Subtotal productos:</span>
+          <span id="cart-drawer-subtotal" class="font-bold text-neutral-800">Bs. 0</span>
+        </div>
+        <div class="flex justify-between text-neutral-500">
+          <span>Costo de envío:</span>
+          <span id="cart-shipping-cost" class="font-bold text-emerald-700">Bs. 10</span>
+        </div>
+        <div class="pt-2 border-t border-rose-100 flex justify-between text-sm">
+          <span class="font-extrabold text-neutral-900">Total a pagar:</span>
+          <span id="cart-drawer-total" class="font-extrabold text-lg text-[#8F3E43]">Bs. 0</span>
+        </div>
+      </div>
+
+      <!-- Botón Checkout con QR Simple -->
+      <button id="checkout-qr-btn" class="w-full btn-rose-primary py-3.5 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md">
+        <span>⚡ Pagar con QR Simple</span>
+      </button>
+
+      <p class="text-center text-[10px] text-neutral-400">
+        Sin comisiones adicionales • Válido para toda la banca móvil de Bolivia
+      </p>
+
+    </div>
+  </aside>
+
+  <!-- ========================================================
+       MODAL DE PAGO CON QR SIMPLE (BOLIVIA)
+       ======================================================== -->
+  <div id="qr-payment-modal" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel max-w-sm w-full rounded-3xl p-6 sm:p-7 border border-[#E8A5A5] shadow-2xl relative animate-scale-in">
+      
+      <button onclick="closeQRModal()" class="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 text-sm p-1">
+        ✕
+      </button>
+
+      <div class="text-center mb-5">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#F4C2C2] to-[#E6C387] mx-auto flex items-center justify-center text-lg text-[#4A1A1E] mb-3 shadow-sm">
+          ⚡
+        </div>
+        <h3 class="text-lg font-black text-neutral-900">Pago Digital QR Simple</h3>
+        <p class="text-xs text-neutral-500">Escanea desde la app de tu banco (BNB, BCP, Unión, Mercantil, etc.)</p>
+      </div>
+
+      <!-- Cuadro del Código QR -->
+      <div class="bg-white p-5 rounded-2xl border-2 border-dashed border-rose-200 flex flex-col items-center justify-center shadow-inner mb-4">
+        <!-- Gráfico del Código QR -->
+        <div class="w-44 h-44 bg-neutral-900 p-2.5 rounded-xl shadow-md">
+          <svg class="w-full h-full text-white" viewBox="0 0 100 100" fill="currentColor">
+            <!-- Esquinas QR -->
+            <rect x="5" y="5" width="25" height="25" fill="#E8A5A5" rx="4"/>
+            <rect x="9" y="9" width="17" height="17" fill="#111827"/>
+            <rect x="13" y="13" width="9" height="9" fill="#E8A5A5"/>
+
+            <rect x="70" y="5" width="25" height="25" fill="#E8A5A5" rx="4"/>
+            <rect x="74" y="9" width="17" height="17" fill="#111827"/>
+            <rect x="78" y="13" width="9" height="9" fill="#E8A5A5"/>
+
+            <rect x="5" y="70" width="25" height="25" fill="#E8A5A5" rx="4"/>
+            <rect x="9" y="74" width="17" height="17" fill="#111827"/>
+            <rect x="13" y="78" width="9" height="9" fill="#E8A5A5"/>
+
+            <!-- Patrón de bits simulado -->
+            <rect x="35" y="10" width="8" height="8" fill="#FFF8F5"/>
+            <rect x="48" y="15" width="10" height="6" fill="#E8A5A5"/>
+            <rect x="40" y="28" width="6" height="10" fill="#FFF8F5"/>
+            <rect x="55" y="25" width="8" height="8" fill="#E8A5A5"/>
+
+            <rect x="10" y="38" width="8" height="12" fill="#E8A5A5"/>
+            <rect x="25" y="42" width="14" height="6" fill="#FFF8F5"/>
+            <rect x="18" y="54" width="10" height="8" fill="#E8A5A5"/>
+
+            <rect x="42" y="42" width="16" height="16" fill="#E8A5A5" rx="2"/>
+            <rect x="46" y="46" width="8" height="8" fill="#111827"/>
+
+            <rect x="68" y="40" width="10" height="8" fill="#FFF8F5"/>
+            <rect x="82" y="38" width="8" height="12" fill="#E8A5A5"/>
+            <rect x="72" y="54" width="14" height="6" fill="#FFF8F5"/>
+
+            <rect x="36" y="72" width="10" height="6" fill="#FFF8F5"/>
+            <rect x="50" y="70" width="12" height="10" fill="#E8A5A5"/>
+            <rect x="40" y="84" width="8" height="10" fill="#E8A5A5"/>
+            <rect x="56" y="85" width="10" height="8" fill="#FFF8F5"/>
+            <rect x="72" y="75" width="18" height="8" fill="#E8A5A5"/>
+            <rect x="80" y="86" width="12" height="8" fill="#FFF8F5"/>
+          </svg>
+        </div>
+
+        <div class="mt-3 text-center">
+          <span class="text-[11px] text-neutral-400 block font-medium">Monto Exacto:</span>
+          <span id="qr-modal-amount" class="text-xl font-black text-[#8F3E43]">Bs. 155.00</span>
+        </div>
+      </div>
+
+      <!-- Datos del Pago & Contador -->
+      <div class="space-y-2 text-xs mb-5">
+        <div class="flex justify-between text-neutral-600">
+          <span>Referencia:</span>
+          <span id="qr-modal-reference" class="font-mono font-bold text-neutral-900">NBG-849201</span>
+        </div>
+        <div class="flex justify-between text-neutral-600">
+          <span>Tiempo restante:</span>
+          <span id="qr-modal-timer" class="font-bold text-amber-600">04:59</span>
+        </div>
+      </div>
+
+      <!-- Botón de Simulación de Pago -->
+      <button 
+        id="confirm-qr-sim-btn" 
+        onclick="simulatePaymentSuccess()" 
+        class="w-full btn-rose-primary py-3 rounded-xl text-xs font-bold shadow-md">
+        Simular Pago Exitoso (Banca Móvil)
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL DE PEDIDO CONFIRMADO CON CÓDIGO DE SEGUIMIENTO
+       ======================================================== -->
+  <div id="order-success-modal" class="modal-backdrop fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel max-w-md w-full rounded-3xl p-7 border border-[#E6C387] shadow-2xl text-center">
+      
+      <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 text-2xl mx-auto flex items-center justify-center mb-4">
+        ✓
+      </div>
+
+      <h3 class="text-2xl font-black text-neutral-900 mb-2">¡Pago Confirmado con Éxito!</h3>
+      <p class="text-xs sm:text-sm text-neutral-600 mb-6">
+        Tu pedido ha sido registrado en el sistema de Nuba Beauty Sucre. Estamos preparando tu paquete con cuidado dermatológico y empaque Eco-Glow.
+      </p>
+
+      <div class="bg-[#FFF8F5] p-4 rounded-2xl border border-rose-200 mb-6">
+        <span class="text-xs uppercase font-bold text-neutral-400 block">Tu Código de Rastreo en Tiempo Real:</span>
+        <span id="success-order-code" class="text-xl font-mono font-extrabold text-[#8F3E43] tracking-widest block my-1">NG-SUC-8924</span>
+        <span class="text-[11px] text-neutral-500">Guarda este código para consultar el avance del delivery.</span>
+      </div>
+
+      <div class="flex gap-3">
+        <button 
+          onclick="closeSuccessModal(); scrollToSection('rastreo');" 
+          class="flex-1 btn-rose-primary py-3 rounded-xl text-xs font-bold">
+          Ver Rastreo en Vivo
+        </button>
+        <button 
+          onclick="closeSuccessModal();" 
+          class="flex-1 btn-secondary-glow py-3 rounded-xl text-xs font-bold">
+          Seguir Comprando
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Scripts de Autenticación y Lógica Principal -->
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
