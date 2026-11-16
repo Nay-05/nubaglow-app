@@ -1,0 +1,33 @@
+# Entorno y secretos (nunca commitear)
+.env
+.env.*
+!.env.example
+*.local
+seed_passwords.txt
+seed_credentials.json
+
+# Dependencias y compilacion
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.next/
+**/.next/
+
+# Bases de datos locales
+*.sqlite
+*.sqlite3
+*.db
+
+# Carpetas previas / legacy (contienen credenciales quemadas en codigo y bases de datos locales)
+NubaGlow-Seguridad/
+proyecto_landing/
+proyecto_unido/
+
+# Archivos de sistema y logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
