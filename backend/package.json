@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "db:migrate": "ts-node src/db/migrar.ts",
-    "db:seed": "ts-node src/db/sembrar.ts"
+    "db:seed": "ts-node src/db/sembrar.ts",
+    "test:bloque-a": "ts-node src/tests/bloque_a.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
