@@ -10,7 +10,8 @@
     "db:migrate": "ts-node src/db/migrar.ts",
     "db:seed": "ts-node src/db/sembrar.ts",
     "test:bloque-a": "ts-node src/tests/bloque_a.test.ts",
-    "test:bloque-b": "ts-node src/tests/bloque_b.test.ts"
+    "test:bloque-b": "ts-node src/tests/bloque_b.test.ts",
+    "test:bloque-c": "ts-node src/tests/bloque_c.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

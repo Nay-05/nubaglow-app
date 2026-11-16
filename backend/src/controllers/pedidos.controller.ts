@@ -1,0 +1,50 @@
+/**
+ * ============================================================================
+ * NUBAGLOW APP - CONTROLADOR DE PEDIDOS Y CHECKOUT
+ * ============================================================================
+ */
+
+import { Request, Response, NextFunction } from 'express';
+import { pedidosService } from '../services/pedidos.service';
+
+export async function crearPedido(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const usuarioId = req.usuario!.id;
+    const pedido = await pedidosService.crearPedido(usuarioId, req.body);
+    res.status(201).json({
+      exito: true,
+      mensaje: 'Pedido confirmado exitosamente',
+      datos: { pedido }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listarMisPedidos(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const usuarioId = req.usuario!.id;
+    const pedidos = await pedidosService.listarMisPedidos(usuarioId);
+    res.status(200).json({
+      exito: true,
+      datos: { pedidos }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function obtenerDetallePedido(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pedidoId = Number(req.params.id);
+    const usuarioId = req.usuario!.id;
+    const rolUsuario = req.usuario!.rol;
+    const pedido = await pedidosService.obtenerDetalle(pedidoId, usuarioId, rolUsuario);
+    res.status(200).json({
+      exito: true,
+      datos: { pedido }
+    });
+  } catch (error) {
+    next(error);
+  }
+}

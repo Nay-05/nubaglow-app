@@ -11,6 +11,10 @@ import authRoutes from './auth.routes';
 import categoriasRoutes from './categorias.routes';
 import productosRoutes from './productos.routes';
 import variantesRoutes from './variantes.routes';
+import carritoRoutes from './carrito.routes';
+import pedidosRoutes from './pedidos.routes';
+import enviosRoutes from './envios.routes';
+import resenasRoutes from './resenas.routes';
 
 const apiRouter = Router();
 
@@ -24,5 +28,11 @@ apiRouter.use('/auth', authRoutes);
 apiRouter.use('/categorias', categoriasRoutes);
 apiRouter.use('/productos', productosRoutes);
 apiRouter.use('/variantes', variantesRoutes);
+
+// Modulo de compra: carrito, pedidos, envios y resenas
+apiRouter.use('/carrito', carritoRoutes);
+apiRouter.use('/pedidos', pedidosRoutes);
+apiRouter.use('/envios', enviosRoutes);
+apiRouter.use('/resenas', resenasRoutes);
 
 export default apiRouter;
