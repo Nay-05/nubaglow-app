@@ -63,6 +63,12 @@ async function ejecutarPruebas() {
   let productoTestId: number;
   let varianteTestId: number;
 
+  let nuevoOpId: number | undefined;
+  let userStaffAuditId: number | undefined;
+  let envioAuditId: number | undefined;
+  let pedidoAuditId: number | undefined;
+  let adminsEstadoOriginal: { id: number; activo: boolean }[] = [];
+
   try {
     // ------------------------------------------------------------------------
     // SETUP DE DATOS TEMPORALES
@@ -428,6 +434,13 @@ async function ejecutarPruebas() {
     );
 
     // Regla de proteccion: No se puede revocar rol ni desactivar al ultimo admin activo en la BD
+    // Guardamos el estado original exacto de todos los administradores existentes en la BD (sin correos fijos)
+    const resAdminsPrevios = await consultar(
+      "SELECT id, activo FROM usuarios WHERE rol = 'admin' AND id != $1",
+      [adminId]
+    );
+    adminsEstadoOriginal = resAdminsPrevios.rows;
+
     // Dejamos temporalmente a adminId como el UNICO administrador activo en el sistema
     await consultar("UPDATE usuarios SET activo = FALSE WHERE rol = 'admin' AND id != $1", [adminId]);
 
@@ -457,8 +470,10 @@ async function ejecutarPruebas() {
       'El unico administrador permanece activo y con rol admin en la BD'
     );
 
-    // Restauramos a los administradores del sistema (como admin@nubaglow.bo)
-    await consultar("UPDATE usuarios SET activo = TRUE WHERE email = 'admin@nubaglow.bo'");
+    // Restauramos de inmediato el estado original exacto de cada administrador existente
+    for (const adm of adminsEstadoOriginal) {
+      await consultar('UPDATE usuarios SET activo = $1 WHERE id = $2', [adm.activo, adm.id]);
+    }
 
     // Restablecer contrasena
     const resResetPass = await fetch(`${baseUrl}/api/usuarios/${nuevoOpId}/password`, {
@@ -614,7 +629,8 @@ async function ejecutarPruebas() {
         productoTestId,
         [adminId, vendedor1Id, vendedor2Id, operacionesId, clienteId, nuevoOpId, userStaffAuditId],
         envioAuditId,
-        pedidoAuditId
+        pedidoAuditId,
+        adminsEstadoOriginal
       );
       await cerrarPool();
       process.exit(fallos > 0 ? 1 : 0);
@@ -622,7 +638,13 @@ async function ejecutarPruebas() {
   } catch (error) {
     console.error('Error critico durante la ejecucion de la suite Bloque D:', error);
     server.close(async () => {
-      await limpiarDatosPrueba(productoTestId, [adminId, vendedor1Id, vendedor2Id, operacionesId, clienteId]);
+      await limpiarDatosPrueba(
+        productoTestId,
+        [adminId, vendedor1Id, vendedor2Id, operacionesId, clienteId, nuevoOpId, userStaffAuditId],
+        envioAuditId,
+        pedidoAuditId,
+        adminsEstadoOriginal
+      );
       await cerrarPool();
       process.exit(1);
     });
@@ -631,9 +653,10 @@ async function ejecutarPruebas() {
 
 async function limpiarDatosPrueba(
   prodId?: number,
-  userIds?: number[],
+  userIds?: (number | undefined)[],
   envioId?: number,
-  pedId?: number
+  pedId?: number,
+  adminsRestaurar?: { id: number; activo: boolean }[]
 ) {
   try {
     if (envioId) {
@@ -656,16 +679,26 @@ async function limpiarDatosPrueba(
     }
 
     if (userIds && userIds.length > 0) {
-      const ventas = await consultar('SELECT id FROM ventas_pos WHERE vendedor_id = ANY($1::int[])', [userIds]);
-      const vIds = ventas.rows.map((v) => v.id);
-      if (vIds.length > 0) {
-        await consultar('DELETE FROM facturas WHERE venta_pos_id = ANY($1::int[])', [vIds]);
-        await consultar('DELETE FROM ventas_pos WHERE id = ANY($1::int[])', [vIds]);
+      const idsValidos = userIds.filter((id) => id !== undefined && id !== null);
+      if (idsValidos.length > 0) {
+        const ventas = await consultar('SELECT id FROM ventas_pos WHERE vendedor_id = ANY($1::int[])', [idsValidos]);
+        const vIds = ventas.rows.map((v) => v.id);
+        if (vIds.length > 0) {
+          await consultar('DELETE FROM facturas WHERE venta_pos_id = ANY($1::int[])', [vIds]);
+          await consultar('DELETE FROM ventas_pos WHERE id = ANY($1::int[])', [vIds]);
+        }
+        await consultar('DELETE FROM movimientos_inventario WHERE usuario_id = ANY($1::int[])', [idsValidos]);
+        await consultar('DELETE FROM auditoria WHERE usuario_id = ANY($1::int[])', [idsValidos]);
+        await consultar('DELETE FROM usuarios WHERE id = ANY($1::int[])', [idsValidos]);
       }
-      await consultar('DELETE FROM auditoria WHERE usuario_id = ANY($1::int[])', [userIds]);
-      await consultar('DELETE FROM usuarios WHERE id = ANY($1::int[])', [userIds]);
     }
-    await consultar("UPDATE usuarios SET activo = TRUE WHERE email = 'admin@nubaglow.bo'");
+
+    // Restaurar estado exacto de administradores preexistentes sin asumir correos fijos
+    if (adminsRestaurar && adminsRestaurar.length > 0) {
+      for (const adm of adminsRestaurar) {
+        await consultar('UPDATE usuarios SET activo = $1 WHERE id = $2', [adm.activo, adm.id]);
+      }
+    }
   } catch (err) {
     console.error('Nota: error menor durante la limpieza de datos de prueba:', err);
   }
