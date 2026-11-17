@@ -147,6 +147,12 @@ export class AuthService {
       if (usuario.rol === 'cliente') {
         throw new AppError('Acceso denegado: esta cuenta de cliente no pertenece al personal interno', 403);
       }
+      // Registro obligatorio de auditoria para inicios de sesion del personal (CLAUDE.md Seccion 9)
+      await consultar(
+        `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, detalles)
+         VALUES ($1, 'LOGIN_STAFF', 'usuarios', $1, $2)`,
+        [usuario.id, JSON.stringify({ rol: usuario.rol, email: usuario.email })]
+      );
     } else {
       if (usuario.rol !== 'cliente') {
         throw new AppError('Esta cuenta corresponde al personal interno. Inicie sesion desde el portal de staff', 403);

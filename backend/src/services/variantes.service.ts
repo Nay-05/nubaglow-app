@@ -155,12 +155,29 @@ export class VariantesService {
       ]
     );
 
-    // Auditoria
+    // Auditoria general de actualizacion de variante
     await consultar(
       `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, detalles)
        VALUES ($1, 'ACTUALIZAR_VARIANTE', 'variantes', $2, $3)`,
       [usuarioId, id, JSON.stringify({ antes: actual, cambios: datos })]
     );
+
+    // Auditoria especifica para cambio de precio (CLAUDE.md Seccion 9)
+    if (datos.precio !== undefined && Number(datos.precio) !== Number(actual.precio)) {
+      await consultar(
+        `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, detalles)
+         VALUES ($1, 'CAMBIO_PRECIO', 'variantes', $2, $3)`,
+        [
+          usuarioId,
+          id,
+          JSON.stringify({
+            sku: actual.sku,
+            precioAnterior: Number(actual.precio),
+            precioNuevo: Number(datos.precio)
+          })
+        ]
+      );
+    }
 
     return {
       ...res.rows[0],
