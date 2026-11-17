@@ -11,6 +11,8 @@
     "test:bloque-a": "npm --prefix backend run test:bloque-a",
     "test:bloque-b": "npm --prefix backend run test:bloque-b",
     "test:bloque-c": "npm --prefix backend run test:bloque-c",
+    "test:bloque-d": "npm --prefix backend run test:bloque-d",
+    "test:todos": "npm run test:bloque-a && npm run test:bloque-b && npm run test:bloque-c && npm run test:bloque-d",
     "backend:install": "npm --prefix backend install"
   },
   "keywords": [
