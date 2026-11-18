@@ -9,9 +9,11 @@
 import express, { Application } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
 import apiRouter from './routes';
 import { proteccionCsrf } from './middlewares/csrf';
 import { AppError, manejadorErrores, rutaNoEncontrada } from './middlewares/errores';
@@ -23,6 +25,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '..', '.env') });
 
 const app: Application = express();
 const PUERTO = Number(process.env.PORT) || 4000;
+const rutaFrontend = path.resolve(__dirname, '..', '..');
 
 // Lista blanca de origenes CORS configurable por variable de entorno
 const origenesConfigurados = [
@@ -37,7 +40,20 @@ const origenesConfigurados = [
 // 2. Middlewares de proteccion HTTP y cabeceras de seguridad con Helmet (CLAUDE.md Seccion 9)
 app.use(
   helmet({
-    contentSecurityPolicy: false, // Permite carga de assets y estilos del SPA vanilla
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"], // Scripts solo propios (sin inline)
+        styleSrc: ["'self'", 'https://fonts.googleapis.com'], // Estilos solo propios y Google Fonts (sin inline)
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'], // Fuentes de Google Fonts
+        imgSrc: ["'self'", 'data:'], // Imagenes propias y data:
+        connectSrc: ["'self'"], // Comunicacion fetch con la API
+        frameAncestors: ["'none'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"]
+      }
+    },
     crossOriginEmbedderPolicy: false,
     frameguard: { action: 'deny' }, // Anti clickjacking
     hidePoweredBy: true, // Ocultar X-Powered-By
@@ -70,10 +86,87 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser());
 app.use(proteccionCsrf);
 
-// 5. Montar rutas principales de la API (/api)
+// 5. Servir estaticos del frontend (css, js, assets, favicon)
+app.use('/css', express.static(path.join(rutaFrontend, 'css')));
+app.use('/js', express.static(path.join(rutaFrontend, 'js')));
+app.use('/assets', express.static(path.join(rutaFrontend, 'assets')));
+app.get('/favicon.ico', (_req, res) => {
+  res.sendFile(path.join(rutaFrontend, 'assets', 'brand', 'icono1.png'));
+});
+
+// 6. Montar rutas principales de la API (/api)
 app.use('/api', apiRouter);
 
-// 6. Manejo de rutas no encontradas (404) y manejo centralizado de errores
+// Asegurar que rutas no encontradas en /api/* devuelvan error 404 JSON estructurado
+app.use('/api', rutaNoEncontrada);
+
+// 7. Proteccion server-side de rutas internas del personal (/staff/*)
+// Si la peticion no trae sesion valida de personal, redirige a /staff/login.
+// Si es un cliente, redirige a / (CLAUDE.md Seccion 3).
+app.get(/^\/staff(?:\/.*)?$/, (req, res, next) => {
+  // /staff/login es de libre acceso para renderizar el formulario de autenticacion
+  if (req.path === '/staff/login' || req.path === '/staff/login/') {
+    return next();
+  }
+
+  // Verificar si hay sesion valida mediante cookie access_token o refresh_token
+  const token = req.cookies?.access_token || req.cookies?.token;
+  const refreshToken = req.cookies?.refresh_token;
+  const jwtSecret = process.env.JWT_SECRET;
+  const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+
+  let usuarioValido: any = null;
+
+  if (token && jwtSecret) {
+    try {
+      usuarioValido = jwt.verify(token, jwtSecret);
+    } catch {
+      // Si el access_token expiro, comprobar si existe un refresh_token valido
+      if (refreshToken && jwtRefreshSecret) {
+        try {
+          usuarioValido = jwt.verify(refreshToken, jwtRefreshSecret);
+        } catch {
+          usuarioValido = null;
+        }
+      }
+    }
+  } else if (refreshToken && jwtRefreshSecret) {
+    try {
+      usuarioValido = jwt.verify(refreshToken, jwtRefreshSecret);
+    } catch {
+      usuarioValido = null;
+    }
+  }
+
+  // 1. Si no hay sesion valida o la cuenta esta inactiva: redirigir al login de staff
+  if (!usuarioValido || usuarioValido.activo === false) {
+    return res.redirect('/staff/login');
+  }
+
+  // 2. Si el usuario autenticado tiene rol 'cliente': denegar y redirigir a la tienda publica
+  if (usuarioValido.rol === 'cliente') {
+    return res.redirect('/');
+  }
+
+  // 3. Es miembro autorizado del personal ('admin', 'operaciones', 'vendedor'): permitir servir la SPA
+  return next();
+});
+
+// 8. Fallback SPA para la navegacion en frontend (devuelve index.html para que F5 no de 404)
+app.get('*', (req, res, next) => {
+  // Las rutas de API ya fueron procesadas; si llegara alguna aqui, pasar al 404
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+
+  const archivoIndex = path.join(rutaFrontend, 'index.html');
+  if (fs.existsSync(archivoIndex)) {
+    return res.sendFile(archivoIndex);
+  }
+  return next();
+});
+
+// 9. Manejo de rutas no encontradas (404) y manejo centralizado de errores
 app.use(rutaNoEncontrada);
 app.use(manejadorErrores);
 

@@ -1,0 +1,123 @@
+/**
+ * ============================================================================
+ * NUBAGLOW APP - SISTEMA DE DISENO Y ESTILOS BASE (CLAUDE.md Seccion 6)
+ * ============================================================================
+ */
+
+:root {
+  /* Paleta oficial de marca */
+  --color-silver: #cebebe;
+  --color-sand-dune: #ece2d0;
+  --color-almond-silk: #d5b9b2;
+  --color-smoky-rose: #a26769;
+  --color-wine-plum: #6d2e46;
+  --color-ivory: #faf8f5;
+  --color-charcoal: #2b2124;
+  --color-white: #ffffff;
+  --color-border: rgba(43, 33, 36, 0.12);
+  --color-error: #a26769;
+  --color-success: #4a7c59;
+
+  /* Pareja tipografica oficial */
+  --font-heading: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Espaciados y medidas */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --btn-height: 38px;
+  --sidebar-width: 250px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-ivory);
+  color: var(--color-charcoal);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-wine-plum);
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--color-wine-plum);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-smoky-rose);
+}
+
+button {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  height: var(--btn-height);
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--color-wine-plum);
+  color: var(--color-white);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #582437;
+}
+
+.btn-secondary {
+  background-color: var(--color-sand-dune);
+  color: var(--color-charcoal);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-almond-silk);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border-color: var(--color-wine-plum);
+  color: var(--color-wine-plum);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--color-sand-dune);
+}
+
+/* Iconos SVG inline */
+.icon-svg {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.5px;
+  stroke: currentColor;
+  fill: none;
+  vertical-align: middle;
+}
