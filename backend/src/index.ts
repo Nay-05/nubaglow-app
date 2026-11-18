@@ -31,6 +31,10 @@ const rutaFrontend = path.resolve(__dirname, '..', '..');
 const origenesConfigurados = [
   process.env.FRONTEND_URL,
   process.env.CLIENT_URL,
+  `http://localhost:${PUERTO}`,
+  `http://127.0.0.1:${PUERTO}`,
+  'http://localhost:4000',
+  'http://127.0.0.1:4000',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'http://localhost:5173',
@@ -64,19 +68,25 @@ app.use(
 );
 
 // 3. Configuracion segura de CORS con lista blanca y soporte de credenciales
+// Permite solicitudes del mismo origen (host del servidor), lista blanca configurada y llamadas locales
 app.use(
-  cors({
-    origin: (origen, callback) => {
-      // Permitir peticiones sin origen (como Postman, mobile o curl) o que coincidan con la lista blanca
-      if (!origen || origenesConfigurados.includes(origen)) {
-        callback(null, true);
-      } else {
-        callback(new AppError(`Origen no permitido por politica CORS: ${origen}`, 403));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
+  cors((req, callback) => {
+    const origen = req.headers.origin;
+    const host = req.headers.host;
+    const esMismoOrigen = Boolean(
+      origen && host && (origen === `http://${host}` || origen === `https://${host}`)
+    );
+
+    if (!origen || esMismoOrigen || origenesConfigurados.includes(origen)) {
+      callback(null, {
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
+      });
+    } else {
+      callback(new AppError(`Origen no permitido por politica CORS: ${origen}`, 403));
+    }
   })
 );
 

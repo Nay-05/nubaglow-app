@@ -33,9 +33,20 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
   const origin = req.headers['origin'];
   const referer = req.headers['referer'];
 
+  const host = req.headers['host'];
+  const esMismoHost = (urlStr: string) => {
+    if (!host) return false;
+    return urlStr.toLowerCase() === `http://${host}`.toLowerCase() ||
+           urlStr.toLowerCase() === `https://${host}`.toLowerCase();
+  };
+
   const origenesPermitidos = [
     process.env.FRONTEND_URL,
     process.env.CLIENT_URL,
+    `http://localhost:${process.env.PORT || 4000}`,
+    `http://127.0.0.1:${process.env.PORT || 4000}`,
+    'http://localhost:4000',
+    'http://127.0.0.1:4000',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
@@ -44,7 +55,7 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
 
   // Validar Origin
   if (origin) {
-    const esValido = origenesPermitidos.some(
+    const esValido = esMismoHost(origin) || origenesPermitidos.some(
       (permitido) => origin.toLowerCase() === permitido.toLowerCase()
     );
     if (!esValido) {
@@ -60,7 +71,11 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
 
   // Validar Referer si Origin no esta presente
   if (referer) {
-    const esValido = origenesPermitidos.some((permitido) =>
+    const esMismoHostReferer = host && (
+      referer.toLowerCase().startsWith(`http://${host}`.toLowerCase()) ||
+      referer.toLowerCase().startsWith(`https://${host}`.toLowerCase())
+    );
+    const esValido = esMismoHostReferer || origenesPermitidos.some((permitido) =>
       referer.toLowerCase().startsWith(permitido.toLowerCase())
     );
     if (!esValido) {
