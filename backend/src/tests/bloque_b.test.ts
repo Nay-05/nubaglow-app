@@ -148,6 +148,32 @@ async function ejecutarPruebas() {
     asegurar(cookieCabecera.includes('access_token'), 'Se fija cookie access_token HttpOnly en respuesta');
     asegurar(cookieCabecera.includes('refresh_token'), 'Se fija cookie refresh_token HttpOnly en respuesta');
 
+    // Endpoint de arranque: /api/auth/sesion nunca responde 401 sin sesion
+    const resSesionAnonima = await fetch(`${baseUrl}/api/auth/sesion`);
+    const dataSesionAnonima = (await resSesionAnonima.json()) as any;
+    asegurar(
+      resSesionAnonima.status === 200,
+      'GET /api/auth/sesion sin sesion responde 200 (sin 401 en consola)'
+    );
+    asegurar(
+      dataSesionAnonima.exito === true && dataSesionAnonima.datos?.usuario === null,
+      'Endpoint de sesion devuelve usuario null cuando no hay cookies'
+    );
+    asegurar(
+      !resSesionAnonima.headers.get('set-cookie'),
+      'Endpoint de sesion anonimo no emite cookies'
+    );
+
+    const resSesionConAccess = await fetch(`${baseUrl}/api/auth/sesion`, {
+      headers: { Authorization: `Bearer ${dataLoginCliente.datos.accessToken}` }
+    });
+    const dataSesionConAccess = (await resSesionConAccess.json()) as any;
+    asegurar(
+      resSesionConAccess.status === 200 &&
+        dataSesionConAccess.datos?.usuario?.email === emailClientePrueba,
+      'Endpoint de sesion devuelve el usuario con un access token valido'
+    );
+
     // ------------------------------------------------------------------------
     // 3. SEGREGACION DE PORTALES (Cliente en Staff y Staff en Cliente)
     // ------------------------------------------------------------------------
@@ -221,6 +247,27 @@ async function ejecutarPruebas() {
       { id: tokenClienteDecod.id },
       JWT_REFRESH_SECRET,
       { expiresIn: '7d' }
+    );
+
+    // Con access expirado pero refresh valido, /sesion recupera al usuario
+    const resSesionRefresh = await fetch(`${baseUrl}/api/auth/sesion`, {
+      headers: { Cookie: `refresh_token=${refreshTokenValido}` }
+    });
+    const dataSesionRefresh = (await resSesionRefresh.json()) as any;
+    asegurar(
+      resSesionRefresh.status === 200 &&
+        dataSesionRefresh.datos?.usuario?.id === tokenClienteDecod.id,
+      'Endpoint de sesion recupera al usuario con refresh token valido'
+    );
+
+    const resSesionRefreshInvalido = await fetch(`${baseUrl}/api/auth/sesion`, {
+      headers: { Cookie: 'refresh_token=token_invalido' }
+    });
+    const dataSesionRefreshInvalido = (await resSesionRefreshInvalido.json()) as any;
+    asegurar(
+      resSesionRefreshInvalido.status === 200 &&
+        dataSesionRefreshInvalido.datos?.usuario === null,
+      'Endpoint de sesion con refresh invalido responde 200 con usuario null'
     );
 
     // Renovacion exitosa

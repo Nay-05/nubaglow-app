@@ -50,8 +50,10 @@ definirManejadorSesionExpirada(() => {
 
 export async function cargarPerfil() {
   try {
-    const respuesta = await api.obtener('/auth/perfil', { sinRenovacion: false });
-    usuarioActual = respuesta.datos.usuario;
+    // /auth/sesion responde siempre 200 (usuario null si no hay sesion), asi
+    // el arranque no dispara refresh ni ensucia la consola con 401.
+    const respuesta = await api.obtener('/auth/sesion', { sinRenovacion: true });
+    usuarioActual = respuesta.datos.usuario || null;
   } catch {
     usuarioActual = null;
   }

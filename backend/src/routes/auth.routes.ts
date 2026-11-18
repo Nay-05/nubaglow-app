@@ -11,10 +11,11 @@ import {
   loginStaff,
   refrescarSesion,
   logout,
-  obtenerPerfil
+  obtenerPerfil,
+  obtenerSesionActual
 } from '../controllers/auth.controller';
 import { validar } from '../middlewares/validar';
-import { verificarToken } from '../middlewares/autenticacion';
+import { verificarToken, autenticacionOpcional } from '../middlewares/autenticacion';
 import { limitadorLogin, limitadorRegistro } from '../middlewares/seguridad';
 import { registroSchema, loginSchema, refreshSchema } from '../schemas/auth.schema';
 
@@ -35,6 +36,10 @@ router.post('/refresh', validar({ body: refreshSchema }), refrescarSesion);
 
 // Cierre de sesion
 router.post('/logout', logout);
+
+// Estado de sesion para el arranque de la SPA (siempre 200, usuario puede ser null)
+router.get('/sesion', autenticacionOpcional, obtenerSesionActual);
+router.get('/session', autenticacionOpcional, obtenerSesionActual);
 
 // Perfil del usuario autenticado
 router.get('/perfil', verificarToken, obtenerPerfil);

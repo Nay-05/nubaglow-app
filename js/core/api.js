@@ -20,7 +20,9 @@ const RUTAS_SIN_RENOVACION = new Set([
   '/auth/register',
   '/auth/registro',
   '/auth/refresh',
-  '/auth/logout'
+  '/auth/logout',
+  '/auth/sesion',
+  '/auth/session'
 ]);
 
 export class ErrorApi extends Error {

@@ -142,6 +142,39 @@ export async function logout(_req: Request, res: Response): Promise<void> {
 }
 
 /**
+ * Estado de la sesion para el arranque de la SPA.
+ * Nunca responde 401: si no hay sesion devuelve 200 con usuario = null para
+ * evitar errores rojos en la consola del navegador. Si el access token ya
+ * expiro pero el refresh token sigue siendo valido, recupera el usuario sin
+ * emitir cookies nuevas (la renovacion real ocurre ante un 401 protegido).
+ */
+export async function obtenerSesionActual(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    let usuario = req.usuario || null;
+
+    if (!usuario && req.cookies?.refresh_token) {
+      try {
+        const renovada = await authService.refrescarToken(req.cookies.refresh_token);
+        usuario = renovada.usuario;
+      } catch {
+        usuario = null;
+      }
+    }
+
+    res.status(200).json({
+      exito: true,
+      datos: { usuario }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * Perfil del usuario autenticado
  */
 export async function obtenerPerfil(req: Request, res: Response, next: NextFunction): Promise<void> {
