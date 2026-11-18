@@ -169,6 +169,13 @@ app.get('*', (req, res, next) => {
     return next();
   }
 
+  // Si la ruta pide un archivo con extension (js, css, png, svg, ico, map, etc.)
+  // NO se debe devolver index.html: seria un 404 disfrazado de HTML y el navegador
+  // fallaria con "Expected a JavaScript module script but server responded text/html".
+  if (/\/[^/]+\.[a-z0-9]+$/i.test(req.path)) {
+    return next();
+  }
+
   const archivoIndex = path.join(rutaFrontend, 'index.html');
   if (fs.existsSync(archivoIndex)) {
     return res.sendFile(archivoIndex);

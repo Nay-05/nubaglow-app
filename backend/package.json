@@ -13,7 +13,8 @@
     "test:bloque-b": "ts-node src/tests/bloque_b.test.ts",
     "test:bloque-c": "ts-node src/tests/bloque_c.test.ts",
     "test:bloque-d": "ts-node src/tests/bloque_d.test.ts",
-    "test:seguridad": "ts-node src/tests/seguridad.test.ts"
+    "test:seguridad": "ts-node src/tests/seguridad.test.ts",
+    "test:frontend": "ts-node src/tests/frontend.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
