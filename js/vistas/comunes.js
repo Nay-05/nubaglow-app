@@ -168,7 +168,9 @@ export function imagenProducto(url, alt) {
   const esRelativaSegura =
     typeof url === 'string' &&
     (url.startsWith('/') && !url.startsWith('//') || url.startsWith('assets/'));
-  const fuente = esRelativaSegura ? url : '/assets/brand/icono1.png';
+  const fuente = esRelativaSegura
+    ? (url.startsWith('assets/') ? `/${url}` : url)
+    : '/assets/brand/icono1.png';
 
   return el('img', { clase: 'imagen-producto', src: fuente, alt: alt || 'Producto NubaGlow' });
 }
