@@ -134,6 +134,9 @@ export class ProductosService {
       case 'nombre_desc':
         clausulaOrden = 'ORDER BY nombre DESC';
         break;
+      case 'mejor_valorados':
+        clausulaOrden = 'ORDER BY "promedioCalificacion" DESC, "totalResenas" DESC, creado_en DESC';
+        break;
       case 'recientes':
       default:
         clausulaOrden = 'ORDER BY creado_en DESC';

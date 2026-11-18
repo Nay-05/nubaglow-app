@@ -43,7 +43,14 @@ export const consultaProductosSchema = z.object({
   precio_max: z.coerce.number().min(0, 'El precio maximo no puede ser negativo').optional(),
   buscar: z.string().trim().optional(),
   orden: z
-    .enum(['precio_asc', 'precio_desc', 'nombre_asc', 'nombre_desc', 'recientes'])
+    .enum([
+      'precio_asc',
+      'precio_desc',
+      'nombre_asc',
+      'nombre_desc',
+      'recientes',
+      'mejor_valorados'
+    ])
     .default('recientes')
     .optional(),
   pagina: z.coerce.number().int().min(1, 'La pagina debe ser mayor o igual a 1').default(1).optional(),
