@@ -24,25 +24,26 @@ import {
   actualizarProductoSchema,
   crearVarianteSchema
 } from '../schemas/catalogo.schema';
+import { idParamSchema, slugParamSchema, productoIdParamSchema } from '../schemas/comun.schema';
 
 const router = Router();
 
 // Rutas publicas de catalogo
 router.get('/', validar({ query: consultaProductosSchema }), listarProductos);
-router.get('/:slug', obtenerProductoPorSlug);
+router.get('/:slug', validar({ params: slugParamSchema }), obtenerProductoPorSlug);
 
 // Rutas administrativas (solo admin)
 router.post('/', verificarToken, requerirRol('admin'), validar({ body: crearProductoSchema }), crearProducto);
-router.put('/:id', verificarToken, requerirRol('admin'), validar({ body: actualizarProductoSchema }), actualizarProducto);
-router.delete('/:id', verificarToken, requerirRol('admin'), eliminarProducto);
+router.put('/:id', verificarToken, requerirRol('admin'), validar({ params: idParamSchema, body: actualizarProductoSchema }), actualizarProducto);
+router.delete('/:id', verificarToken, requerirRol('admin'), validar({ params: idParamSchema }), eliminarProducto);
 
 // Variantes anidadas al producto
-router.get('/:productoId/variantes', listarVariantesPorProducto);
+router.get('/:productoId/variantes', validar({ params: productoIdParamSchema }), listarVariantesPorProducto);
 router.post(
   '/:productoId/variantes',
   verificarToken,
   requerirRol('admin'),
-  validar({ body: crearVarianteSchema }),
+  validar({ params: productoIdParamSchema, body: crearVarianteSchema }),
   crearVariante
 );
 

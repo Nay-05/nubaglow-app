@@ -13,6 +13,7 @@ import {
 import { validar } from '../middlewares/validar';
 import { verificarToken, requerirRol } from '../middlewares/autenticacion';
 import { crearPedidoSchema } from '../schemas/compra.schema';
+import { idParamSchema } from '../schemas/comun.schema';
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.post('/', verificarToken, requerirRol('cliente'), validar({ body: crearPe
 router.get('/', verificarToken, listarMisPedidos);
 router.get('/mis-pedidos', verificarToken, listarMisPedidos);
 
-// Obtener detalle de pedido por ID
-router.get('/:id', verificarToken, obtenerDetallePedido);
+// Obtener detalle de pedido por ID (validando param id)
+router.get('/:id', verificarToken, validar({ params: idParamSchema }), obtenerDetallePedido);
 
 export default router;
