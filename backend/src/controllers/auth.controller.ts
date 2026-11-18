@@ -12,20 +12,20 @@ import { authService } from '../services/auth.service';
 const esProduccion = process.env.NODE_ENV === 'production';
 
 function fijarCookiesAutenticacion(res: Response, accessToken: string, refreshToken?: string): void {
-  // Cookie de acceso (15 minutos)
+  // Cookie de acceso (15 minutos) con HttpOnly, Secure en produccion y SameSite: strict
   res.cookie('access_token', accessToken, {
     httpOnly: true,
     secure: esProduccion,
-    sameSite: 'lax',
+    sameSite: 'strict',
     maxAge: 15 * 60 * 1000
   });
 
-  // Cookie de actualizacion (7 dias)
+  // Cookie de actualizacion (7 dias) con HttpOnly, Secure en produccion y SameSite: strict
   if (refreshToken) {
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
       secure: esProduccion,
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
   }
@@ -35,12 +35,12 @@ function limpiarCookiesAutenticacion(res: Response): void {
   res.clearCookie('access_token', {
     httpOnly: true,
     secure: esProduccion,
-    sameSite: 'lax'
+    sameSite: 'strict'
   });
   res.clearCookie('refresh_token', {
     httpOnly: true,
     secure: esProduccion,
-    sameSite: 'lax'
+    sameSite: 'strict'
   });
 }
 

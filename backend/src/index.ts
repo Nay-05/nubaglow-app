@@ -13,6 +13,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import apiRouter from './routes';
+import { proteccionCsrf } from './middlewares/csrf';
 import { manejadorErrores, rutaNoEncontrada } from './middlewares/errores';
 import { cerrarPool } from './db';
 
@@ -22,22 +23,36 @@ dotenv.config({ path: path.resolve(process.cwd(), '..', '.env') });
 
 const app: Application = express();
 const PUERTO = Number(process.env.PORT) || 4000;
-const FRONTEND_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// 2. Middlewares de proteccion HTTP y cabeceras de seguridad (CLAUDE.md Seccion 9)
+// Lista blanca de origenes CORS configurable por variable de entorno
+const origenesConfigurados = [
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+].filter(Boolean) as string[];
+
+// 2. Middlewares de proteccion HTTP y cabeceras de seguridad con Helmet (CLAUDE.md Seccion 9)
 app.use(
   helmet({
-    contentSecurityPolicy: false, // Permite compatibilidad con frontend vanilla
-    crossOriginEmbedderPolicy: false
+    contentSecurityPolicy: false, // Permite carga de assets y estilos del SPA vanilla
+    crossOriginEmbedderPolicy: false,
+    frameguard: { action: 'deny' }, // Anti clickjacking
+    hidePoweredBy: true, // Ocultar X-Powered-By
+    hsts: { maxAge: 31536000, includeSubDomains: true }, // Forzar HTTPS en produccion
+    noSniff: true, // X-Content-Type-Options: nosniff
+    xssFilter: true // X-XSS-Protection
   })
 );
 
-// 3. Configuracion segura de CORS con soporte de credenciales (cookies HttpOnly)
+// 3. Configuracion segura de CORS con lista blanca y soporte de credenciales
 app.use(
   cors({
     origin: (origen, callback) => {
-      // Permitir solicitudes sin origen (como Postman o curl) o que coincidan con la URL permitida
-      if (!origen || origen === FRONTEND_ORIGIN || origen === 'http://localhost:3000' || origen === 'http://127.0.0.1:3000') {
+      // Permitir peticiones sin origen (como Postman, mobile o curl) o que coincidan con la lista blanca
+      if (!origen || origenesConfigurados.includes(origen)) {
         callback(null, true);
       } else {
         callback(new Error(`Origen no permitido por politica CORS: ${origen}`));
@@ -45,14 +60,15 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
   })
 );
 
-// 4. Procesamiento de cuerpo y cookies
+// 4. Procesamiento de cuerpo, cookies y proteccion CSRF
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser());
+app.use(proteccionCsrf);
 
 // 5. Montar rutas principales de la API (/api)
 app.use('/api', apiRouter);
@@ -71,7 +87,7 @@ if (require.main === module && process.env.NODE_ENV !== 'test') {
     console.log(`Puerto: ${PUERTO}`);
     console.log(`Entorno: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Endpoint de salud: http://localhost:${PUERTO}/api/salud`);
-    console.log(`Frontend permitido: ${FRONTEND_ORIGIN}`);
+    console.log(`Frontends permitidos (CORS): ${origenesConfigurados.join(', ')}`);
     console.log('============================================================');
   });
 
