@@ -21,27 +21,27 @@ export const vistaLogin = {
     const seccion = el(
       'section',
       { clase: 'formulario-auth' },
-      el('h2', { clase: 'formulario-titulo', texto: 'Iniciar sesion' }),
+      el('h2', { clase: 'formulario-titulo', texto: 'Iniciar sesión' }),
       el('p', {
         clase: 'texto-suave',
-        texto: 'Accede para gestionar tu carrito, tus pedidos y tus resenas verificadas.'
+        texto: 'Accede para gestionar tu carrito, tus pedidos y tus reseñas verificadas.'
       })
     );
 
     const mensajes = el('div', { clase: 'mensajes' });
     const campoEmail = campo({
-      etiqueta: 'Correo electronico',
+      etiqueta: 'Correo electrónico',
       nombre: 'email',
       tipo: 'email',
       autocomplete: 'email',
       placeholder: 'nombre@correo.com'
     });
     const campoPassword = campo({
-      etiqueta: 'Contrasena',
+      etiqueta: 'Contraseña',
       nombre: 'password',
       tipo: 'password',
       autocomplete: 'current-password',
-      placeholder: 'Tu contrasena'
+      placeholder: 'Tu contraseña'
     });
 
     const botonIngresar = boton('Ingresar', { variante: 'primary' });
@@ -72,8 +72,8 @@ export const vistaLogin = {
         mensajes.appendChild(
           alerta(
             error.estado === 401
-              ? 'Correo o contrasena incorrectos. Verifica tus datos.'
-              : error.message || 'No se pudo iniciar sesion. Intenta nuevamente.'
+              ? 'Correo o contraseña incorrectos. Verifica tus datos.'
+              : error.message || 'No se pudo iniciar sesión. Intenta nuevamente.'
           )
         );
         botonIngresar.disabled = false;

@@ -19,14 +19,14 @@ export const vistaCuenta = {
     if (!usuario) {
       seccion.append(
         encabezadoPagina('Mi cuenta'),
-        alerta('Necesitas iniciar sesion para ver tu cuenta.'),
-        enlaceInterno('/login', 'Iniciar sesion', { clase: 'btn btn-primary' })
+        alerta('Necesitas iniciar sesión para ver tu cuenta.'),
+        enlaceInterno('/login', 'Iniciar sesión', { clase: 'btn btn-primary' })
       );
       return seccion;
     }
 
     seccion.appendChild(
-      encabezadoPagina('Mi cuenta', 'Datos de tu sesion actual en NubaGlow.')
+      encabezadoPagina('Mi cuenta', 'Datos de tu sesión actual en NubaGlow.')
     );
 
     seccion.appendChild(
@@ -67,7 +67,7 @@ export const vistaCuenta = {
                 }
               }
             },
-            el('span', { texto: 'Cerrar sesion' })
+            el('span', { texto: 'Cerrar sesión' })
           )
         )
       )

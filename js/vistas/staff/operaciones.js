@@ -11,7 +11,7 @@ export const vistaOperaciones = {
     return vistaEnConstruccion({
       titulo: 'Operaciones',
       descripcion:
-        'Modulo unificado de almacen y logistica: inventario por variante y cola de despachos con seguimiento.',
+        'Módulo unificado de almacén y logística: inventario por variante y cola de despachos con seguimiento.',
       fase: 9,
       puntos: [
         'Alertas de stock bajo y registro de ingresos o ajustes con motivo y responsable.',

@@ -111,7 +111,7 @@ export function vistaEnConstruccion({ titulo, descripcion, fase, puntos = [] }) 
     el(
       'div',
       { clase: 'panel-nota' },
-      el('h2', { clase: 'panel-nota-titulo', texto: 'Modulo en construccion' }),
+      el('h2', { clase: 'panel-nota-titulo', texto: 'Módulo en construcción' }),
       el('p', {
         texto: `Esta vista forma parte de la Fase ${fase} del plan del proyecto. En la Fase 4 queda habilitada la navegacion, el layout y los permisos por rol.`
       }),
@@ -123,7 +123,7 @@ export function vistaEnConstruccion({ titulo, descripcion, fase, puntos = [] }) 
           )
         : null
     ),
-    enlaceInterno('/catalogo', 'Ir al catalogo publico', { clase: 'btn btn-outline' })
+    enlaceInterno('/catalogo', 'Ir al catálogo público', { clase: 'btn btn-outline' })
   );
 }
 

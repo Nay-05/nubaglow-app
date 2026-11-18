@@ -34,7 +34,7 @@ export const vistaDashboard = {
       { clase: 'pagina' },
       encabezadoPagina(
         `Hola, ${usuario?.nombre || 'equipo'}`,
-        `Sesion activa como ${ETIQUETA_ROL[rol] || rol}. Elige un modulo para trabajar.`
+        `Sesión activa como ${ETIQUETA_ROL[rol] || rol}. Elige un módulo para trabajar.`
       ),
       el(
         'div',
@@ -47,7 +47,7 @@ export const vistaDashboard = {
         el('h2', { clase: 'panel-nota-titulo', texto: 'Seguridad del portal' }),
         el('p', {
           texto:
-            'El sidebar solo muestra los modulos permitidos para tu rol, pero cada accion se valida otra vez en el servidor con JWT, RBAC y proteccion CSRF.'
+            'El sidebar solo muestra los módulos permitidos para tu rol, pero cada acción se valida otra vez en el servidor con JWT, RBAC y protección CSRF.'
         })
       )
     );

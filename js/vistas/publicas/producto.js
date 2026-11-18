@@ -30,7 +30,7 @@ function bloqueDetalle(titulo, contenido) {
 export const vistaProducto = {
   async render({ params }) {
     const seccion = el('section', { clase: 'pagina' });
-    seccion.appendChild(enlaceInterno('/catalogo', 'Volver al catalogo', { nombreIcono: 'flecha' }));
+    seccion.appendChild(enlaceInterno('/catalogo', 'Volver al catálogo', { nombreIcono: 'flecha' }));
 
     try {
       const respuesta = await api.obtener(`/productos/${encodeURIComponent(params.slug || '')}`);
@@ -69,7 +69,7 @@ export const vistaProducto = {
           }),
           el('span', {
             clase: resenas > 0 ? 'tarjeta-resenas' : 'etiqueta-agotado',
-            texto: resenas > 0 ? `${promedio} / 5 (${resenas} resenas)` : 'Sin resenas verificadas'
+            texto: resenas > 0 ? `${promedio} / 5 (${resenas} reseñas)` : 'Sin reseñas verificadas'
           })
         ),
         el('p', {
@@ -79,7 +79,7 @@ export const vistaProducto = {
               ? `Disponibilidad total: ${producto.stockTotal} unidades`
               : 'Producto agotado por el momento'
         }),
-        bloqueDetalle('Descripcion', producto.descripcion),
+        bloqueDetalle('Descripción', producto.descripcion),
         bloqueDetalle('Ingredientes clave', producto.ingredientes),
         bloqueDetalle('Modo de uso', producto.modoUso)
       );
@@ -93,7 +93,7 @@ export const vistaProducto = {
           el('h2', { clase: 'bloque-detalle-titulo', texto: 'Variantes disponibles' }),
           variantes.length
             ? tabla(
-                ['Presentacion', 'SKU', 'Precio', 'Stock'],
+                ['Presentación', 'SKU', 'Precio', 'Stock'],
                 variantes.map((variante) => [
                   variante.nombre,
                   variante.sku,
@@ -108,11 +108,11 @@ export const vistaProducto = {
       seccion.appendChild(
         alerta(
           error.estado === 404
-            ? 'El producto solicitado no existe o ya no esta disponible.'
+            ? 'El producto solicitado no existe o ya no está disponible.'
             : error.message || 'No se pudo cargar la ficha del producto.'
         )
       );
-      seccion.appendChild(enlaceInterno('/catalogo', 'Ir al catalogo', { clase: 'btn btn-outline' }));
+      seccion.appendChild(enlaceInterno('/catalogo', 'Ir al catálogo', { clase: 'btn btn-outline' }));
     }
 
     return seccion;

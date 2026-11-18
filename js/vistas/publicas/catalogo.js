@@ -61,7 +61,7 @@ function tarjetaProducto(producto) {
         }),
         el('span', {
           clase: 'tarjeta-resenas',
-          texto: resenas > 0 ? `${promedio} / 5 (${resenas})` : 'Sin resenas'
+          texto: resenas > 0 ? `${promedio} / 5 (${resenas})` : 'Sin reseñas'
         })
       )
     )
@@ -76,8 +76,8 @@ export const vistaCatalogo = {
     const seccion = el('section', { clase: 'pagina' });
     seccion.appendChild(
       encabezadoPagina(
-        'Catalogo',
-        'Skincare y maquillaje con informacion clara de variantes, precios y disponibilidad.'
+        'Catálogo',
+        'Skincare y maquillaje con información clara de variantes, precios y disponibilidad.'
       )
     );
 
@@ -112,7 +112,7 @@ export const vistaCatalogo = {
       router.navegar(`/catalogo${sufijo ? `?${sufijo}` : ''}`);
     });
 
-    const filtros = el('div', { clase: 'chips', atributos: { 'aria-label': 'Filtros por categoria' } });
+    const filtros = el('div', { clase: 'chips', atributos: { 'aria-label': 'Filtros por categoría' } });
     const mensajes = el('div', { clase: 'mensajes' });
     const grilla = el('div', { clase: 'grilla-productos' });
 
@@ -150,14 +150,14 @@ export const vistaCatalogo = {
 
       if (productos.length === 0) {
         grilla.appendChild(
-          estadoVacio('No encontramos productos con esos criterios. Prueba otra busqueda.')
+          estadoVacio('No encontramos productos con esos criterios. Prueba otra búsqueda.')
         );
       } else {
         grilla.append(...productos.map(tarjetaProducto));
       }
     } catch (error) {
       mensajes.appendChild(
-        alerta(error.message || 'No se pudo cargar el catalogo. Intenta nuevamente.')
+        alerta(error.message || 'No se pudo cargar el catálogo. Intenta nuevamente.')
       );
     }
 

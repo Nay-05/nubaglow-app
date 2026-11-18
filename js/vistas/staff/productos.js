@@ -9,14 +9,14 @@ import { vistaEnConstruccion } from '../comunes.js';
 export const vistaProductos = {
   async render() {
     return vistaEnConstruccion({
-      titulo: 'Gestion de productos',
+      titulo: 'Gestión de productos',
       descripcion:
-        'CRUD del catalogo con variantes, precios e imagenes. Exclusivo del rol administrador.',
+        'CRUD del catálogo con variantes, precios e imágenes. Exclusivo del rol administrador.',
       fase: 10,
       puntos: [
-        'Alta, edicion y desactivacion de productos, categorias y variantes.',
-        'Cambios de precio registrados en la tabla de auditoria.',
-        'Control de imagenes y stock por cada variante.'
+        'Alta, edición y desactivación de productos, categorías y variantes.',
+        'Cambios de precio registrados en la tabla de auditoría.',
+        'Control de imágenes y stock por cada variante.'
       ]
     });
   }

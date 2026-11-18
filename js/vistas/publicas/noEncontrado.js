@@ -13,10 +13,10 @@ export const vistaNoEncontrada = {
       'section',
       { clase: 'pagina pagina-404' },
       el('p', { clase: 'hero-etiqueta', texto: 'Error 404' }),
-      el('h1', { texto: 'No encontramos esta pagina' }),
+      el('h1', { texto: 'No encontramos esta página' }),
       el('p', {
         clase: 'texto-suave',
-        texto: 'La direccion que abriste no existe o fue movida. Puedes volver al inicio.'
+        texto: 'La dirección que abriste no existe o fue movida. Puedes volver al inicio.'
       }),
       enlaceInterno('/', 'Volver al inicio', { clase: 'btn btn-primary', nombreIcono: 'inicio' })
     );

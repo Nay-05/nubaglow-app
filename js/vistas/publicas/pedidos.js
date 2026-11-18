@@ -30,7 +30,7 @@ function bloqueRastreo(rastreo) {
       el(
         'div',
         {},
-        el('p', { clase: 'rastreo-etiqueta', texto: 'Codigo de rastreo' }),
+        el('p', { clase: 'rastreo-etiqueta', texto: 'Código de rastreo' }),
         el('h2', { clase: 'rastreo-codigo', texto: rastreo.codigoRastreo })
       ),
       el('span', { clase: claseEstado(rastreo.estado), texto: rastreo.estado })
@@ -39,16 +39,16 @@ function bloqueRastreo(rastreo) {
       'dl',
       { clase: 'rastreo-datos' },
       el('div', {}, el('dt', { texto: 'Ciudad de destino' }), el('dd', { texto: rastreo.ciudadDestino || 'No registrada' })),
-      el('div', {}, el('dt', { texto: 'Transportista' }), el('dd', { texto: rastreo.transportista || 'Pendiente de asignacion' })),
+      el('div', {}, el('dt', { texto: 'Transportista' }), el('dd', { texto: rastreo.transportista || 'Pendiente de asignación' })),
       el('div', {}, el('dt', { texto: 'Fecha del pedido' }), el('dd', { texto: formatearFecha(rastreo.fechaPedido) })),
       el('div', {}, el('dt', { texto: 'Destinatario' }), el('dd', { texto: rastreo.destinatarioProtegido?.nombre || 'Protegido' })),
       el('div', {}, el('dt', { texto: 'Contacto' }), el('dd', { texto: rastreo.destinatarioProtegido?.celular || 'Protegido' })),
-      el('div', {}, el('dt', { texto: 'Direccion' }), el('dd', { texto: rastreo.destinatarioProtegido?.direccion || 'Protegida' }))
+      el('div', {}, el('dt', { texto: 'Dirección' }), el('dd', { texto: rastreo.destinatarioProtegido?.direccion || 'Protegida' }))
     ),
     el(
       'section',
       { clase: 'rastreo-linea' },
-      el('h3', { clase: 'bloque-detalle-titulo', texto: 'Linea de tiempo' }),
+      el('h3', { clase: 'bloque-detalle-titulo', texto: 'Línea de tiempo' }),
       eventos.length
         ? el(
             'ol',
@@ -68,7 +68,7 @@ function bloqueRastreo(rastreo) {
               )
             )
           )
-        : el('p', { clase: 'texto-suave', texto: 'Todavia no hay eventos registrados para este envio.' })
+        : el('p', { clase: 'texto-suave', texto: 'Todavía no hay eventos registrados para este envío.' })
     )
   );
 }
@@ -80,7 +80,7 @@ export const vistaPedidos = {
       { clase: 'pagina' },
       encabezadoPagina(
         'Rastreo de pedidos',
-        'Ingresa el codigo que recibiste al confirmar tu compra (formato NB-2026-XXXX).'
+        'Ingresa el código que recibiste al confirmar tu compra (formato NB-2026-XXXX).'
       )
     );
 
@@ -106,7 +106,7 @@ export const vistaPedidos = {
       el(
         'div',
         { clase: 'campo' },
-        el('label', { clase: 'campo-etiqueta', atributos: { for: 'campo-codigo' }, texto: 'Codigo de rastreo' }),
+        el('label', { clase: 'campo-etiqueta', atributos: { for: 'campo-codigo' }, texto: 'Código de rastreo' }),
         entrada
       ),
       botonBuscar
@@ -120,7 +120,7 @@ export const vistaPedidos = {
       const codigo = entrada.value.trim();
 
       if (!codigo) {
-        resultado.appendChild(alerta('Ingresa un codigo de rastreo para continuar.'));
+        resultado.appendChild(alerta('Ingresa un código de rastreo para continuar.'));
         return;
       }
 
@@ -132,7 +132,7 @@ export const vistaPedidos = {
         resultado.appendChild(
           alerta(
             error.estado === 404
-              ? 'No encontramos un envio con ese codigo. Revisa el codigo e intenta nuevamente.'
+              ? 'No encontramos un envío con ese código. Revisa el código e intenta nuevamente.'
               : error.message || 'No se pudo consultar el rastreo en este momento.'
           )
         );

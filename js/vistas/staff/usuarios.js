@@ -11,12 +11,12 @@ export const vistaUsuarios = {
     return vistaEnConstruccion({
       titulo: 'Usuarios internos',
       descripcion:
-        'Administracion de cuentas del personal: vendedores, operaciones y administradores.',
+        'Administración de cuentas del personal: vendedores, operaciones y administradores.',
       fase: 10,
       puntos: [
-        'Creacion de cuentas internas sin autorregistro publico.',
-        'Activacion y desactivacion de accesos y restablecimiento de contrasenas.',
-        'Proteccion del ultimo administrador activo y auditoria de cada cambio.'
+        'Creación de cuentas internas sin autorregistro público.',
+        'Activación y desactivación de accesos y restablecimiento de contraseñas.',
+        'Protección del último administrador activo y auditoría de cada cambio.'
       ]
     });
   }

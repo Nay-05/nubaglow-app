@@ -9,16 +9,16 @@ import { enlaceInterno } from '../comunes.js';
 
 const BENEFICIOS = [
   {
-    titulo: 'Curaduria skincare',
+    titulo: 'Curaduría skincare',
     texto: 'Rutinas con ingredientes clave explicados y recomendaciones por tipo de piel.'
   },
   {
     titulo: 'Compra segura',
-    texto: 'Sesiones con cookies HttpOnly, validacion de permisos y trazabilidad de pedidos.'
+    texto: 'Sesiones con cookies HttpOnly, validación de permisos y trazabilidad de pedidos.'
   },
   {
-    titulo: 'Acompanamiento real',
-    texto: 'Rastreo de envios paso a paso y atencion del equipo de Nuba Beauty en Sucre.'
+    titulo: 'Acompañamiento real',
+    texto: 'Rastreo de envíos paso a paso y atención del equipo de Nuba Beauty en Sucre.'
   }
 ];
 
@@ -35,12 +35,12 @@ export const vistaInicio = {
         el('p', {
           clase: 'hero-texto',
           texto:
-            'Cosmeticos y skincare seleccionados con criterio profesional. Descubre tu rutina ideal y acompania cada pedido hasta tu puerta.'
+            'Cosméticos y skincare seleccionados con criterio profesional. Descubre tu rutina ideal y acompaña cada pedido hasta tu puerta.'
         }),
         el(
           'div',
           { clase: 'hero-acciones' },
-          enlaceInterno('/catalogo', 'Explorar catalogo', {
+          enlaceInterno('/catalogo', 'Explorar catálogo', {
             clase: 'btn btn-primary',
             nombreIcono: 'catalogo'
           }),

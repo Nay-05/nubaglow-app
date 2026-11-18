@@ -202,13 +202,13 @@ export class Router {
   crearError(diseno, contextoDiseno, error) {
     const mensaje =
       error && error.estado === 404
-        ? 'La pagina solicitada no existe.'
-        : 'No se pudo cargar esta seccion. Intenta nuevamente.';
+        ? 'La página solicitada no existe.'
+        : 'No se pudo cargar esta sección. Intenta nuevamente.';
 
     const contenido = el(
       'section',
       { clase: 'pagina' },
-      el('h1', { texto: 'Ocurrio un problema' }),
+      el('h1', { texto: 'Ocurrió un problema' }),
       el('p', { clase: 'texto-suave', texto: mensaje }),
       el(
         'a',

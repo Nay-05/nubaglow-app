@@ -16,10 +16,10 @@ export const vistaLoginStaff = {
     const seccion = el(
       'section',
       { clase: 'formulario-auth' },
-      el('h2', { clase: 'formulario-titulo', texto: 'Acceso del personal' }),
+      el('h2', { clase: 'formulario-titulo', texto: 'Iniciar sesión' }),
       el('p', {
         clase: 'texto-suave',
-        texto: 'Portal interno de Nuba Beauty. Solo cuentas creadas por administracion.'
+        texto: 'Portal interno de Nuba Beauty. Solo cuentas creadas por administración.'
       })
     );
 
@@ -32,11 +32,11 @@ export const vistaLoginStaff = {
       placeholder: 'nombre@nubabeauty.bo'
     });
     const campoPassword = campo({
-      etiqueta: 'Contrasena',
+      etiqueta: 'Contraseña',
       nombre: 'password',
       tipo: 'password',
       autocomplete: 'current-password',
-      placeholder: 'Tu contrasena'
+      placeholder: 'Tu contraseña'
     });
 
     const botonIngresar = boton('Ingresar al portal', { variante: 'primary' });
@@ -67,8 +67,8 @@ export const vistaLoginStaff = {
             error.estado === 403
               ? 'Esta cuenta no tiene acceso al portal interno.'
               : error.estado === 401
-                ? 'Correo o contrasena incorrectos.'
-                : error.message || 'No se pudo iniciar sesion. Intenta nuevamente.'
+                ? 'Correo o contraseña incorrectos.'
+                : error.message || 'No se pudo iniciar sesión. Intenta nuevamente.'
           )
         );
         botonIngresar.disabled = false;

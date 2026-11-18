@@ -11,7 +11,7 @@ export const MODULOS_STAFF = [
   {
     ruta: '/staff/dashboard',
     etiqueta: 'Panel',
-    descripcion: 'Resumen general y accesos rapidos',
+    descripcion: 'Resumen general y accesos rápidos',
     icono: 'panel',
     roles: ['admin']
   },
@@ -25,14 +25,14 @@ export const MODULOS_STAFF = [
   {
     ruta: '/staff/operaciones',
     etiqueta: 'Operaciones',
-    descripcion: 'Inventario, despachos y envios',
+    descripcion: 'Inventario, despachos y envíos',
     icono: 'operaciones',
     roles: ['operaciones', 'admin']
   },
   {
     ruta: '/staff/productos',
     etiqueta: 'Productos',
-    descripcion: 'Catalogo, variantes y precios',
+    descripcion: 'Catálogo, variantes y precios',
     icono: 'productos',
     roles: ['admin']
   },

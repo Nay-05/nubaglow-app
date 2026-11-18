@@ -90,7 +90,7 @@ export function el(etiqueta, propiedades = {}, ...hijos) {
     } else if (clave === 'ariaLabel') {
       nodo.setAttribute('aria-label', String(valor));
     } else if (clave === 'innerHTML' || clave === 'outerHTML') {
-      throw new Error('Uso de innerHTML prohibido por la politica XSS de NubaGlow');
+      throw new Error('Uso de innerHTML prohibido por la política XSS de NubaGlow');
     } else if (PROPIEDADES_DIRECTAS.has(clave)) {
       if (clave === 'disabled' || clave === 'required' || clave === 'readOnly' || clave === 'checked') {
         nodo[clave] = Boolean(valor);

@@ -64,7 +64,7 @@ export function crearLayoutStaff({ usuario, ruta, router }) {
 
   const navegacion = el(
     'nav',
-    { clase: 'sidebar-nav', atributos: { 'aria-label': 'Modulos del portal interno' } },
+    { clase: 'sidebar-nav', atributos: { 'aria-label': 'Módulos del portal interno' } },
     ...enlaces
   );
 
@@ -85,13 +85,13 @@ export function crearLayoutStaff({ usuario, ruta, router }) {
       }
     },
     icono('salir', 16),
-    el('span', { texto: 'Cerrar sesion' })
+    el('span', { texto: 'Cerrar sesión' })
   );
 
   const usuarioInfo = el(
     'div',
     { clase: 'sidebar-usuario' },
-    el('span', { clase: 'sidebar-usuario-nombre', texto: usuario?.nombre || 'Sesion' }),
+    el('span', { clase: 'sidebar-usuario-nombre', texto: usuario?.nombre || 'Sesión' }),
     el('span', { clase: 'sidebar-usuario-rol', texto: ETIQUETA_ROL[rol] || rol })
   );
 
@@ -107,7 +107,7 @@ export function crearLayoutStaff({ usuario, ruta, router }) {
     'button',
     {
       clase: 'btn-icono boton-menu',
-      atributos: { type: 'button', 'aria-label': 'Abrir o cerrar menu' },
+      atributos: { type: 'button', 'aria-label': 'Abrir o cerrar menú' },
       on: {
         click: () => raiz.classList.toggle('sidebar-visible')
       }
@@ -127,7 +127,7 @@ export function crearLayoutStaff({ usuario, ruta, router }) {
       el('h1', { clase: 'staff-titulo', texto: moduloActual?.etiqueta || 'Portal interno' }),
       el('span', {
         clase: 'staff-rol',
-        texto: `Sesion: ${usuario?.nombre || 'Sin nombre'} (${ETIQUETA_ROL[rol] || rol})`
+        texto: `Sesión: ${usuario?.nombre || 'Sin nombre'} (${ETIQUETA_ROL[rol] || rol})`
       })
     )
   );

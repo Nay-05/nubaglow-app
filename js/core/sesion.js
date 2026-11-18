@@ -20,7 +20,7 @@ function notificar() {
     try {
       suscriptor(usuarioActual);
     } catch (error) {
-      console.error('Suscriptor de sesion fallo:', error);
+      console.error('Suscriptor de sesión falló:', error);
     }
   }
 }

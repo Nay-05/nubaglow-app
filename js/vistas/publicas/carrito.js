@@ -42,7 +42,7 @@ export const vistaCarrito = {
     const seccion = el(
       'section',
       { clase: 'pagina' },
-      encabezadoPagina('Tu carrito', 'Articulos guardados en tu cuenta.')
+      encabezadoPagina('Tu carrito', 'Artículos guardados en tu cuenta.')
     );
 
     try {
@@ -51,8 +51,8 @@ export const vistaCarrito = {
 
       if (!carrito.items || carrito.items.length === 0) {
         seccion.append(
-          estadoVacio('Tu carrito esta vacio. Explora el catalogo para agregar productos.'),
-          enlaceInterno('/catalogo', 'Ver catalogo', { clase: 'btn btn-primary' })
+          estadoVacio('Tu carrito está vacío. Explora el catálogo para agregar productos.'),
+          enlaceInterno('/catalogo', 'Ver catálogo', { clase: 'btn btn-primary' })
         );
         return seccion;
       }
@@ -73,17 +73,17 @@ export const vistaCarrito = {
         el(
           'div',
           { clase: 'resumen-carrito' },
-          el('p', { texto: `Articulos: ${carrito.totalArticulos}` }),
+          el('p', { texto: `Artículos: ${carrito.totalArticulos}` }),
           el('p', { clase: 'resumen-total', texto: `Subtotal: ${formatearBs(carrito.subtotal)}` }),
           el('p', {
             clase: 'texto-suave',
-            texto: 'El checkout, los metodos de pago y el comprobante se habilitan en la Fase 6.'
+            texto: 'El checkout, los métodos de pago y el comprobante se habilitan en la Fase 6.'
           })
         )
       );
     } catch (error) {
       seccion.appendChild(
-        alerta(error.message || 'No se pudo cargar tu carrito. Vuelve a iniciar sesion.')
+        alerta(error.message || 'No se pudo cargar tu carrito. Vuelve a iniciar sesión.')
       );
     }
 

@@ -10,7 +10,7 @@ import { el, icono } from '../core/dom.js';
 
 const ENLACES_PUBLICOS = [
   { ruta: '/', etiqueta: 'Inicio', icono: 'inicio' },
-  { ruta: '/catalogo', etiqueta: 'Catalogo', icono: 'catalogo' },
+  { ruta: '/catalogo', etiqueta: 'Catálogo', icono: 'catalogo' },
   { ruta: '/pedidos', etiqueta: 'Pedidos', icono: 'pedido' },
   { ruta: '/carrito', etiqueta: 'Carrito', icono: 'carrito' },
   { ruta: '/cuenta', etiqueta: 'Cuenta', icono: 'cuenta' }
@@ -41,7 +41,7 @@ export function crearLayoutPublico({ ruta }) {
 
   const navegacion = el(
     'nav',
-    { clase: 'nav-publica', atributos: { 'aria-label': 'Navegacion principal' } },
+    { clase: 'nav-publica', atributos: { 'aria-label': 'Navegación principal' } },
     ...ENLACES_PUBLICOS.map((enlace) => {
       const activo = esActiva(ruta, enlace.ruta);
       return el(
@@ -67,11 +67,11 @@ export function crearLayoutPublico({ ruta }) {
     'footer',
     { clase: 'pie' },
     el('p', {
-      texto: 'Nuba Beauty - Sucre, Bolivia. Proyecto academico de Ingenieria de Software.'
+      texto: 'Nuba Beauty - Sucre, Bolivia. Proyecto académico de Ingeniería de Software.'
     }),
     el('p', {
       clase: 'pie-nota',
-      texto: 'Comprobantes y pagos son simulaciones con fines academicos.'
+      texto: 'Comprobantes y pagos son simulaciones con fines académicos.'
     })
   );
 

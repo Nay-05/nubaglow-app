@@ -115,7 +115,7 @@ export async function solicitar(ruta, opciones = {}) {
   if (!respuesta.ok || (datos && datos.exito === false)) {
     const mensaje =
       (datos && (datos.error || datos.mensaje)) ||
-      `La solicitud fallo con estado ${respuesta.status}`;
+      `La solicitud falló con estado ${respuesta.status}`;
     throw new ErrorApi(mensaje, respuesta.status, datos);
   }
 

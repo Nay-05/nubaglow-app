@@ -31,7 +31,7 @@ export function crearLayoutAutenticacion({ titulo }) {
   const pie = el(
     'p',
     { clase: 'auth-pie' },
-    'Proyecto academico - Grupo 11. No compartas tus credenciales.'
+    'Proyecto académico - Grupo 11. No compartas tus credenciales.'
   );
 
   tarjeta.append(contenido, pie);

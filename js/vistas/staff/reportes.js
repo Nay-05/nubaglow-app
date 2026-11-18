@@ -11,12 +11,12 @@ export const vistaReportes = {
     return vistaEnConstruccion({
       titulo: 'Reportes gerenciales',
       descripcion:
-        'Ventas web frente a POS, ingresos por dia y ranking de productos mas vendidos.',
+        'Ventas web frente a POS, ingresos por día y ranking de productos más vendidos.',
       fase: 10,
       puntos: [
         'Comparativa de ingresos entre tienda web y punto de venta.',
-        'Evolucion diaria de ventas y ticket promedio.',
-        'Ranking de productos y visor de auditoria de acciones criticas.'
+        'Evolución diaria de ventas y ticket promedio.',
+        'Ranking de productos y visor de auditoría de acciones críticas.'
       ]
     });
   }

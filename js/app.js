@@ -36,7 +36,7 @@ import { vistaReportes } from './vistas/staff/reportes.js';
 const contenedor = document.getElementById('app');
 
 if (!contenedor) {
-  throw new Error('No se encontro el contenedor #app en index.html');
+  throw new Error('No se encontró el contenedor #app en index.html');
 }
 
 const router = new Router(contenedor, {
@@ -66,12 +66,12 @@ function accesoCarrito(usuario) {
 // Rutas publicas
 router
   .registrar('/', vistaInicio, { titulo: 'Inicio' })
-  .registrar('/catalogo', vistaCatalogo, { titulo: 'Catalogo' })
+  .registrar('/catalogo', vistaCatalogo, { titulo: 'Catálogo' })
   .registrar('/producto/:slug', vistaProducto, { titulo: 'Producto' })
   .registrar('/pedidos', vistaPedidos, { titulo: 'Rastreo de pedidos' })
   .registrar('/carrito', vistaCarrito, { titulo: 'Carrito', acceso: accesoCarrito })
   .registrar('/cuenta', vistaCuenta, { titulo: 'Mi cuenta', acceso: accesoCuenta })
-  .registrar('/login', vistaLogin, { titulo: 'Iniciar sesion', acceso: accesoLoginCliente });
+  .registrar('/login', vistaLogin, { titulo: 'Iniciar sesión', acceso: accesoLoginCliente });
 
 // Portal interno (acceso directo, sin enlaces desde la tienda publica)
 router
@@ -111,7 +111,7 @@ router
     acceso: accesoModulo('/staff/reportes')
   });
 
-router.registrarNoEncontrada(vistaNoEncontrada, { titulo: 'Pagina no encontrada' });
+router.registrarNoEncontrada(vistaNoEncontrada, { titulo: 'Página no encontrada' });
 
 window.addEventListener(EVENTO_SESION_EXPIRADA, () => {
   const rutaActual = window.location.pathname;
