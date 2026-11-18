@@ -82,6 +82,18 @@ export class GestorBloqueoCuenta {
       this.intentosPorEmail.clear();
     }
   }
+
+  /**
+   * Simula que el tiempo de bloqueo expiro para verificar que el desbloqueo es automatico
+   */
+  public simularExpiracionBloqueoParaPruebas(email: string): void {
+    const normalizado = email.trim().toLowerCase();
+    const registro = this.intentosPorEmail.get(normalizado);
+    if (registro) {
+      registro.bloqueadoHasta = Date.now() - 1000;
+      this.intentosPorEmail.set(normalizado, registro);
+    }
+  }
 }
 
 export const gestorBloqueoCuenta = new GestorBloqueoCuenta();

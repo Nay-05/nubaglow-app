@@ -14,7 +14,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import apiRouter from './routes';
 import { proteccionCsrf } from './middlewares/csrf';
-import { manejadorErrores, rutaNoEncontrada } from './middlewares/errores';
+import { AppError, manejadorErrores, rutaNoEncontrada } from './middlewares/errores';
 import { cerrarPool } from './db';
 
 // 1. Cargar variables de entorno desde la raiz del workspace o backend/
@@ -55,7 +55,7 @@ app.use(
       if (!origen || origenesConfigurados.includes(origen)) {
         callback(null, true);
       } else {
-        callback(new Error(`Origen no permitido por politica CORS: ${origen}`));
+        callback(new AppError(`Origen no permitido por politica CORS: ${origen}`, 403));
       }
     },
     credentials: true,

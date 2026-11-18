@@ -74,15 +74,10 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
-  // Si usa cookies de sesion pero no proporciona ni Origin ni Referer en una mutacion cross-origin sospechosa
-  // En entornos de testing permitimos si se define variable de entorno de prueba
-  if (process.env.NODE_ENV === 'test') {
-    return next();
-  }
-
+  // Si usa cookies de sesion pero no proporciona ni Origin ni Referer, se rechaza categoricamente
   return next(
     new AppError(
-      'Solicitud rechazada por proteccion CSRF: falta verificacion de origen seguro',
+      'Solicitud rechazada por proteccion CSRF: falta verificacion de origen seguro (Origin o Referer ausente)',
       403
     )
   );
