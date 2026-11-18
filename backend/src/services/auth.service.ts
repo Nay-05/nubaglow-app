@@ -15,6 +15,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { consultar } from '../db';
 import { AppError } from '../middlewares/errores';
+import { gestorBloqueoCuenta } from '../middlewares/bloqueoCuenta';
 import { RolUsuario, UsuarioAutenticado } from '../types';
 import { RegistroInput, LoginInput } from '../schemas/auth.schema';
 
@@ -116,6 +117,9 @@ export class AuthService {
   async autenticar(datos: LoginInput, esPortalStaff: boolean): Promise<AuthResultado> {
     const emailNormalizado = datos.email.trim().toLowerCase();
 
+    // 0. Verificar si la cuenta esta temporalmente bloqueada por exceso de intentos fallidos
+    gestorBloqueoCuenta.verificarBloqueo(emailNormalizado);
+
     // 1. Buscar usuario por email
     const res = await consultar(
       'SELECT id, nombre, email, password_hash, rol, activo FROM usuarios WHERE email = $1',
@@ -126,6 +130,7 @@ export class AuthService {
     const errorCredenciales = new AppError('Credenciales invalidas. Verifique su correo y contrasena', 401);
 
     if (res.rows.length === 0) {
+      gestorBloqueoCuenta.registrarFallo(emailNormalizado);
       throw errorCredenciales;
     }
 
@@ -139,6 +144,7 @@ export class AuthService {
     // 3. Verificar contrasena con bcrypt
     const passwordValida = await bcrypt.compare(datos.password, usuario.password_hash);
     if (!passwordValida) {
+      gestorBloqueoCuenta.registrarFallo(emailNormalizado);
       throw errorCredenciales;
     }
 
@@ -158,6 +164,9 @@ export class AuthService {
         throw new AppError('Esta cuenta corresponde al personal interno. Inicie sesion desde el portal de staff', 403);
       }
     }
+
+    // Login exitoso: se resetea cualquier conteo de intentos fallidos
+    gestorBloqueoCuenta.registrarExito(emailNormalizado);
 
     const usuarioAutenticado: UsuarioAutenticado = {
       id: usuario.id,
