@@ -10,6 +10,10 @@
  *    - Mutacion con cookies y Origin no autorizado -> 403 Forbidden
  *    - Mutacion con cookies y SIN Origin ni Referer -> 403 Forbidden
  *    - Mutacion con cookies y Origin autorizado -> 200 OK
+ *    - Mutacion con Referer que solo comparte prefijo con un origen permitido
+ *      (evasion clasica de startsWith) -> 403 Forbidden
+ *    - Mutacion con Referer malformado -> 403 Forbidden
+ *    - Mutacion con Referer legitimo del mismo origen -> 200 OK
  *    - Mutacion mediante Authorization Bearer (sin cookies) -> 200 OK
  *    - Mutacion publica sin cookies de sesion (ej. registro) -> 201 Creado
  */
@@ -194,6 +198,80 @@ async function ejecutarPruebas() {
     asegurar(
       resCsrfOrigenValido.status === 200,
       'Mutacion con cookies y Origin autorizado es aceptada exitosamente (200 OK)'
+    );
+
+    // 2.3.1. Referer valido segun RFC pero ajeno al origen permitido que solo comparte
+    // el prefijo 'http://localhost:3000' (userinfo con @). Con startsWith pasaba; con
+    // comparacion exacta de origin debe rechazarse.
+    const resRefererPrefijo = await fetch(`${baseUrl}/api/carrito/items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookiesParaEnviar,
+        Referer: 'http://localhost:3000@sitio-malo.example/pwn'
+      },
+      body: JSON.stringify({ variante_id: variantePruebaId, cantidad: 1 })
+    });
+    asegurar(
+      resRefererPrefijo.status === 403,
+      'Referer ajeno con prefijo identico a un origen permitido es rechazado con 403 Forbidden'
+    );
+
+    // 2.3.2. Referer con hostname que extiende un dominio permitido -> 403 Forbidden
+    const frontendUrlOriginal = process.env.FRONTEND_URL;
+    process.env.FRONTEND_URL = 'https://nubaglow-app.onrender.com';
+    let statusRefererSufijo = 0;
+    try {
+      const resRefererSufijo = await fetch(`${baseUrl}/api/carrito/items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: cookiesParaEnviar,
+          Referer: 'https://nubaglow-app.onrender.com.sitio-malo.example/pwn'
+        },
+        body: JSON.stringify({ variante_id: variantePruebaId, cantidad: 1 })
+      });
+      statusRefererSufijo = resRefererSufijo.status;
+    } finally {
+      if (frontendUrlOriginal === undefined) {
+        delete process.env.FRONTEND_URL;
+      } else {
+        process.env.FRONTEND_URL = frontendUrlOriginal;
+      }
+    }
+    asegurar(
+      statusRefererSufijo === 403,
+      'Referer con dominio sufijado (ej. nubaglow-app.onrender.com.sitio-malo.example) es rechazado con 403 Forbidden'
+    );
+
+    // 2.3.3. Mutacion con Referer malformado (invalido segun RFC) -> 403 Forbidden
+    const resRefererMalformado = await fetch(`${baseUrl}/api/carrito/items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookiesParaEnviar,
+        Referer: 'not-a-valid-url-///malformed'
+      },
+      body: JSON.stringify({ variante_id: variantePruebaId, cantidad: 1 })
+    });
+    asegurar(
+      resRefererMalformado.status === 403,
+      'Referer malformado es rechazado con 403 Forbidden'
+    );
+
+    // 2.3.4. Mutacion con Referer legitimo del mismo origen -> 200 OK
+    const resRefererLegitimo = await fetch(`${baseUrl}/api/carrito/items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookiesParaEnviar,
+        Referer: `${baseUrl}/carrito`
+      },
+      body: JSON.stringify({ variante_id: variantePruebaId, cantidad: 1 })
+    });
+    asegurar(
+      resRefererLegitimo.status === 200,
+      'Referer legitimo del mismo origen es aceptado exitosamente (200 OK)'
     );
 
     // 2.4. Mutacion mediante Authorization Bearer (sin cookies) -> 200 OK

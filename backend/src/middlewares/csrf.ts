@@ -5,7 +5,8 @@
  * Cumple con CLAUDE.md Seccion 9:
  * 1. Para peticiones que mutan estado (POST, PUT, PATCH, DELETE) autenticadas
  *    mediante cookies (access_token o refresh_token), valida que el encabezado
- *    'Origin' o 'Referer' coincida con la lista blanca de orígenes del frontend.
+ *    'Origin' o 'Referer' coincida exactamente con la lista blanca de origenes del frontend
+ *    o con el mismo host del servidor.
  * 2. Si la peticion proviene de un origen cruzado no autorizado, se bloquea con 403.
  * 3. Se complementa con la directiva 'SameSite: strict' en las cookies HttpOnly.
  */
@@ -34,30 +35,46 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
   const referer = req.headers['referer'];
 
   const host = req.headers['host'];
-  const esMismoHost = (urlStr: string) => {
+  const esMismoHost = (origenStr: string) => {
     if (!host) return false;
-    return urlStr.toLowerCase() === `http://${host}`.toLowerCase() ||
-           urlStr.toLowerCase() === `https://${host}`.toLowerCase();
+    const origenNormalizado = origenStr.toLowerCase();
+    return (
+      origenNormalizado === `http://${host}`.toLowerCase() ||
+      origenNormalizado === `https://${host}`.toLowerCase()
+    );
   };
 
-  const origenesPermitidos = [
+  const esProduccion = process.env.NODE_ENV === 'production';
+  const puertoActual = process.env.PORT || 4000;
+
+  // Lista base sin duplicados; localhost y 127.0.0.1 solo en entornos de desarrollo/test (no production)
+  const origenesBase = [
     process.env.FRONTEND_URL,
     process.env.CLIENT_URL,
-    `http://localhost:${process.env.PORT || 4000}`,
-    `http://127.0.0.1:${process.env.PORT || 4000}`,
-    'http://localhost:4000',
-    'http://127.0.0.1:4000',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173'
+    ...(esProduccion
+      ? []
+      : [
+          `http://localhost:${puertoActual}`,
+          `http://127.0.0.1:${puertoActual}`,
+          'http://localhost:3000',
+          'http://127.0.0.1:3000',
+          'http://localhost:4000',
+          'http://127.0.0.1:4000',
+          'http://localhost:5173',
+          'http://127.0.0.1:5173'
+        ])
   ].filter(Boolean) as string[];
 
-  // Validar Origin
+  // Eliminar duplicados normalizando a minusculas
+  const origenesPermitidos = Array.from(
+    new Set(origenesBase.map((o) => o.trim().toLowerCase()))
+  );
+
+  // 1. Validar Origin si esta presente (comparacion de igualdad exacta)
   if (origin) {
-    const esValido = esMismoHost(origin) || origenesPermitidos.some(
-      (permitido) => origin.toLowerCase() === permitido.toLowerCase()
-    );
+    const originNormalizado = origin.trim().toLowerCase();
+    const esValido =
+      esMismoHost(originNormalizado) || origenesPermitidos.includes(originNormalizado);
     if (!esValido) {
       return next(
         new AppError(
@@ -69,15 +86,23 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
-  // Validar Referer si Origin no esta presente
+  // 2. Validar Referer si Origin no esta presente (extraccion de origin y comparacion exacta)
   if (referer) {
-    const esMismoHostReferer = host && (
-      referer.toLowerCase().startsWith(`http://${host}`.toLowerCase()) ||
-      referer.toLowerCase().startsWith(`https://${host}`.toLowerCase())
-    );
-    const esValido = esMismoHostReferer || origenesPermitidos.some((permitido) =>
-      referer.toLowerCase().startsWith(permitido.toLowerCase())
-    );
+    let origenReferer: string;
+    try {
+      const urlParsed = new URL(referer);
+      origenReferer = urlParsed.origin.toLowerCase();
+    } catch {
+      return next(
+        new AppError(
+          'Solicitud rechazada por proteccion CSRF: encabezado Referer malformado',
+          403
+        )
+      );
+    }
+
+    const esValido =
+      esMismoHost(origenReferer) || origenesPermitidos.includes(origenReferer);
     if (!esValido) {
       return next(
         new AppError(
@@ -89,7 +114,7 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
-  // Si usa cookies de sesion pero no proporciona ni Origin ni Referer, se rechaza categoricamente
+  // 3. Si usa cookies de sesion pero no proporciona ni Origin ni Referer, se rechaza categoricamente
   return next(
     new AppError(
       'Solicitud rechazada por proteccion CSRF: falta verificacion de origen seguro (Origin o Referer ausente)',
