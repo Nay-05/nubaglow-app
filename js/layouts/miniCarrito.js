@@ -23,6 +23,7 @@ import { imagenProducto } from '../vistas/comunes.js';
 
 const SIMBOLO_CONTROLADOR = Symbol.for('nubaglow.miniCarrito.controlador');
 const TOTAL_SUGERENCIAS = 4;
+const AVISO_PAGO = 'El pago se habilita en la siguiente etapa.';
 
 function crearMiniCarrito({ usuario, router }) {
   let estado = null;
@@ -322,6 +323,17 @@ function crearMiniCarrito({ usuario, router }) {
       item.stockDisponible === null ? null : Number(item.stockDisponible);
     const ruta = `/producto/${encodeURIComponent(item.productoSlug)}`;
 
+    const disponibilidad = el('span', {
+      clase: 'mini-linea-disponibilidad',
+      texto:
+        stock === 'agotado'
+          ? 'No disponible.'
+          : stockDisponible === null
+            ? 'Disponibilidad a confirmar.'
+            : `Disponible: ${stockDisponible} unidades.`
+    });
+    if (stock !== 'ok') disponibilidad.classList.add('texto-error');
+
     const aviso = el('p', {
       clase: 'mini-linea-aviso',
       atributos: { role: 'status' }
@@ -417,6 +429,7 @@ function crearMiniCarrito({ usuario, router }) {
           clase: 'mini-linea-precio',
           texto: `${formatearBs(item.precioUnitario)} c/u`
         }),
+        disponibilidad,
         el(
           'div',
           { clase: 'mini-linea-acciones' },
@@ -469,24 +482,38 @@ function crearMiniCarrito({ usuario, router }) {
       el('span', { texto: 'Ver carrito' })
     );
 
+    const bloqueado = estado.items.some((item) => estadoStock(item) !== 'ok');
+    const avisoPago = el('p', {
+      clase: 'mini-carrito-nota',
+      atributos: { role: 'status' }
+    });
+    avisoPago.hidden = true;
+
     const continuar = el(
       'button',
       {
         clase: 'btn btn-outline',
         atributos: { type: 'button' },
-        on: {
-          click: () => {
-            cerrar();
-            if (router && typeof router.navegar === 'function') {
-              router.navegar('/catalogo');
-            } else {
-              window.location.assign('/catalogo');
-            }
-          }
-        }
+        disabled: bloqueado
       },
       el('span', { texto: 'Continuar con la compra' })
     );
+
+    continuar.addEventListener('click', () => {
+      if (!usuario || usuario.rol !== 'cliente') {
+        cerrar();
+        const destino = '/login?redirigir=/carrito';
+        if (router && typeof router.navegar === 'function') {
+          router.navegar(destino);
+        } else {
+          window.location.assign(destino);
+        }
+        return;
+      }
+
+      avisoPago.hidden = false;
+      avisoPago.textContent = AVISO_PAGO;
+    });
 
     pie.replaceChildren(
       el(
@@ -497,9 +524,12 @@ function crearMiniCarrito({ usuario, router }) {
       ),
       el('p', {
         clase: 'mini-carrito-nota',
-        texto: 'Los métodos de pago se eligen en el checkout.'
+        texto: bloqueado
+          ? 'Corrige las cantidades marcadas para continuar.'
+          : 'Revisa los artículos antes de continuar.'
       }),
-      el('div', { clase: 'mini-carrito-acciones' }, verCarrito, continuar)
+      el('div', { clase: 'mini-carrito-acciones' }, verCarrito, continuar),
+      avisoPago
     );
     pie.hidden = false;
 

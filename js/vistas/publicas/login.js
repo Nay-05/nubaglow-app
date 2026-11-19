@@ -8,6 +8,7 @@
 
 import { el } from '../../core/dom.js';
 import { iniciarSesionCliente, destinoTrasLoginCliente } from '../../core/sesion.js';
+import { fusionarCarritoVisitante, guardarAvisoFusion } from '../../core/carrito.js';
 import { alerta, campo, boton } from '../comunes.js';
 
 function destinoSeguro(valor, respaldo) {
@@ -65,6 +66,16 @@ export const vistaLogin = {
 
       try {
         const usuario = await iniciarSesionCliente(email, password);
+
+        try {
+          const fusion = await fusionarCarritoVisitante(usuario);
+          if (fusion.agregados > 0 || fusion.ajustados > 0 || fusion.noDisponibles > 0) {
+            guardarAvisoFusion(fusion);
+          }
+        } catch {
+          guardarAvisoFusion({ error: true });
+        }
+
         const respaldo = destinoTrasLoginCliente(usuario);
         const destino = destinoSeguro(consulta.get('redirigir'), respaldo);
         router.navegar(destino, { reemplazar: true });

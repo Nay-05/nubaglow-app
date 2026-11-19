@@ -17,10 +17,13 @@ import {
   notificarCarritoActualizado,
   leerCarritoVisitante,
   cambiarCantidadVisitante,
-  eliminarItemVisitante
+  eliminarItemVisitante,
+  vaciarCarritoVisitante
 } from './carritoVisitante.js';
 
 export { EVENTO_CARRITO, notificarCarritoActualizado };
+
+const CLAVE_AVISO_FUSION = 'nubaglow:aviso-fusion-carrito';
 
 function esCliente(usuario) {
   return Boolean(usuario && usuario.rol === 'cliente');
@@ -269,6 +272,126 @@ export async function quitarItem(usuario, item) {
   }
 
   return cargarCarritoVisitante();
+}
+
+/**
+ * Une el carrito local de visitante con el carrito persistente del cliente.
+ * Suma cantidades sin superar el stock actual, informa los ajustes y vacia el
+ * respaldo local solo cuando la fusion termino correctamente.
+ */
+export async function fusionarCarritoVisitante(usuario) {
+  const visitante = leerCarritoVisitante();
+  const resultado = {
+    agregados: 0,
+    ajustados: 0,
+    noDisponibles: 0,
+    totalArticulos: 0,
+    vaciado: true
+  };
+
+  if (!esCliente(usuario) || visitante.length === 0) return resultado;
+
+  const carritoCuenta = await cargarCarrito(usuario);
+  if (carritoCuenta.origen !== 'cliente') {
+    throw new Error('No se pudo leer el carrito de tu cuenta.');
+  }
+
+  const slugs = Array.from(
+    new Set(visitante.map((item) => item.productoSlug).filter(Boolean))
+  );
+  const detalles = new Map();
+
+  await Promise.all(
+    slugs.map(async (slug) => {
+      try {
+        const respuesta = await api.obtener(`/productos/${encodeURIComponent(slug)}`);
+        detalles.set(slug, respuesta?.datos?.producto || null);
+      } catch (error) {
+        if (error && error.estado === 404) {
+          detalles.set(slug, null);
+          return;
+        }
+        throw error;
+      }
+    })
+  );
+
+  const cantidadesEnCuenta = new Map(
+    carritoCuenta.items.map((item) => [item.varianteId, item.cantidad])
+  );
+
+  for (const item of visitante) {
+    const detalle = detalles.get(item.productoSlug);
+    const variante = (detalle?.variantes || []).find(
+      (actual) => Number(actual.id) === Number(item.varianteId)
+    );
+
+    if (!detalle || !variante) {
+      resultado.noDisponibles += 1;
+      continue;
+    }
+
+    const stock = stockSeguro(variante.stock);
+    const cantidadEnCuenta = cantidadesEnCuenta.get(item.varianteId) || 0;
+    const disponible = stock === null ? 0 : Math.max(0, stock - cantidadEnCuenta);
+
+    if (disponible <= 0) {
+      resultado.noDisponibles += 1;
+      continue;
+    }
+
+    const cantidad = Math.min(item.cantidad, disponible);
+
+    try {
+      await api.crear('/carrito/items', {
+        variante_id: item.varianteId,
+        cantidad
+      });
+    } catch (error) {
+      if (error && (error.estado === 400 || error.estado === 404)) {
+        resultado.noDisponibles += 1;
+        continue;
+      }
+      throw error;
+    }
+
+    cantidadesEnCuenta.set(item.varianteId, cantidadEnCuenta + cantidad);
+    resultado.agregados += 1;
+    resultado.totalArticulos += cantidad;
+    if (cantidad < item.cantidad) resultado.ajustados += 1;
+  }
+
+  resultado.vaciado = vaciarCarritoVisitante();
+  notificarCarritoActualizado();
+
+  return resultado;
+}
+
+/**
+ * Guarda el resumen de la fusion para mostrarlo al volver al carrito.
+ */
+export function guardarAvisoFusion(resumen) {
+  try {
+    window.sessionStorage.setItem(CLAVE_AVISO_FUSION, JSON.stringify(resumen));
+  } catch {
+    /* sessionStorage puede estar deshabilitado: el login continua igual. */
+  }
+}
+
+/**
+ * Lee y elimina el aviso pendiente de fusion, para mostrarlo una sola vez.
+ */
+export function consumirAvisoFusion() {
+  try {
+    const crudo = window.sessionStorage.getItem(CLAVE_AVISO_FUSION);
+    if (!crudo) return null;
+    window.sessionStorage.removeItem(CLAVE_AVISO_FUSION);
+    const datos = JSON.parse(crudo);
+    if (!datos || typeof datos !== 'object') return null;
+    return datos;
+  } catch {
+    return null;
+  }
 }
 
 /**

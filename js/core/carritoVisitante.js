@@ -141,3 +141,10 @@ export function eliminarItemVisitante(varianteId) {
     return { ok: false };
   }
 }
+
+/**
+ * Vacia el respaldo local una vez fusionado con la cuenta del cliente.
+ */
+export function vaciarCarritoVisitante() {
+  return guardarCarritoVisitante([]);
+}
