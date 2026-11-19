@@ -156,7 +156,7 @@ export const vistaCheckout = {
       id: 'metodo-qr',
       required: true,
       'aria-label': 'Pago con QR simple'
-    }), el('label', { 'for': 'metodo-qr', clase: 'etiqueta-pago' }, el('span', { clase: 'texto-suave', texto: 'QR Simple' }), el('span', { clase: 'texto-suave', texto: ' - Pago simulado con imagen QR, valida comprobante luego' })),
+    }), el('label', { 'for': 'metodo-qr', clase: 'etiqueta-pago' }, el('span', { clase: 'texto-suave', texto: 'QR Simple' }), el('span', { clase: 'texto-suave', texto: ' - Pago simulado con imagen QR, valida comprobante luego' })))),
 
     // Opcion 2: Depósito Bancario
     const opcionDeposito = el('div', { clase: 'opcion-pago' }, el('input', {
