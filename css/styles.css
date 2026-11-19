@@ -3765,7 +3765,6 @@ body.mini-carrito-abierto {
 }
 
 .mini-linea-aviso {
-  grid-column: 2;
   margin: 0;
   font-size: 12px;
   line-height: 1.35;
