@@ -12,6 +12,7 @@ Se va a **defender oralmente**: el código debe ser limpio, modular, comentado e
 - **Base de datos:** **PostgreSQL alojado en Supabase** (persistente en la nube, evita pérdida de datos en Render). Todo el acceso a datos va por consultas **parametrizadas** (`$1, $2...`) en `backend/src/db/`.
 - **Frontend:** HTML5 + CSS3 + JavaScript vanilla modular (carpeta raíz, `css/`, `js/`). Sin frameworks externos.
 - **Autenticación:** JWT (Access + Refresh Token en cookies `httpOnly`) + `bcrypt` + control de acceso basado en roles (RBAC).
+- **Pagos:** **PayPal REST API en modo sandbox** (llamadas server-side, secretos en `.env`) + QR/depósito bancario con comprobante y verificación manual por `vendedor`/`admin`.
 - **Deploy:** Render (`https://nubaglow-app.onrender.com`). Secretos únicamente en variables de entorno.
 - **Pruebas de API:** Colección de **Postman** documentada en `docs/postman/`.
 
@@ -28,12 +29,20 @@ Para mantener una experiencia limpia y simplificar la operación, el sistema sep
    - Al iniciar sesión, el backend valida el rol en BD y redirige automáticamente a su vista de trabajo correspondiente.
    - Usa un **Layout Interno (Dashboard con sidebar lateral)** optimizado para productividad, sin distracciones visuales de la tienda.
 
-### Roles Simplificados (4 Roles)
-Para evitar fragmentación innecesaria de pantallas, **Almacén y Logística se unifican en un solo módulo operativo**:
+### Roles (5 Roles)
+La operación se separa en dos roles especializados para que cada responsable tenga permisos acotados:
 1. **`cliente`:** Compra online, gestión de carrito, historial y rastreo de pedidos, reseñas verificadas.
-2. **`vendedor`:** Módulo de **Punto de Venta (POS)** para ventas presenciales/WhatsApp, búsqueda rápida por SKU, emisión de recibos PDF y consulta de sus ventas.
-3. **`operaciones` (Almacén + Logística unificados):** Control de stock por variante, alertas de inventario mínimo, registro de entradas/salidas de mercadería, preparación de paquetes y actualización de estados de envío (`En preparación` -> `En tránsito` -> `Entregado`).
-4. **`admin`:** Control total. CRUD de productos, variantes y categorías, gestión de usuarios/roles internos, reportes consolidados de ventas y visor de auditoría.
+2. **`vendedor`:** Módulo de **Punto de Venta (POS)** para ventas presenciales/WhatsApp, búsqueda rápida por SKU, emisión de recibos PDF y consulta de sus ventas. Junto con `admin`, **verifica pagos**: revisa comprobantes de QR/depósito, aprueba o rechaza pagos y deja constancia en auditoría.
+3. **`almacen`:** Control de cantidad disponible y stock por variante, alertas de inventario mínimo, registro de entradas/salidas y ajustes de mercadería. Prepara y empaca pedidos web solo cuando el pago está `Aprobado` (o cuando el método es `Contra entrega`), registrando responsable y fecha.
+4. **`logistica`:** Gestiona despachos, transporte y entrega. Actualiza el envío de `Empacado` a `En tránsito` y `Entregado`, y cierra el proceso con comprobante de entrega (receptor, fecha, hora y nota).
+5. **`admin`:** Control total: cubre las tareas de almacén, logística, ventas, verificación de pagos, CRUD de productos, gestión de usuarios/roles internos, reportes consolidados y visor de auditoría.
+
+### Estados y reglas del flujo de pago/envío
+- **Estados de pago:** `Pendiente`, `En verificación`, `Aprobado`, `Rechazado`.
+- **Estados de envío:** `Pendiente`, `En preparación`, `Empacado`, `En tránsito`, `Entregado`.
+- El almacén no prepara un pedido hasta que su pago esté `Aprobado`, salvo los pedidos con pago `Contra entrega`.
+- Un pago `Rechazado` o vencido cancela el pedido y repone el stock mediante un movimiento de Kardex (`reposicion_cancelacion`), todo en una transacción.
+- La entrega se cierra únicamente con comprobante: receptor, fecha, hora y nota, registrando al usuario responsable.
 
 *Regla de seguridad:* Los permisos se validan **siempre en el backend** mediante middlewares (`verificarToken`, `requerirRol(...)`), nunca solo ocultando elementos en el DOM.
 
@@ -41,8 +50,8 @@ Para evitar fragmentación innecesaria de pantallas, **Almacén y Logística se 
 - **Cambio de URL obligatorio por módulo:** Al navegar entre secciones o módulos (tanto en la tienda pública como en el panel de empleados), **la URL en la barra del navegador debe actualizarse dinámicamente** usando la API nativa `window.history.pushState()` (sin recargar toda la página).
 - **Rutas limpias y descriptivas:**
   - Públicas: `/`, `/catalogo`, `/producto/:slug`, `/pedidos`, `/carrito`, `/cuenta`, `/login`.
-  - Privadas: `/staff/login`, `/staff/dashboard`, `/staff/pos`, `/staff/operaciones`, `/staff/productos`, `/staff/usuarios`, `/staff/reportes`.
-- **Soporte de historial y recarga:** Escuchar el evento `window.onpopstate` para que los botones **Atrás / Adelante** del navegador funcionen correctamente, y configurar Express en el backend para servir `index.html` ante cualquier ruta frontend desconocida (fallback SPA) para que al presionar `F5` (recargar) en `/catalogo` o `/staff/pos` no dé error `404`.
+  - Privadas: `/staff/login`, `/staff/dashboard`, `/staff/pos`, `/staff/pagos`, `/staff/almacen`, `/staff/logistica`, `/staff/productos`, `/staff/usuarios`, `/staff/reportes`.
+- **Soporte de historial y recarga:** Escuchar el evento `window.onpopstate` para que los botones **Atrás / Adelante** del navegador funcionen correctamente, y configurar Express en el backend para servir `index.html` ante cualquier ruta frontend desconocida (fallback SPA) para que al presionar `F5` (recargar) en `/catalogo` o `/staff/almacen` no dé error `404`.
 
 ## 5. Identidad Visual, Logo y Referencias (Espacio para Assets)
 Organiza los recursos gráficos del proyecto en la carpeta `assets/` siguiendo esta estructura antes de maquetar:
@@ -86,32 +95,49 @@ Organiza los recursos gráficos del proyecto en la carpeta `assets/` siguiendo e
 - **Carrito persistente:** Sincronizado con la base de datos para clientes autenticados (y respaldo temporal en `localStorage` para visitantes antes de iniciar sesión).
 - **Checkout y Post-compra:**
   - Campos obligatorios validados en front y back: **nombre completo, celular, correo electrónico, ciudad y dirección exacta**.
-  - Métodos de pago: **QR Simple (simulado con imagen QR dinámica)** y **Pago contra entrega**.
+  - **Control de cantidad disponible:** validar stock por variante en catálogo, carrito y checkout; nunca aceptar cantidades mayores al stock disponible ni precios enviados por el cliente.
+  - Métodos de pago: **QR Simple (simulado con imagen QR dinámica)**, **Depósito bancario** (con carga de comprobante), **PayPal (sandbox, API oficial)** y **Pago contra entrega**.
+  - Estados de pago visibles: `Pendiente`, `En verificación`, `Aprobado`, `Rechazado`. Los pagos con QR/depósito quedan `En verificación` hasta que `vendedor` o `admin` validen el comprobante; PayPal se confirma server-side contra su API.
+  - Un pago `Rechazado` o vencido cancela el pedido y repone el stock con un movimiento de Kardex (`reposicion_cancelacion`), en una sola transacción.
   - Confirmación inmediata con: **código de rastreo único** (ej. `NB-2026-XXXX`), **correo electrónico de confirmación**, **comprobante PDF descargable**, alerta interna por **Telegram** al equipo y botón de **WhatsApp** con el resumen prellenado.
-- **Rastreo de Pedidos (`/pedidos`):** Consulta pública por código de rastreo e historial en cuenta propia, mostrando línea de tiempo visual (`Pendiente` -> `En preparación` -> `En tránsito` -> `Entregado`).
+- **Rastreo de Pedidos (`/pedidos`):** Consulta pública por código de rastreo e historial en cuenta propia, mostrando línea de tiempo visual del pago y del envío (`Pendiente` -> `En preparación` -> `Empacado` -> `En tránsito` -> `Entregado`).
 
-### B. Módulo de Ventas / POS (`vendedor` y `admin`)
+### B. Módulo de Ventas / POS y Verificación de Pagos (`vendedor` y `admin`)
 - Buscador instantáneo de productos por nombre, categoría o SKU de variante.
 - Carrito rápido de mostrador con cálculo automático de totales y registro de venta asociado al ID del vendedor.
 - Generación inmediata de **recibo/factura académica en PDF** y envío opcional al correo del cliente.
 - Historial de ventas realizadas por turno/vendedor.
+- **Verificación de pagos:** cola de pagos `En verificación`, visualización del comprobante de QR o depósito, aprobación o rechazo con motivo y registro en auditoría. Un pago aprobado habilita la preparación del pedido; uno rechazado lo cancela y repone stock.
 
-### C. Módulo Unificado de Operaciones: Almacén + Logística (`operaciones` y `admin`)
+### C. Módulo de Almacén (`almacen` y `admin`)
 - **Vista de Inventario:** Listado de stock por variante, indicadores visuales de stock bajo (alerta de reorden) y formulario para registrar ingresos de mercadería o ajustes (guardando motivo y responsable).
-- **Vista de Despachos y Envíos:** Cola unificada de pedidos web pendientes de despacho. Permite cambiar el estado del envío paso a paso (`En preparación` -> `En tránsito` -> `Entregado`), registrando fecha, hora y usuario responsable en el historial de seguimiento.
+- **Cola de Preparación:** pedidos web con pago `Aprobado` o método `Contra entrega`. El backend impide preparar pedidos con pago pendiente, en verificación o rechazado.
+- **Preparación y empaque:** avance `Pendiente` -> `En preparación` -> `Empacado`, registrando responsable, fecha/hora y observaciones en `envio_eventos`.
+- No puede verificar pagos, despachar, entregar ni cerrar el pedido.
 
-### D. Módulo de Administración (`admin`)
+### D. Módulo de Logística (`logistica` y `admin`)
+- **Cola de Despachos:** pedidos en estado `Empacado`, listos para salir.
+- **Transporte y entrega:** avance `Empacado` -> `En tránsito` -> `Entregado`, sin saltar ni retroceder estados, registrando fecha, hora y usuario responsable en `envio_eventos`.
+- **Cierre de entrega:** exige comprobante con receptor, fecha, hora y nota; si el pago es `Contra entrega`, lo marca como `Aprobado`/cobrado en la misma transacción.
+- No puede ajustar inventario ni verificar pagos.
+
+### E. Módulo de Administración (`admin`)
+- Control total de los módulos de ventas, pagos, almacén, logística, productos y usuarios.
 - Gestión completa (CRUD) de productos, variantes, precios e imágenes.
-- Gestión de personal interno (crear cuentas de `vendedor`, `operaciones` o `admin`, activar/desactivar accesos).
+- Gestión de personal interno (crear cuentas de `vendedor`, `almacen`, `logistica` o `admin`, activar/desactivar accesos).
 - Panel de métricas: ventas totales (web vs. POS), ingresos por día y ranking de productos más vendidos.
 - Registro de auditoría de acciones críticas.
 
 ## 8. Base de Datos (Supabase)
 Tablas mínimas requeridas:
-`usuarios`, `categorias`, `productos`, `variantes`, `imagenes_producto`, `resenas`, `carritos`, `carrito_items`, `pedidos`, `pedido_items`, `pagos`, `envios`, `envio_eventos`, `ventas_pos`, `facturas`, `movimientos_inventario`, `auditoria`, `notificaciones`.
+`usuarios`, `categorias`, `productos`, `variantes`, `imagenes_producto`, `resenas`, `carritos`, `carrito_items`, `pedidos`, `pedido_items`, `pagos`, `pago_eventos`, `comprobantes_pago`, `envios`, `envio_eventos`, `entregas`, `ventas_pos`, `facturas`, `movimientos_inventario`, `auditoria`, `notificaciones`.
 
-- **Integridad y Rendimiento:** Llaves foráneas estrictas (`ON DELETE RESTRICT` en historiales), índices en columnas de búsqueda (`slug`, `sku`, `codigo_rastreo`, `email`) y **transacciones SQL (`BEGIN ... COMMIT / ROLLBACK`)** al confirmar pedidos o ventas POS para garantizar que el descuento de stock y la creación del pedido ocurran de forma atómica.
-- **Datos iniciales (`seed.sql`):** Mínimo **30 productos** realistas de skincare y maquillaje con sus respectivas variantes (tonos, tamaños) y usuarios de prueba por rol.
+- **Roles y estados:** `usuarios.rol` restringido a `cliente`, `vendedor`, `almacen`, `logistica`, `admin`; `pagos.estado` a `Pendiente`, `En verificación`, `Aprobado`, `Rechazado`; `envios.estado` a `Pendiente`, `En preparación`, `Empacado`, `En tránsito`, `Entregado`.
+- **Pagos:** `pagos` guarda el método (`qr`, `deposito_bancario`, `paypal`, `contra_entrega`), monto/moneda, `referencia_externa`/`paypal_order_id`, comprobante, `fecha_vencimiento`, `verificado_por`, `fecha_verificacion` y `motivo_rechazo`. `pago_eventos` registra cada transición y `comprobantes_pago` guarda el archivo y sus metadatos.
+- **Envíos y entrega:** `envios` registra `preparado_por`, `empacado_por`, `despachado_por` y `entregado_por`; `envio_eventos` guarda fecha, hora, usuario y nota; `entregas` guarda receptor, documento, fecha, hora, nota y comprobante de entrega.
+- **Cancelación:** `pedidos` incluye `cancelado_at` y `motivo_cancelacion`; `movimientos_inventario` admite el tipo `reposicion_cancelacion` y referencia el pedido para reponer stock.
+- **Integridad y Rendimiento:** Llaves foráneas estrictas (`ON DELETE RESTRICT` en historiales), índices en columnas de búsqueda (`slug`, `sku`, `codigo_rastreo`, `email`, `paypal_order_id`) y **transacciones SQL (`BEGIN ... COMMIT / ROLLBACK`)** al confirmar pedidos, ventas POS, cancelaciones con reposición de stock y cierres de entrega.
+- **Datos iniciales (`seed.sql`):** Mínimo **30 productos** realistas de skincare y maquillaje con sus respectivas variantes (tonos, tamaños) y usuarios de prueba por rol (`cliente`, `vendedor`, `almacen`, `logistica`, `admin`).
 - Esquema versionado en `backend/src/db/schema.sql`.
 
 ## 9. Seguridad (No Negociable)
@@ -123,8 +149,9 @@ Tablas mínimas requeridas:
 6. **Validación y Anti-Inyección:** Validar todos los `req.body` y `req.params` con **Zod**. Usar consultas parametrizadas al 100%.
 7. **Protección HTTP:** Configurar `helmet`, CORS restringido al dominio del frontend y `express-rate-limit` (con límite estricto en `/login` para frenar fuerza bruta).
 8. **Prevención XSS:** Nunca insertar datos provenientes de usuarios o BD usando `innerHTML` sin sanitizar; preferir `textContent` o creación segura de nodos DOM.
-9. **Auditoría:** Registrar en la tabla `auditoria` eventos clave (inicios de sesión de staff, creación/edición de usuarios, cambios de precio, ajustes manuales de stock y cambios de estado de envío).
+9. **Auditoría:** Registrar en la tabla `auditoria` eventos clave (inicios de sesión de staff, creación/edición de usuarios, cambios de precio, ajustes manuales de stock, aprobación/rechazo de pagos, preparación/empaque y cambios de estado de envío o cierre de entrega).
 10. **Manejo de errores:** Devolver mensajes claros y seguros al cliente sin exponer trazas internas de SQL o stack traces. Ejecutar `npm audit` antes de entregar.
+11. **Pagos:** `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` y `PAYPAL_API_BASE` solo en `.env`; llamadas a PayPal server-side, monto validado contra la BD, idempotencia por orden y ninguna marca de pago `Aprobado` aceptada desde el frontend.
 
 ## 10. Asistente IA Conectado al Catálogo
 - Endpoint `POST /api/asistente` en el backend (la API key jamás se expone en el frontend).
@@ -135,7 +162,7 @@ Tablas mínimas requeridas:
 ## 11. Notificaciones y Comprobantes PDF
 - **Correo:** `Nodemailer` (SMTP configurable por `.env`) para confirmación de pedidos y envío de recibos.
 - **Telegram:** Notificación automática vía Bot API al canal/chat de operaciones cuando ingresa un nuevo pedido web.
-- **PDF (`pdfkit`):** Generación de comprobante de compra online y factura o recibo de venta POS (enviado tambien al correo electronico) con el logotipo de NubaGlow, número correlativo, detalle de variantes, total en Bolivianos (Bs.) y código de rastreo. *(Nota visible en el documento: "Comprobante académico de simulación — Sin valor fiscal").*
+- **PDF (`pdfkit`):** Generación de comprobante de compra online, factura o recibo de venta POS (enviado también al correo electrónico), comprobante/constancia de pago verificado y acta de entrega con receptor, fecha, hora y nota. Todos con el logotipo de NubaGlow, número correlativo, detalle de variantes, total en Bolivianos (Bs.) y código de rastreo. *(Nota visible en los documentos: "Comprobante académico de simulación — Sin valor fiscal").*
 
 ## 12. Convenciones de Código y Definición de Terminado
 - **Idioma:** Nombres de dominio, tablas, rutas de API y variables de negocio en **español** (`pedidos`, `variantes`, `obtenerStock`); términos técnicos del lenguaje en inglés (`controller`, `middleware`, `router`).
@@ -143,6 +170,9 @@ Tablas mínimas requeridas:
 - **Criterios de entrega:**
   1. Arranca limpiamente con `npm install && npm run dev`.
   2. Navegación fluida con cambio de URL en cada módulo y soporte de recarga (`F5`).
-  3. Colección Postman probando flujos exitosos y bloqueos de permisos (ej. `cliente` intentando acceder a `/api/staff/*` -> `403`).
-  4. README actualizado con diagrama ER de la base de datos y documentación de endpoints.
-  5. Desplegado y funcional en Render conectado a Supabase.
+  3. Control de cantidad disponible probado en catálogo, carrito y checkout, incluyendo rechazo de cantidades mayores al stock y de precios manipulados.
+  4. Colección Postman probando flujos exitosos y bloqueos de permisos: `cliente` intentando acceder a `/api/staff/*` -> `403`; `vendedor` no prepara/empaca/despacha; `almacen` no verifica pagos ni despacha; `logistica` no ajusta stock ni verifica pagos; `admin` puede operar todos los módulos.
+  5. Flujo de pago probado de punta a punta: QR y depósito con comprobante y verificación manual, PayPal sandbox server-side, aprobación/rechazo, vencimiento, cancelación y reposición de stock con movimiento de Kardex.
+  6. Flujo de entrega probado: el almacén no prepara pedidos sin pago `Aprobado` (salvo `Contra entrega`), avance `En preparación` -> `Empacado` -> `En tránsito` -> `Entregado` y cierre con comprobante de receptor, fecha, hora y nota.
+  7. README actualizado con diagrama ER de la base de datos y documentación de endpoints.
+  8. Desplegado y funcional en Render conectado a Supabase.
