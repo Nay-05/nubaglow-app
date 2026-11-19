@@ -3519,3 +3519,436 @@ textarea:focus-visible {
     scroll-behavior: auto;
   }
 }
+
+/* --------------------------------------------------------------------------
+   14. Mini-carrito lateral (panel deslizante)
+   Comparte datos con /carrito mediante js/core/carrito.js. Mobile-first:
+   en pantallas angostas el panel ocupa casi todo el ancho y el fondo oscurece
+   la tienda para mantener el foco en la tarea.
+   -------------------------------------------------------------------------- */
+body.mini-carrito-abierto {
+  overflow: hidden;
+}
+
+.mini-carrito {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  justify-content: flex-end;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 180ms ease, visibility 0s linear 180ms;
+}
+
+.mini-carrito.abierto {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 180ms ease;
+}
+
+.mini-carrito-velo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: var(--color-overlay);
+  cursor: pointer;
+}
+
+.mini-carrito-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100% - 18px));
+  height: 100%;
+  max-height: 100dvh;
+  background-color: var(--color-ivory);
+  border-left: 1px solid var(--color-silver);
+  box-shadow: -12px 0 40px color-mix(in srgb, var(--color-charcoal) 16%, transparent);
+  transform: translateX(100%);
+  transition: transform 220ms ease;
+  overflow: hidden;
+}
+
+.mini-carrito.abierto .mini-carrito-panel {
+  transform: translateX(0);
+}
+
+.mini-carrito-panel:focus {
+  outline: none;
+}
+
+.mini-carrito-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mini-carrito-cabecera-texto {
+  display: grid;
+  gap: 2px;
+}
+
+.mini-carrito-titulo {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--color-primary);
+}
+
+.mini-carrito-conteo {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.mini-carrito-cerrar,
+.mini-linea-quitar,
+.mini-cantidad-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  height: auto;
+  padding: 0;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.mini-carrito-cerrar {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+}
+
+.mini-carrito-cerrar:hover:not(:disabled),
+.mini-linea-quitar:hover:not(:disabled) {
+  background-color: var(--color-surface-alt);
+  border-color: var(--color-silver);
+}
+
+.mini-carrito-cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4);
+}
+
+.mini-carrito-lineas {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.mini-linea {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mini-linea:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.mini-linea-ocupada {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.mini-linea-imagen {
+  display: block;
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-alt);
+}
+
+.mini-linea-info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mini-linea-nombre {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.mini-linea-nombre:hover {
+  color: var(--color-primary);
+}
+
+.mini-linea-variante {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.mini-linea-precio {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.mini-linea-acciones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: 4px;
+}
+
+.mini-cantidad {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+}
+
+.mini-cantidad-boton {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  border-radius: 0;
+}
+
+.mini-cantidad-boton:hover:not(:disabled) {
+  background-color: var(--color-surface-alt);
+}
+
+.mini-cantidad-boton:disabled {
+  opacity: 0.4;
+}
+
+.mini-cantidad-valor {
+  min-width: 30px;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.mini-linea-quitar {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+
+.mini-linea-quitar:hover:not(:disabled) {
+  color: var(--color-error);
+}
+
+.mini-linea-aviso {
+  grid-column: 2;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--color-error);
+}
+
+.mini-carrito-pie {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.mini-carrito-pie[hidden] {
+  display: none;
+}
+
+.mini-carrito-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.mini-carrito-resumen strong {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.mini-carrito-nota {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-subtle);
+}
+
+.mini-carrito-acciones {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.mini-carrito-acciones .btn {
+  width: 100%;
+}
+
+.mini-carrito-estado {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-2) 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.mini-carrito-vacio {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.mini-carrito-vacio-titulo {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.mini-carrito-vacio-texto {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.mini-carrito-vacio .btn {
+  justify-self: start;
+}
+
+.mini-sugerencias-titulo {
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.mini-sugerencias {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.mini-sugerencia {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.mini-sugerencia:hover {
+  border-color: var(--color-accent-border);
+  background-color: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.mini-sugerencia-imagen {
+  display: block;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 6px;
+  background-color: var(--color-surface-alt);
+}
+
+.mini-sugerencia-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mini-sugerencia-nombre {
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-sugerencia-meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.texto-error {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--color-error);
+}
+
+@media (min-width: 480px) {
+  .mini-carrito-panel {
+    width: min(420px, 92%);
+  }
+}
+
+@media (max-width: 420px) {
+  .mini-carrito-panel {
+    width: 100%;
+    border-left: 0;
+  }
+
+  .mini-carrito-cabecera,
+  .mini-carrito-cuerpo,
+  .mini-carrito-pie {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-carrito,
+  .mini-carrito.abierto,
+  .mini-carrito-panel {
+    transition: none;
+  }
+
+  .mini-carrito-panel {
+    transform: none;
+  }
+}

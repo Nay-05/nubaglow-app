@@ -10,13 +10,11 @@
 
 import { el, icono } from '../core/dom.js';
 import { solicitar } from '../core/api.js';
-import {
-  CLAVE_CARRITO_VISITANTE,
-  leerCarritoVisitante
-} from '../core/carritoVisitante.js';
+import { CLAVE_CARRITO_VISITANTE } from '../core/carritoVisitante.js';
+import { EVENTO_CARRITO, cargarCarrito } from '../core/carrito.js';
+import { crearMiniCarrito } from './miniCarrito.js';
 
 const CLAVE_ANUNCIO_CERRADO = 'nubaglow:anuncio-cerrado';
-const EVENTO_CARRITO = 'nubaglow:carrito-actualizado';
 const SIMBOLO_CONTROLADOR = Symbol.for('nubaglow.layout.contadorCarrito');
 
 const ENLACES_PUBLICOS = [
@@ -242,11 +240,16 @@ function crearAcciones(usuario, router) {
   contador.hidden = true;
 
   const enlaceCarrito = el(
-    'a',
+    'button',
     {
       clase: 'cabecera-accion carrito-enlace',
-      href: '/carrito',
-      atributos: { 'data-ruta': '', 'aria-label': 'Carrito' }
+      atributos: {
+        type: 'button',
+        'aria-label': 'Carrito',
+        'aria-haspopup': 'dialog',
+        'aria-controls': 'mini-carrito-panel',
+        'aria-expanded': 'false'
+      }
     },
     icono('carrito', 18),
     contador
@@ -262,20 +265,13 @@ function crearAcciones(usuario, router) {
     );
   };
 
-  const totalVisitante = () =>
-    leerCarritoVisitante().reduce((suma, item) => suma + (Number(item.cantidad) || 0), 0);
-
   const refrescarContador = async () => {
-    if (usuario && usuario.rol === 'cliente') {
-      try {
-        const respuesta = await solicitar('/carrito');
-        actualizarContador(respuesta?.datos?.carrito?.totalArticulos || 0);
-        return;
-      } catch {
-        /* Si falla la consulta, se conserva el respaldo local. */
-      }
+    try {
+      const carrito = await cargarCarrito(usuario);
+      actualizarContador(carrito.totalArticulos);
+    } catch {
+      /* Si la consulta falla se conserva el ultimo valor visible. */
     }
-    actualizarContador(totalVisitante());
   };
 
   if (window[SIMBOLO_CONTROLADOR]) window[SIMBOLO_CONTROLADOR].abort();
@@ -296,7 +292,7 @@ function crearAcciones(usuario, router) {
   return {
     acciones: el('div', { clase: 'cabecera-acciones' }, botonBuscar, enlaceCarrito),
     formulario,
-    actualizarContador
+    botonCarrito: enlaceCarrito
   };
 }
 
@@ -452,10 +448,13 @@ function crearPie() {
 export function crearLayoutPublico({ ruta, usuario, router }) {
   const raiz = el('div', { clase: 'app-publico' });
 
+  const miniCarrito = crearMiniCarrito({ usuario, router });
   const anuncio = crearBandaAnuncio();
-  const { acciones, formulario } = crearAcciones(usuario, router);
+  const { acciones, formulario, botonCarrito } = crearAcciones(usuario, router);
   const { navegacion, panel } = crearNavegacion(ruta);
   const { menu: menuMovil, categorias: categoriasMovil } = crearMenuMovil(ruta);
+
+  miniCarrito.vincularDisparador(botonCarrito);
 
   const botonMenu = el(
     'button',
@@ -500,7 +499,9 @@ export function crearLayoutPublico({ ruta, usuario, router }) {
     atributos: { id: 'contenido' }
   });
 
-  raiz.append(...[anuncio, encabezado, contenido, crearPie()].filter(Boolean));
+  raiz.append(
+    ...[anuncio, encabezado, contenido, crearPie(), miniCarrito.raiz].filter(Boolean)
+  );
 
   cargarCategorias(panel, categoriasMovil);
 

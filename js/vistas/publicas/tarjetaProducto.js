@@ -165,6 +165,7 @@ async function agregarProducto({ producto, boton, textoBoton, estadoAccion, rout
         varianteNombre: variante.nombre,
         precio: variante.precio,
         imagen: producto.imagenPrincipal,
+        stockDisponible: variante.stock,
         cantidad: 1
       });
 
@@ -177,7 +178,7 @@ async function agregarProducto({ producto, boton, textoBoton, estadoAccion, rout
       estadoAccion.textContent = 'Agregado al carrito de visitante.';
     }
 
-    notificarCarritoActualizado();
+    notificarCarritoActualizado({ abrir: true });
     estadoAccion.classList.add('exito');
   } catch (error) {
     const sesionVencida = error && error.estado === 401;

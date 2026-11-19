@@ -2,13 +2,14 @@
  * ============================================================================
  * NUBAGLOW APP - VISTA PUBLICA: CARRITO (/carrito)
  * ============================================================================
- * Lectura del carrito persistente del cliente autenticado. La edicion de
- * cantidades y el checkout se completan en la Fase 6.
+ * Vista del carrito completo. Comparte el modulo core/carrito.js con el
+ * mini-carrito lateral: cliente autenticado usa la API y visitante usa el
+ * respaldo local, por lo que ambos puntos de entrada muestran lo mismo.
  */
 
 import { el } from '../../core/dom.js';
-import { api } from '../../core/api.js';
 import { formatearBs } from '../../core/formato.js';
+import { cargarCarrito, estadoStock } from '../../core/carrito.js';
 import {
   encabezadoPagina,
   alerta,
@@ -19,6 +20,16 @@ import {
 } from '../comunes.js';
 
 function celdaProducto(item) {
+  const stock = estadoStock(item);
+  const aviso =
+    stock === 'agotado'
+      ? item.noDisponible
+        ? 'Esta variante ya no está disponible.'
+        : 'Variante agotada.'
+      : stock === 'excede'
+        ? `Solo quedan ${item.stockDisponible} unidades; ajusta la cantidad.`
+        : '';
+
   return el(
     'div',
     { clase: 'celda-producto' },
@@ -32,22 +43,23 @@ function celdaProducto(item) {
         atributos: { 'data-ruta': '' },
         texto: item.productoNombre
       }),
-      el('span', { clase: 'texto-suave', texto: item.varianteNombre })
+      el('span', { clase: 'texto-suave', texto: item.varianteNombre }),
+      aviso ? el('span', { clase: 'texto-error', texto: aviso }) : null
     )
   );
 }
 
 export const vistaCarrito = {
-  async render() {
+  async render(contexto = {}) {
+    const { usuario } = contexto;
     const seccion = el(
       'section',
       { clase: 'pagina' },
-      encabezadoPagina('Tu carrito', 'Artículos guardados en tu cuenta.')
+      encabezadoPagina('Tu carrito', 'Revisa los artículos que agregaste antes de continuar.')
     );
 
     try {
-      const respuesta = await api.obtener('/carrito');
-      const carrito = respuesta.datos.carrito;
+      const carrito = await cargarCarrito(usuario);
 
       if (!carrito.items || carrito.items.length === 0) {
         seccion.append(

@@ -9,14 +9,22 @@
  */
 
 export const CLAVE_CARRITO_VISITANTE = 'nubaglow:carrito-visitante';
+export const EVENTO_CARRITO = 'nubaglow:carrito-actualizado';
 
 /**
- * Avisa a la cabecera que el carrito cambio para refrescar su contador.
- * El evento no transporta datos sensibles.
+ * Avisa a la cabecera y al mini-carrito que el carrito cambio.
+ * Nunca transporta datos sensibles: solo indicadores de interfaz.
  */
-export function notificarCarritoActualizado() {
+export function notificarCarritoActualizado(opciones = {}) {
   try {
-    window.dispatchEvent(new CustomEvent('nubaglow:carrito-actualizado'));
+    window.dispatchEvent(
+      new CustomEvent(EVENTO_CARRITO, {
+        detail: {
+          abrir: Boolean(opciones.abrir),
+          origen: opciones.origen || ''
+        }
+      })
+    );
   } catch {
     /* Entornos sin CustomEvent (pruebas) no requieren el aviso. */
   }
@@ -29,6 +37,12 @@ function normalizarItem(item) {
   if (!Number.isInteger(varianteId) || varianteId <= 0) return null;
   if (!Number.isInteger(cantidad) || cantidad <= 0) return null;
 
+  const stockCrudo = item.stockDisponible;
+  const stock =
+    stockCrudo === null || stockCrudo === undefined || stockCrudo === ''
+      ? null
+      : Number(stockCrudo);
+
   return {
     varianteId,
     productoId: Number(item.productoId) || 0,
@@ -37,8 +51,19 @@ function normalizarItem(item) {
     varianteNombre: String(item.varianteNombre || ''),
     precio: Number(item.precio) || 0,
     imagen: String(item.imagen || ''),
-    cantidad
+    cantidad,
+    stockDisponible: Number.isFinite(stock) ? stock : null
   };
+}
+
+function guardarCarritoVisitante(items) {
+  try {
+    const normalizados = items.map(normalizarItem).filter(Boolean);
+    window.localStorage.setItem(CLAVE_CARRITO_VISITANTE, JSON.stringify(normalizados));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function leerCarritoVisitante() {
@@ -67,11 +92,50 @@ export function agregarAlCarritoVisitante(item) {
 
     if (existente) {
       existente.cantidad += nuevo.cantidad;
+      if (nuevo.stockDisponible !== null) existente.stockDisponible = nuevo.stockDisponible;
     } else {
       items.push(nuevo);
     }
 
-    window.localStorage.setItem(CLAVE_CARRITO_VISITANTE, JSON.stringify(items));
+    if (!guardarCarritoVisitante(items)) return { ok: false };
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/**
+ * Cambia la cantidad de una variante del carrito de visitante.
+ */
+export function cambiarCantidadVisitante(varianteId, cantidad) {
+  const id = Number(varianteId);
+  const nuevaCantidad = Number(cantidad);
+  if (!Number.isInteger(id) || id <= 0) return { ok: false };
+  if (!Number.isInteger(nuevaCantidad) || nuevaCantidad <= 0) return { ok: false };
+
+  try {
+    const items = leerCarritoVisitante();
+    const item = items.find((actual) => actual.varianteId === id);
+    if (!item) return { ok: false };
+
+    item.cantidad = nuevaCantidad;
+    if (!guardarCarritoVisitante(items)) return { ok: false };
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/**
+ * Elimina una variante del carrito de visitante.
+ */
+export function eliminarItemVisitante(varianteId) {
+  const id = Number(varianteId);
+  if (!Number.isInteger(id) || id <= 0) return { ok: false };
+
+  try {
+    const items = leerCarritoVisitante().filter((item) => item.varianteId !== id);
+    if (!guardarCarritoVisitante(items)) return { ok: false };
     return { ok: true };
   } catch {
     return { ok: false };

@@ -327,6 +327,7 @@ function crearInfoProducto(producto, { usuario }) {
           varianteNombre: seleccionada.nombre,
           precio: seleccionada.precio,
           imagen: producto.imagenPrincipal,
+          stockDisponible: seleccionada.stock,
           cantidad
         });
 
@@ -340,7 +341,7 @@ function crearInfoProducto(producto, { usuario }) {
       }
 
       estadoAccion.classList.add('exito');
-      notificarCarritoActualizado();
+      notificarCarritoActualizado({ abrir: true });
       selectorCantidad.value = '1';
     } catch (error) {
       let mensaje = error && error.message
