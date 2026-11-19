@@ -3117,11 +3117,20 @@ textarea:focus-visible {
 .hero-slide-icono {
   position: relative;
   z-index: 2;
+  display: grid;
+  place-items: center;
   width: clamp(150px, 42vw, 220px);
   aspect-ratio: 1;
-  object-fit: cover;
   border-radius: 50%;
   border: 1px solid var(--color-silver);
+  background-color: var(--color-almond-silk);
+  color: var(--color-wine-plum);
+}
+
+.hero-slide-icono .icon-svg {
+  width: 52%;
+  height: 52%;
+  stroke-width: 1.25;
 }
 
 .hero-slide-forma {

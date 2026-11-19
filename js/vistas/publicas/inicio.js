@@ -85,11 +85,11 @@ function crearSlide(slide, indice) {
       el('span', { clase: 'hero-slide-forma hero-slide-forma-una' }),
       el('span', { clase: 'hero-slide-forma hero-slide-forma-dos' }),
       el('span', { clase: 'hero-slide-forma hero-slide-forma-tres' }),
-      el('img', {
-        clase: 'hero-slide-icono',
-        src: '/assets/brand/icono2.png',
-        alt: ''
-      })
+      el(
+        'span',
+        { clase: 'hero-slide-icono' },
+        icono('corazon', 84)
+      )
     )
   );
 }
