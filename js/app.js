@@ -16,23 +16,40 @@ import {
 } from './core/sesion.js';
 import { accesoModulo, rutaInicioPorRol } from './core/permisos.js';
 
-import { vistaInicio } from './vistas/publicas/inicio.js';
-import { vistaCatalogo } from './vistas/publicas/catalogo.js';
-import { vistaProducto } from './vistas/publicas/producto.js';
-import { vistaPedidos } from './vistas/publicas/pedidos.js';
-import { vistaCarrito } from './vistas/publicas/carrito.js';
-import { vistaCuenta } from './vistas/publicas/cuenta.js';
-import { vistaLogin } from './vistas/publicas/login.js';
-import { vistaCheckout } from './vistas/publicas/checkout.js';
-import { vistaNoEncontrada } from './vistas/publicas/noEncontrado.js';
-
-import { vistaLoginStaff } from './vistas/staff/login.js';
-import { vistaDashboard } from './vistas/staff/dashboard.js';
-import { vistaPos } from './vistas/staff/pos.js';
-import { vistaOperaciones } from './vistas/staff/operaciones.js';
-import { vistaProductos } from './vistas/staff/productos.js';
-import { vistaUsuarios } from './vistas/staff/usuarios.js';
-import { vistaReportes } from './vistas/staff/reportes.js';
+// Cada pantalla se carga con import() dinámico dentro del router (try/catch),
+// así un error de sintaxis en una vista no rompe el resto de la aplicación.
+const cargadoresVistas = {
+  inicio: () => import('./vistas/publicas/inicio.js').then((m) => m.vistaInicio),
+  catalogo: () =>
+    import('./vistas/publicas/catalogo.js').then((m) => m.vistaCatalogo),
+  producto: () =>
+    import('./vistas/publicas/producto.js').then((m) => m.vistaProducto),
+  pedidos: () =>
+    import('./vistas/publicas/pedidos.js').then((m) => m.vistaPedidos),
+  carrito: () =>
+    import('./vistas/publicas/carrito.js').then((m) => m.vistaCarrito),
+  cuenta: () =>
+    import('./vistas/publicas/cuenta.js').then((m) => m.vistaCuenta),
+  login: () =>
+    import('./vistas/publicas/login.js').then((m) => m.vistaLogin),
+  checkout: () =>
+    import('./vistas/publicas/checkout.js').then((m) => m.vistaCheckout),
+  noEncontrada: () =>
+    import('./vistas/publicas/noEncontrado.js').then((m) => m.vistaNoEncontrada),
+  loginStaff: () =>
+    import('./vistas/staff/login.js').then((m) => m.vistaLoginStaff),
+  dashboard: () =>
+    import('./vistas/staff/dashboard.js').then((m) => m.vistaDashboard),
+  pos: () => import('./vistas/staff/pos.js').then((m) => m.vistaPos),
+  operaciones: () =>
+    import('./vistas/staff/operaciones.js').then((m) => m.vistaOperaciones),
+  productos: () =>
+    import('./vistas/staff/productos.js').then((m) => m.vistaProductos),
+  usuarios: () =>
+    import('./vistas/staff/usuarios.js').then((m) => m.vistaUsuarios),
+  reportes: () =>
+    import('./vistas/staff/reportes.js').then((m) => m.vistaReportes)
+};
 
 const contenedor = document.getElementById('app');
 
@@ -66,54 +83,71 @@ function accesoCarrito(usuario) {
 
 // Rutas publicas
 router
-  .registrar('/', vistaInicio, { titulo: 'Inicio' })
-  .registrar('/catalogo', vistaCatalogo, { titulo: 'Catálogo' })
-  .registrar('/producto/:slug', vistaProducto, { titulo: 'Producto' })
-  .registrar('/pedidos', vistaPedidos, { titulo: 'Rastreo de pedidos' })
-  .registrar('/carrito', vistaCarrito, { titulo: 'Carrito', acceso: accesoCarrito })
-  .registrar('/checkout', vistaCheckout, { titulo: 'Finalizar compra' })
-  .registrar('/cuenta', vistaCuenta, { titulo: 'Mi cuenta', acceso: accesoCuenta })
-  .registrar('/login', vistaLogin, { titulo: 'Iniciar sesión', acceso: accesoLoginCliente });
+  .registrar('/', cargadoresVistas.inicio, { titulo: 'Inicio' })
+  .registrar('/catalogo', cargadoresVistas.catalogo, { titulo: 'Catálogo' })
+  .registrar('/producto/:slug', cargadoresVistas.producto, {
+    titulo: 'Producto'
+  })
+  .registrar('/pedidos', cargadoresVistas.pedidos, {
+    titulo: 'Rastreo de pedidos'
+  })
+  .registrar('/carrito', cargadoresVistas.carrito, {
+    titulo: 'Carrito',
+    acceso: accesoCarrito
+  })
+  .registrar('/checkout', cargadoresVistas.checkout, {
+    titulo: 'Finalizar compra'
+  })
+  .registrar('/cuenta', cargadoresVistas.cuenta, {
+    titulo: 'Mi cuenta',
+    acceso: accesoCuenta
+  })
+  .registrar('/login', cargadoresVistas.login, {
+    titulo: 'Iniciar sesión',
+    acceso: accesoLoginCliente
+  });
 
 // Portal interno (acceso directo, sin enlaces desde la tienda publica)
 router
-  .registrar('/staff/login', vistaLoginStaff, {
+  .registrar('/staff/login', cargadoresVistas.loginStaff, {
     titulo: 'Acceso del personal',
     diseno: 'auth',
     acceso: accesoLoginStaff
   })
-  .registrar('/staff/dashboard', vistaDashboard, {
+  .registrar('/staff/dashboard', cargadoresVistas.dashboard, {
     titulo: 'Panel',
     diseno: 'staff',
     acceso: accesoModulo('/staff/dashboard')
   })
-  .registrar('/staff/pos', vistaPos, {
+  .registrar('/staff/pos', cargadoresVistas.pos, {
     titulo: 'Punto de venta',
     diseno: 'staff',
     acceso: accesoModulo('/staff/pos')
   })
-  .registrar('/staff/operaciones', vistaOperaciones, {
+  .registrar('/staff/operaciones', cargadoresVistas.operaciones, {
     titulo: 'Operaciones',
     diseno: 'staff',
     acceso: accesoModulo('/staff/operaciones')
   })
-  .registrar('/staff/productos', vistaProductos, {
+  .registrar('/staff/productos', cargadoresVistas.productos, {
     titulo: 'Productos',
     diseno: 'staff',
     acceso: accesoModulo('/staff/productos')
   })
-  .registrar('/staff/usuarios', vistaUsuarios, {
+  .registrar('/staff/usuarios', cargadoresVistas.usuarios, {
     titulo: 'Usuarios',
     diseno: 'staff',
     acceso: accesoModulo('/staff/usuarios')
   })
-  .registrar('/staff/reportes', vistaReportes, {
+  .registrar('/staff/reportes', cargadoresVistas.reportes, {
     titulo: 'Reportes',
     diseno: 'staff',
     acceso: accesoModulo('/staff/reportes')
   });
 
-router.registrarNoEncontrada(vistaNoEncontrada, { titulo: 'Página no encontrada' });
+router.registrarNoEncontrada(cargadoresVistas.noEncontrada, {
+  titulo: 'Página no encontrada'
+});
 
 window.addEventListener(EVENTO_SESION_EXPIRADA, () => {
   const rutaActual = window.location.pathname;

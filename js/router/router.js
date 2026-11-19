@@ -10,6 +10,8 @@
  *
  * Contrato de vista: { async render(contexto) -> Node }
  * contexto = { params, consulta, router, usuario, opciones }
+ * La vista puede ser el objeto directamente o un cargador () => import(...):
+ * así un error en una pantalla no deja en blanco todo el sitio.
  */
 
 import { el, texto } from '../core/dom.js';
@@ -171,8 +173,22 @@ export class Router {
     );
 
     try {
-      const vista = item ? item.vista : null;
+      let vista = item ? item.vista : null;
       if (!vista) throw new Error('Ruta no encontrada');
+
+      // Carga diferida dentro del try/catch: si este módulo tiene un error de
+      // sintaxis o de ejecución, solo falla esta pantalla y se muestra el
+      // mensaje de error en lugar de dejar todo el sitio en blanco.
+      if (typeof vista === 'function') {
+        const moduloCargado = await vista();
+        vista = moduloCargado && moduloCargado.default
+          ? moduloCargado.default
+          : moduloCargado;
+      }
+
+      if (!vista || typeof vista.render !== 'function') {
+        throw new Error('El módulo de la vista no expone render()');
+      }
 
       const contenido = await vista.render({
         params,

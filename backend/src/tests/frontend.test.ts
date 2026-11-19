@@ -7,13 +7,17 @@
  * index.html con Content-Type text/html. Esta suite:
  * 1. Recorre todos los imports de js/ y comprueba que el archivo existe.
  * 2. Verifica que index.html cargue /js/app.js con ruta absoluta.
- * 3. Recorre el grafo de modulos de /, /catalogo, /login y /staff/login como
+ * 3. Analiza la sintaxis de TODOS los modulos como ES reales con
+ *    `node --check` sobre copias .mjs, e incluye un control negativo.
+ * 4. Recorre el grafo de modulos de /, /catalogo, /login y /staff/login como
  *    un navegador: cada import debe responder 200 y Content-Type JavaScript.
- * 4. Exige 404 real (no index.html) para rutas de archivo inexistentes.
+ * 5. Exige 404 real (no index.html) para rutas de archivo inexistentes.
  */
 
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
+import { spawnSync } from 'child_process';
 import app from '../index';
 import { cerrarPool } from '../db';
 
@@ -84,6 +88,73 @@ function esArchivoExistente(ruta: string): boolean {
     return fs.statSync(ruta).isFile();
   } catch {
     return false;
+  }
+}
+
+interface ResultadoSintaxis {
+  relativo: string;
+  valido: boolean;
+  detalle: string;
+}
+
+function ejecutarNodeCheck(ruta: string): { estado: number | null; salida: string } {
+  const resultado = spawnSync(process.execPath, ['--check', ruta], {
+    encoding: 'utf8'
+  });
+
+  return {
+    estado: resultado.status,
+    salida: `${resultado.stderr || ''}${resultado.stdout || ''}`.trim()
+  };
+}
+
+/**
+ * Copia cada .js a un .mjs temporal y lo analiza con `node --check`.
+ * Copiar a .mjs garantiza que Node los parsee como modulos ES (import/export).
+ */
+function verificarSintaxisModulos(modulos: ArchivoModulo[]): ResultadoSintaxis[] {
+  const directorioTemporal = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'nubaglow-sintaxis-')
+  );
+  const resultados: ResultadoSintaxis[] = [];
+
+  try {
+    for (const modulo of modulos) {
+      const nombre = modulo.relativo.replace(/\.js$/, '.mjs').replace(/[\\/]/g, '__');
+      const destino = path.join(directorioTemporal, nombre);
+      fs.copyFileSync(modulo.absoluto, destino);
+
+      const verificacion = ejecutarNodeCheck(destino);
+      resultados.push({
+        relativo: modulo.relativo,
+        valido: verificacion.estado === 0,
+        detalle: verificacion.salida
+      });
+    }
+  } finally {
+    fs.rmSync(directorioTemporal, { recursive: true, force: true });
+  }
+
+  return resultados;
+}
+
+/** Demuestra que el chequeo realmente falla ante un error de sintaxis. */
+function controlNegativoSintaxis(): { detectado: boolean; salida: string } {
+  const directorioTemporal = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'nubaglow-control-negativo-')
+  );
+
+  try {
+    const archivoRoto = path.join(directorioTemporal, 'roto.mjs');
+    fs.writeFileSync(archivoRoto, 'const respuesta = );\n');
+
+    const verificacion = ejecutarNodeCheck(archivoRoto);
+    return {
+      detectado: verificacion.estado !== 0,
+      salida: verificacion.salida
+    };
+  } finally {
+    fs.rmSync(directorioTemporal, { recursive: true, force: true });
   }
 }
 
@@ -178,7 +249,34 @@ async function ejecutarPruebas() {
     }
 
     // ------------------------------------------------------------------------
-    // 3. Simular la carga del navegador en cada ruta de entrada
+    // 3. Analisis real de sintaxis ES de todos los modulos (node --check)
+    // ------------------------------------------------------------------------
+    const resultadosSintaxis = verificarSintaxisModulos(modulos);
+    const modulosConError = resultadosSintaxis.filter((r) => !r.valido);
+
+    asegurar(
+      modulosConError.length === 0,
+      `Sintaxis ES valida en los ${resultadosSintaxis.length} modulos de js/ (node --check sobre copias .mjs)`
+    );
+    for (const resultado of modulosConError) {
+      const lineas = resultado.detalle
+        .split('\n')
+        .map((linea) => linea.trim())
+        .filter((linea) => linea.length > 0);
+      console.error(`       Detalle: ${resultado.relativo} -> ${lineas.join(' | ')}`);
+    }
+
+    const controlNegativo = controlNegativoSintaxis();
+    asegurar(
+      controlNegativo.detectado,
+      'El chequeo de sintaxis detecta un error introducido a propósito (control negativo)'
+    );
+    if (!controlNegativo.detectado) {
+      console.error(`       Detalle: ${controlNegativo.salida}`);
+    }
+
+    // ------------------------------------------------------------------------
+    // 4. Simular la carga del navegador en cada ruta de entrada
     // ------------------------------------------------------------------------
     const rutas = ['/', '/catalogo', '/login', '/staff/login'];
 
@@ -207,7 +305,7 @@ async function ejecutarPruebas() {
     }
 
     // ------------------------------------------------------------------------
-    // 4. El fallback SPA no debe disfrazar archivos inexistentes con HTML
+    // 5. El fallback SPA no debe disfrazar archivos inexistentes con HTML
     // ------------------------------------------------------------------------
     const respuestaJsFaltante = await fetch(`${baseUrl}/js/core/archivo-inexistente.js`);
     const tipoJsFaltante = respuestaJsFaltante.headers.get('content-type') || '';

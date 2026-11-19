@@ -78,7 +78,7 @@ export const vistaCheckout = {
     const formulario = el('form', { clase: 'formulario-checkout' });
 
     // Campo: nombre completo
-    const campoNombre = el('div', { clase: 'grupo-formulario' }, el('label', { texto: 'Nombre completo' }), el('input', {
+    const entradaNombre = el('input', {
       clase: 'input-formulario',
       nombre: 'nombre',
       type: 'text',
@@ -86,10 +86,16 @@ export const vistaCheckout = {
       required: true,
       'aria-label': 'Nombre completo',
       atributos: { 'data-ruta': '' }
-    }));
+    });
+    const campoNombre = el(
+      'div',
+      { clase: 'grupo-formulario' },
+      el('label', { texto: 'Nombre completo' }),
+      entradaNombre
+    );
 
     // Campo: celular (8 dígitos bolivianos, iniciar con 6 o 7)
-    const campoCelular = el('div', { clase: 'grupo-formulario' }, el('label', { texto: 'Celular' }), el('input', {
+    const entradaCelular = el('input', {
       clase: 'input-formulario',
       nombre: 'celular',
       type: 'tel',
@@ -97,40 +103,87 @@ export const vistaCheckout = {
       required: true,
       'aria-label': 'Celular',
       atributos: { 'data-ruta': '', pattern: '^[67][0-9]{7}$', inputmode: 'numeric' }
-    }));
+    });
+    const campoCelular = el(
+      'div',
+      { clase: 'grupo-formulario' },
+      el('label', { texto: 'Celular' }),
+      entradaCelular
+    );
 
     // Campo: correo electrónico
-    const campoCorreo = el('div', { clase: 'grupo-formulario' }, el('label', { texto: 'Correo electrónico' }), el('input', {
+    const entradaCorreo = el('input', {
       clase: 'input-formulario',
       nombre: 'correo',
       type: 'email',
       placeholder: 'juan@ejemplo.com',
       required: true,
       'aria-label': 'Correo electrónico'
-    }));
+    });
+    const campoCorreo = el(
+      'div',
+      { clase: 'grupo-formulario' },
+      el('label', { texto: 'Correo electrónico' }),
+      entradaCorreo
+    );
 
     // Campo: ciudad
-    const campoCiudad = el('div', { clase: 'grupo-formulario' }, el('label', { texto: 'Ciudad' }), el('input', {
+    const entradaCiudad = el('input', {
       clase: 'input-formulario',
       nombre: 'ciudad',
       type: 'text',
       placeholder: 'Sucre',
       required: true,
       'aria-label': 'Ciudad'
-    }));
+    });
+    const campoCiudad = el(
+      'div',
+      { clase: 'grupo-formulario' },
+      el('label', { texto: 'Ciudad' }),
+      entradaCiudad
+    );
 
     // Campo: dirección exacta
-    const campoDireccion = el('div', { clase: 'grupo-formulario' }, el('label', { texto: 'Dirección exacta' }), el('input', {
+    const entradaDireccion = el('input', {
       clase: 'input-formulario',
       nombre: 'direccion',
       type: 'text',
       placeholder: 'Calle 12 de Octubre No. 123',
       required: true,
       'aria-label': 'Dirección exacta'
-    }));
+    });
+    const campoDireccion = el(
+      'div',
+      { clase: 'grupo-formulario' },
+      el('label', { texto: 'Dirección exacta' }),
+      entradaDireccion
+    );
 
     // Resumen del pedido
-    const resumenPedido = cotizacion ? el('div', { clase: 'resumen-pedido' }, el('h3', { texto: 'Resumen del pedido' }), el('p', { clase: 'texto-suave', texto: `Subtotal: ${formatearBs(cotizacion.subtotal)}` }), el('p', { clase: 'texto-suave', texto: `Envío: ${formatearBs(cotizacion.costoEnvio)}` }), el('p', { clase: 'texto-suave', texto: `Total: ${formatearBs(cotizacion.total)}` })) : el('div', { clase: 'resumen-pedido' }, el('h3', { texto: 'Resumen del pedido' }), el('p', { clase: 'texto-suave', texto: 'Cargando resumen...' }));
+    let resumenPedido;
+    if (cotizacion) {
+      const lineasResumen = [
+        `Subtotal: ${formatearBs(cotizacion.subtotal)}`,
+        `Envío: ${formatearBs(cotizacion.costoEnvio)}`,
+        `Total: ${formatearBs(cotizacion.total)}`
+      ];
+      const parrafosResumen = lineasResumen.map((linea) =>
+        el('p', { clase: 'texto-suave', texto: linea })
+      );
+      resumenPedido = el(
+        'div',
+        { clase: 'resumen-pedido' },
+        el('h3', { texto: 'Resumen del pedido' }),
+        ...parrafosResumen
+      );
+    } else {
+      resumenPedido = el(
+        'div',
+        { clase: 'resumen-pedido' },
+        el('h3', { texto: 'Resumen del pedido' }),
+        el('p', { clase: 'texto-suave', texto: 'Cargando resumen...' })
+      );
+    }
 
     // Metodos de pago
     const metodosPago = el('div', { clase: 'metodos-pago' }, el('h3', { texto: 'Metodo de pago' }));
@@ -149,44 +202,95 @@ export const vistaCheckout = {
     }
 
     // Opcion 1: QR Simple
-    const opcionQr = el('div', { clase: 'opcion-pago' }, el('input', {
+    const entradaQr = el('input', {
       tipo: 'radio',
       nombre: 'metodo_pago',
       value: 'qr_simple',
       id: 'metodo-qr',
       required: true,
       'aria-label': 'Pago con QR simple'
-    }), el('label', { 'for': 'metodo-qr', clase: 'etiqueta-pago' }, el('span', { clase: 'texto-suave', texto: 'QR Simple' }), el('span', { clase: 'texto-suave', texto: ' - Pago simulado con imagen QR, valida comprobante luego' })))),
+    });
+    const etiquetaQr = el(
+      'label',
+      { 'for': 'metodo-qr', clase: 'etiqueta-pago' },
+      el('span', { clase: 'texto-suave', texto: 'QR Simple' }),
+      el('span', {
+        clase: 'texto-suave',
+        texto: ' - Pago simulado con imagen QR, valida comprobante luego'
+      })
+    );
+    const opcionQr = el('div', { clase: 'opcion-pago' }, entradaQr, etiquetaQr);
 
     // Opcion 2: Depósito Bancario
-    const opcionDeposito = el('div', { clase: 'opcion-pago' }, el('input', {
+    const entradaDeposito = el('input', {
       tipo: 'radio',
       nombre: 'metodo_pago',
       value: 'deposito_bancario',
       id: 'metodo-deposito',
       required: true,
       'aria-label': 'Depósito bancario'
-    }), el('label', { 'for': 'metodo-deposito', clase: 'etiqueta-pago' }, el('span', { clase: 'texto-suave', texto: 'Depósito Bancario' }), el('span', { clase: 'texto-suave', texto: ' - Comprobante con carga de archivo, valida manualmente' })),
+    });
+    const etiquetaDeposito = el(
+      'label',
+      { 'for': 'metodo-deposito', clase: 'etiqueta-pago' },
+      el('span', { clase: 'texto-suave', texto: 'Depósito Bancario' }),
+      el('span', {
+        clase: 'texto-suave',
+        texto: ' - Comprobante con carga de archivo, valida manualmente'
+      })
+    );
+    const opcionDeposito = el(
+      'div',
+      { clase: 'opcion-pago' },
+      entradaDeposito,
+      etiquetaDeposito
+    );
 
     // Opcion 3: PayPal
-    const opcionPayPal = el('div', { clase: 'opcion-pago' }, el('input', {
+    const entradaPaypal = el('input', {
       tipo: 'radio',
       nombre: 'metodo_pago',
       value: 'paypal',
       id: 'metodo-paypal',
       required: true,
       'aria-label': 'PayPal'
-    }), el('label', { 'for': 'metodo-paypal', clase: 'etiqueta-pago' }, el('span', { clase: 'texto-suave', texto: paypalMensaje })),
+    });
+    const etiquetaPaypal = el(
+      'label',
+      { 'for': 'metodo-paypal', clase: 'etiqueta-pago' },
+      el('span', { clase: 'texto-suave', texto: paypalMensaje })
+    );
+    const opcionPayPal = el(
+      'div',
+      { clase: 'opcion-pago' },
+      entradaPaypal,
+      etiquetaPaypal
+    );
 
     // Opcion 4: Contra entrega
-    const opcionContraEntrega = el('div', { clase: 'opcion-pago' }, el('input', {
+    const entradaContraEntrega = el('input', {
       tipo: 'radio',
       nombre: 'metodo_pago',
       value: 'contra_entrega',
       id: 'metodo-contra-entrega',
       required: true,
       'aria-label': 'Contra entrega'
-    }), el('label', { 'for': 'metodo-contra-entrega', clase: 'etiqueta-pago' }, el('span', { clase: 'texto-suave', texto: 'Pago contra entrega' }), el('span', { clase: 'texto-suave', texto: ' - Pagar al recibir el producto en Sucre' })),
+    });
+    const etiquetaContraEntrega = el(
+      'label',
+      { 'for': 'metodo-contra-entrega', clase: 'etiqueta-pago' },
+      el('span', { clase: 'texto-suave', texto: 'Pago contra entrega' }),
+      el('span', {
+        clase: 'texto-suave',
+        texto: ' - Pagar al recibir el producto en Sucre'
+      })
+    );
+    const opcionContraEntrega = el(
+      'div',
+      { clase: 'opcion-pago' },
+      entradaContraEntrega,
+      etiquetaContraEntrega
+    );
 
     // Botón de confirmar
     const botonConfirmar = el('button', {
@@ -273,8 +377,16 @@ export const vistaCheckout = {
       const direccion = formularioElemento.elements.namedItem('direccion').value.trim();
 
       const hayErrores = formularioElemento.checkValidity() === false;
-      const datosOk = nombre.length >= 3 && /^[67][0-9]{7}$/.test(celular) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo) && ciudad.length >= 2 && direccion.length >= 5;
-      const metodoSeleccionado = formularioElemento.elements.namedItem('metodo_pago') && formularioElemento.elements.namedItem('metodo_pago').checked;
+      const nombreOk = nombre.length >= 3;
+      const celularOk = /^[67][0-9]{7}$/.test(celular);
+      const correoOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
+      const ciudadOk = ciudad.length >= 2;
+      const direccionOk = direccion.length >= 5;
+      const datosOk =
+        nombreOk && celularOk && correoOk && ciudadOk && direccionOk;
+
+      const metodoPago = formularioElemento.elements.namedItem('metodo_pago');
+      const metodoSeleccionado = Boolean(metodoPago && metodoPago.checked);
 
       camposLlenos = datosOk && metodoSeleccionado;
       botonConfirmar.disabled = hayErrores || !camposLlenos;
