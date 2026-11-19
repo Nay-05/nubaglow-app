@@ -177,6 +177,31 @@ export class EnviosService {
       );
     }
 
+    // Regla de negocio: almacen solo prepara con pago Aprobado o contra_entrega.
+    if (estadoActual === 'Pendiente' && nuevoEstado === 'En preparación') {
+      const resPago = await consultar(
+        'SELECT metodo, estado FROM pagos WHERE pedido_id = $1',
+        [envio.pedido_id]
+      );
+
+      if (resPago.rows.length === 0) {
+        throw new AppError(
+          'El pedido no tiene un pago registrado. No se puede preparar.',
+          409
+        );
+      }
+
+      const pago = resPago.rows[0];
+      if (pago.metodo !== 'contra_entrega' && pago.estado !== 'Aprobado') {
+        throw new AppError(
+          pago.estado === 'Rechazado'
+            ? 'El pago fue rechazado. El pedido no puede prepararse.'
+            : 'El pago aún no fue verificado. No se puede preparar el pedido.',
+          409
+        );
+      }
+    }
+
     // Textos descriptivos por defecto si no se ingresa descripcion especifica
     const descripcionesPorDefecto: Record<string, string> = {
       'En preparación': 'El paquete ha sido preparado y acondicionado con embalaje de proteccion dermocosmetica.',

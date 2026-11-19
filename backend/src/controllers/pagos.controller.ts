@@ -52,6 +52,28 @@ export async function aprobarPago(req: Request, res: Response, next: NextFunctio
   }
 }
 
+export async function cancelarPagosVencidos(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const usuarioId = req.usuario!.id;
+    const cancelados = await pagosService.cancelarVencidos(usuarioId);
+
+    res.status(200).json({
+      exito: true,
+      mensaje:
+        cancelados.length > 0
+          ? `Se cancelaron ${cancelados.length} pago(s) vencido(s) y se repuso el stock`
+          : 'No hay pagos vencidos pendientes de cancelacion',
+      datos: { total: cancelados.length, cancelados }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function rechazarPago(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const pagoId = Number(req.params.id);

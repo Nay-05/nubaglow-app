@@ -597,6 +597,12 @@ async function ejecutarPruebas() {
     );
     const pedidoAuditId = resPedidoAudit.rows[0].id;
 
+    await consultar(
+      `INSERT INTO pagos (pedido_id, metodo, monto, estado, simulado)
+       VALUES ($1, 'contra_entrega', 95.00, 'Pendiente', TRUE)`,
+      [pedidoAuditId]
+    );
+
     const resEnvioAudit = await consultar(
       `INSERT INTO envios (pedido_id, codigo_rastreo, estado, transportista)
        VALUES ($1, $2, 'Pendiente', 'Nuba Express Sucre')
@@ -639,8 +645,10 @@ async function ejecutarPruebas() {
 
     // 7.4. Verificacion de pagos: cola, aprobacion y rechazo con auditoria
     const resPagoVerif = await consultar(
-      `INSERT INTO pagos (pedido_id, metodo, monto, estado, referencia_externa)
-       VALUES ($1, 'deposito_bancario', 95.00, 'En verificación', $2)
+      `UPDATE pagos
+       SET metodo = 'deposito_bancario', estado = 'En verificación', referencia_externa = $2,
+           fecha_vencimiento = NOW() + interval '24 hours'
+       WHERE pedido_id = $1
        RETURNING id`,
       [pedidoAuditId, `DEP-${sufijo}`]
     );

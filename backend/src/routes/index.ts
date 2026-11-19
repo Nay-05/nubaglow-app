@@ -22,6 +22,7 @@ import usuariosRoutes from './usuarios.routes';
 import staffAlmacenRoutes from './staff-almacen.routes';
 import staffLogisticaRoutes from './staff-logistica.routes';
 import staffPagosRoutes from './staff-pagos.routes';
+import staffPedidosRoutes from './staff-pedidos.routes';
 
 const apiRouter = Router();
 
@@ -52,5 +53,6 @@ apiRouter.use('/usuarios', usuariosRoutes);
 apiRouter.use('/staff/almacen', staffAlmacenRoutes);
 apiRouter.use('/staff/logistica', staffLogisticaRoutes);
 apiRouter.use('/staff/pagos', staffPagosRoutes);
+apiRouter.use('/staff/pedidos', staffPedidosRoutes);
 
 export default apiRouter;

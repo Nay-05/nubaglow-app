@@ -101,8 +101,18 @@ export const restablecerPasswordStaffSchema = z.object({
 
 export type CrearVentaPosInput = z.infer<typeof crearVentaPosSchema>;
 export type AjusteInventarioInput = z.infer<typeof ajusteInventarioSchema>;
+export const cancelarPedidoSchema = z.object({
+  motivo: z
+    .string()
+    .trim()
+    .min(5, 'El motivo de cancelacion debe tener al menos 5 caracteres')
+    .max(500, 'El motivo de cancelacion no puede exceder 500 caracteres')
+    .optional()
+});
+
 export type ConsultaReportesInput = z.infer<typeof consultaReportesSchema>;
 export type RechazarPagoInput = z.infer<typeof rechazarPagoSchema>;
+export type CancelarPedidoInput = z.infer<typeof cancelarPedidoSchema>;
 export type CrearUsuarioStaffInput = z.infer<typeof crearUsuarioStaffSchema>;
 export type ActualizarUsuarioStaffInput = z.infer<typeof actualizarUsuarioStaffSchema>;
 export type RestablecerPasswordStaffInput = z.infer<typeof restablecerPasswordStaffSchema>;

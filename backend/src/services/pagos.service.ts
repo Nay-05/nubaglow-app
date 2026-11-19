@@ -8,6 +8,11 @@
 
 import { consultar, conTransaccion } from '../db';
 import { AppError } from '../middlewares/errores';
+import { horasVencimientoPago } from '../config/pagos';
+import {
+  cancelarPedidoConReposicion,
+  ResultadoCancelacion
+} from './cancelaciones.service';
 
 export interface PagoVerificacion {
   id: number;
@@ -211,9 +216,9 @@ export class PagosService {
       }
 
       const pago = resPago.rows[0];
-      if (pago.estado !== 'En verificación') {
+      if (!['Pendiente', 'En verificación'].includes(pago.estado)) {
         throw new AppError(
-          `Solo se pueden rechazar pagos 'En verificación'. Estado actual: '${pago.estado}'`,
+          `Solo se pueden rechazar pagos 'Pendiente' o 'En verificación'. Estado actual: '${pago.estado}'`,
           409
         );
       }
@@ -230,8 +235,8 @@ export class PagosService {
 
       await cliente.query(
         `INSERT INTO pago_eventos (pago_id, estado_anterior, estado_nuevo, descripcion, usuario_id)
-         VALUES ($1, 'En verificación', 'Rechazado', $2, $3)`,
-        [pagoId, motivoLimpio, usuarioId]
+         VALUES ($1, $2, 'Rechazado', $3, $4)`,
+        [pagoId, pago.estado, motivoLimpio, usuarioId]
       );
 
       await cliente.query(
@@ -244,8 +249,123 @@ export class PagosService {
         ]
       );
 
-      return { id: pagoId, pedidoId: pago.pedido_id, estado: 'Rechazado', motivo: motivoLimpio };
+      const cancelacion = await cancelarPedidoConReposicion(
+        cliente,
+        pago.pedido_id,
+        usuarioId,
+        `Pago rechazado: ${motivoLimpio}`
+      );
+
+      return {
+        id: pagoId,
+        pedidoId: pago.pedido_id,
+        estado: 'Rechazado',
+        motivo: motivoLimpio,
+        cancelacion
+      };
     });
+  }
+
+  /**
+   * Cancela los pagos vencidos y repone el stock de sus pedidos.
+   * Sin cron: se invoca desde el endpoint admin y al consultar pedidos.
+   */
+  async cancelarVencidos(
+    usuarioId: number | null,
+    filtro: { pedidoId?: number; usuarioId?: number } = {}
+  ): Promise<Array<ResultadoCancelacion & { pagoId: number }>> {
+    const horas = horasVencimientoPago();
+    const resVencidos = await consultar(
+      `SELECT pg.id AS "pagoId", pg.pedido_id AS "pedidoId"
+       FROM pagos pg
+       INNER JOIN pedidos p ON p.id = pg.pedido_id
+       WHERE pg.estado IN ('Pendiente', 'En verificación')
+         AND pg.metodo <> 'contra_entrega'
+         AND p.estado NOT IN ('Cancelado', 'En tránsito', 'Entregado')
+         AND COALESCE(
+           pg.fecha_vencimiento,
+           pg.creado_en + ($1::numeric * interval '1 hour')
+         ) <= NOW()
+         AND ($2::int IS NULL OR pg.pedido_id = $2)
+         AND ($3::int IS NULL OR p.usuario_id = $3)
+       ORDER BY pg.id ASC`,
+      [horas, filtro.pedidoId ?? null, filtro.usuarioId ?? null]
+    );
+
+    const cancelados: Array<ResultadoCancelacion & { pagoId: number }> = [];
+
+    for (const vencido of resVencidos.rows) {
+      const resultado = await conTransaccion(async (cliente) => {
+        const resPago = await cliente.query(
+          `SELECT id, pedido_id, estado, metodo
+           FROM pagos
+           WHERE id = $1
+           FOR UPDATE`,
+          [vencido.pagoId]
+        );
+
+        if (resPago.rows.length === 0) return null;
+
+        const pago = resPago.rows[0];
+        if (
+          !['Pendiente', 'En verificación'].includes(pago.estado) ||
+          pago.metodo === 'contra_entrega'
+        ) {
+          return null;
+        }
+
+        const resVencido = await cliente.query(
+          `SELECT (
+             COALESCE(fecha_vencimiento, creado_en + ($2::numeric * interval '1 hour')) <= NOW()
+           ) AS vencido
+           FROM pagos WHERE id = $1`,
+          [vencido.pagoId, horas]
+        );
+
+        if (!resVencido.rows[0]?.vencido) return null;
+
+        const motivo = `Pago vencido: supero el plazo de ${horas} horas para acreditar el pago`;
+
+        await cliente.query(
+          `UPDATE pagos
+           SET estado = 'Rechazado', verificado_por = $1, fecha_verificacion = NOW(),
+               motivo_rechazo = $2, actualizado_en = NOW()
+           WHERE id = $3`,
+          [usuarioId, motivo, vencido.pagoId]
+        );
+
+        await cliente.query(
+          `INSERT INTO pago_eventos (pago_id, estado_anterior, estado_nuevo, descripcion, usuario_id)
+           VALUES ($1, $2, 'Rechazado', $3, $4)`,
+          [vencido.pagoId, pago.estado, motivo, usuarioId]
+        );
+
+        await cliente.query(
+          `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, detalles)
+           VALUES ($1, 'VENCER_PAGO', 'pagos', $2, $3)`,
+          [
+            usuarioId,
+            vencido.pagoId,
+            JSON.stringify({ pedidoId: pago.pedido_id, motivo, horasVencimiento: horas })
+          ]
+        );
+
+        const cancelacion = await cancelarPedidoConReposicion(
+          cliente,
+          pago.pedido_id,
+          usuarioId,
+          motivo
+        );
+
+        return { ...cancelacion, pagoId: vencido.pagoId };
+      });
+
+      if (resultado && !resultado.yaCancelado) {
+        cancelados.push(resultado);
+      }
+    }
+
+    return cancelados;
   }
 }
 

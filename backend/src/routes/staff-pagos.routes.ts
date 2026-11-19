@@ -10,7 +10,8 @@ import {
   listarPagosEnVerificacion,
   obtenerPago,
   aprobarPago,
-  rechazarPago
+  rechazarPago,
+  cancelarPagosVencidos
 } from '../controllers/pagos.controller';
 import { validar } from '../middlewares/validar';
 import { verificarToken, requerirRol } from '../middlewares/autenticacion';
@@ -22,6 +23,7 @@ const router = Router();
 router.use(verificarToken, requerirRol('vendedor', 'admin'));
 
 router.get('/', listarPagosEnVerificacion);
+router.post('/vencidos/cancelar', requerirRol('admin'), cancelarPagosVencidos);
 router.get('/:id', validar({ params: idParamSchema }), obtenerPago);
 router.patch('/:id/aprobar', validar({ params: idParamSchema }), aprobarPago);
 router.patch(

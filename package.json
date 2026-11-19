@@ -12,9 +12,10 @@
     "test:bloque-b": "npm --prefix backend run test:bloque-b",
     "test:bloque-c": "npm --prefix backend run test:bloque-c",
     "test:bloque-d": "npm --prefix backend run test:bloque-d",
+    "test:bloque-e": "npm --prefix backend run test:bloque-e",
     "test:seguridad": "npm --prefix backend run test:seguridad",
     "test:frontend": "npm --prefix backend run test:frontend",
-    "test:todos": "npm run test:bloque-a && npm run test:bloque-b && npm run test:bloque-c && npm run test:bloque-d && npm run test:seguridad && npm run test:frontend",
+    "test:todos": "npm run test:bloque-a && npm run test:bloque-b && npm run test:bloque-c && npm run test:bloque-d && npm run test:bloque-e && npm run test:seguridad && npm run test:frontend",
     "backend:install": "npm --prefix backend install"
   },
   "keywords": [

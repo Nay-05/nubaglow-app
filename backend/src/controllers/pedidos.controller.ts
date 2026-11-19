@@ -6,6 +6,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { pedidosService } from '../services/pedidos.service';
+import { cancelarPedido } from '../services/cancelaciones.service';
 
 export async function crearPedido(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -43,6 +44,25 @@ export async function obtenerDetallePedido(req: Request, res: Response, next: Ne
     res.status(200).json({
       exito: true,
       datos: { pedido }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function cancelarPedidoAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pedidoId = Number(req.params.id);
+    const usuarioId = req.usuario!.id;
+    const motivo = req.body.motivo || 'Cancelacion administrativa del pedido';
+    const resultado = await cancelarPedido(pedidoId, usuarioId, motivo);
+
+    res.status(200).json({
+      exito: true,
+      mensaje: resultado.yaCancelado
+        ? 'El pedido ya estaba cancelado; no se repuso stock nuevamente'
+        : 'Pedido cancelado y stock repuesto exitosamente',
+      datos: { cancelacion: resultado }
     });
   } catch (error) {
     next(error);

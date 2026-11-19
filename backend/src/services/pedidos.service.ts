@@ -16,6 +16,8 @@ import { consultar, conTransaccion } from '../db';
 import { AppError } from '../middlewares/errores';
 import { RolUsuario } from '../types';
 import { CrearPedidoInput } from '../schemas/compra.schema';
+import { fechaVencimientoPago } from '../config/pagos';
+import { pagosService } from './pagos.service';
 
 export interface ItemPedidoResumen {
   id: number;
@@ -250,13 +252,24 @@ export class PedidosService {
 
       // 3.6. Registrar Pago
       const esQR = datos.metodo_pago === 'qr';
+      const esContraEntrega = datos.metodo_pago === 'contra_entrega';
       const refPago = esQR ? `QR-DEMO-${Math.floor(100000 + Math.random() * 900000)}` : null;
       const estadoPago = esQR ? 'En verificación' : 'Pendiente';
+      const venceEn = esContraEntrega ? null : fechaVencimientoPago();
 
       await cliente.query(
-        `INSERT INTO pagos (pedido_id, metodo, monto, estado, referencia, simulado, pagado_en)
-         VALUES ($1, $2, $3, $4, $5, TRUE, $6)`,
-        [pedidoId, datos.metodo_pago, totalCalculado, estadoPago, refPago, esQR ? new Date() : null]
+        `INSERT INTO pagos
+         (pedido_id, metodo, monto, estado, referencia, simulado, pagado_en, fecha_vencimiento)
+         VALUES ($1, $2, $3, $4, $5, TRUE, $6, $7)`,
+        [
+          pedidoId,
+          datos.metodo_pago,
+          totalCalculado,
+          estadoPago,
+          refPago,
+          esQR ? new Date() : null,
+          venceEn
+        ]
       );
 
       // 3.7. Registrar Envio
@@ -300,6 +313,8 @@ export class PedidosService {
    * Lista los pedidos pertenecientes al usuario autenticado
    */
   async listarMisPedidos(usuarioId: number): Promise<any[]> {
+    await pagosService.cancelarVencidos(null, { usuarioId });
+
     const consulta = `
       SELECT 
         p.id,
@@ -332,6 +347,8 @@ export class PedidosService {
    * Regla de seguridad: un cliente NO puede ver pedidos ajenos (403/404).
    */
   async obtenerDetalle(pedidoId: number, usuarioId: number, rolUsuario: RolUsuario): Promise<PedidoCompleto> {
+    await pagosService.cancelarVencidos(null, { pedidoId });
+
     const resPed = await consultar(
       `SELECT 
         p.id,
