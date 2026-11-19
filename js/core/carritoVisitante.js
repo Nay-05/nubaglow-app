@@ -10,6 +10,18 @@
 
 export const CLAVE_CARRITO_VISITANTE = 'nubaglow:carrito-visitante';
 
+/**
+ * Avisa a la cabecera que el carrito cambio para refrescar su contador.
+ * El evento no transporta datos sensibles.
+ */
+export function notificarCarritoActualizado() {
+  try {
+    window.dispatchEvent(new CustomEvent('nubaglow:carrito-actualizado'));
+  } catch {
+    /* Entornos sin CustomEvent (pruebas) no requieren el aviso. */
+  }
+}
+
 function normalizarItem(item) {
   if (!item || typeof item !== 'object') return null;
   const varianteId = Number(item.varianteId);

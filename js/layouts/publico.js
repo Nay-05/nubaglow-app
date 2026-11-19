@@ -2,18 +2,27 @@
  * ============================================================================
  * NUBAGLOW APP - LAYOUT PUBLICO (TIENDA)
  * ============================================================================
- * Navbar minimalista definido en CLAUDE.md Seccion 6: Inicio, Catalogo,
- * Pedidos, Carrito y Cuenta. Nunca muestra enlaces al portal interno.
+ * Cabecera editorial con banda de anuncios cerrable, menu Tienda alimentado
+ * por /api/categorias, buscador, contador de carrito y menu movil. El pie se
+ * organiza en columnas (Tienda, Nuba Beauty y Atencion) sin enlaces al portal
+ * interno ni redes sociales ficticias. Todo el DOM se crea con helpers seguros.
  */
 
 import { el, icono } from '../core/dom.js';
+import { solicitar } from '../core/api.js';
+import {
+  CLAVE_CARRITO_VISITANTE,
+  leerCarritoVisitante
+} from '../core/carritoVisitante.js';
+
+const CLAVE_ANUNCIO_CERRADO = 'nubaglow:anuncio-cerrado';
+const EVENTO_CARRITO = 'nubaglow:carrito-actualizado';
+const SIMBOLO_CONTROLADOR = Symbol.for('nubaglow.layout.contadorCarrito');
 
 const ENLACES_PUBLICOS = [
-  { ruta: '/', etiqueta: 'Inicio', icono: 'inicio' },
-  { ruta: '/catalogo', etiqueta: 'Catálogo', icono: 'catalogo' },
-  { ruta: '/pedidos', etiqueta: 'Pedidos', icono: 'pedido' },
-  { ruta: '/carrito', etiqueta: 'Carrito', icono: 'carrito' },
-  { ruta: '/cuenta', etiqueta: 'Cuenta', icono: 'cuenta' }
+  { ruta: '/catalogo', etiqueta: 'Catálogo' },
+  { ruta: '/pedidos', etiqueta: 'Pedidos' },
+  { ruta: '/cuenta', etiqueta: 'Cuenta' }
 ];
 
 function esActiva(rutaActual, rutaEnlace) {
@@ -21,93 +30,384 @@ function esActiva(rutaActual, rutaEnlace) {
   return rutaActual === rutaEnlace || rutaActual.startsWith(`${rutaEnlace}/`);
 }
 
-export function crearLayoutPublico({ ruta }) {
-  const raiz = el('div', { clase: 'app-publico' });
+function anuncioCerrado() {
+  try {
+    return window.localStorage.getItem(CLAVE_ANUNCIO_CERRADO) === '1';
+  } catch {
+    return false;
+  }
+}
 
-  const marca = el(
+function recordarCierreAnuncio() {
+  try {
+    window.localStorage.setItem(CLAVE_ANUNCIO_CERRADO, '1');
+  } catch {
+    /* localStorage puede estar deshabilitado: el anuncio se oculta igual. */
+  }
+}
+
+function crearBandaAnuncio() {
+  if (anuncioCerrado()) return null;
+
+  const barra = el(
+    'div',
+    {
+      clase: 'anuncio-barra',
+      atributos: { role: 'region', 'aria-label': 'Anuncio de la tienda' }
+    },
+    el('p', {
+      clase: 'anuncio-texto',
+      texto: 'Pago contra entrega en Sucre. Coordinamos la entrega al confirmar tu pedido.'
+    }),
+    el(
+      'button',
+      {
+        clase: 'anuncio-cerrar',
+        atributos: { type: 'button', 'aria-label': 'Cerrar anuncio' },
+        on: {
+          click: () => {
+            recordarCierreAnuncio();
+            barra.hidden = true;
+          }
+        }
+      },
+      icono('cerrar', 16)
+    )
+  );
+
+  return barra;
+}
+
+function crearMarca() {
+  return el(
     'a',
     {
       clase: 'marca',
       href: '/',
-      atributos: { 'data-ruta': '', 'aria-label': 'NubaGlow, ir al inicio' }
+      atributos: { 'data-ruta': '', 'aria-label': 'Nuba Beauty, ir al inicio' }
     },
     el('img', {
       clase: 'marca-imagen',
       src: '/assets/brand/logo-nubaglow.png',
-      alt: 'NubaGlow'
+      alt: 'Nuba Beauty'
     }),
-    el('span', { clase: 'marca-texto', texto: 'NubaGlow' })
+    el('span', { clase: 'marca-texto', texto: 'Nuba Beauty' })
+  );
+}
+
+function crearEnlaceCategoria(categoria, clase) {
+  const slug = String(categoria.slug || '');
+  return el('a', {
+    clase,
+    href: `/catalogo?categoria=${encodeURIComponent(slug)}`,
+    atributos: { 'data-ruta': '' },
+    texto: categoria.nombre || 'Categoría'
+  });
+}
+
+function crearMenuTienda() {
+  const panel = el('div', {
+    clase: 'desplegable-panel',
+    atributos: { id: 'menu-tienda', 'aria-label': 'Categorías de la tienda' }
+  });
+  const cargando = el('p', {
+    clase: 'desplegable-vacio',
+    texto: 'Cargando categorías...'
+  });
+  panel.appendChild(cargando);
+  panel.hidden = true;
+
+  const boton = el(
+    'button',
+    {
+      clase: 'cabecera-enlace cabecera-desplegable',
+      atributos: {
+        type: 'button',
+        'aria-expanded': 'false',
+        'aria-controls': 'menu-tienda'
+      }
+    },
+    el('span', { texto: 'Tienda' }),
+    icono('chevronAbajo', 14)
   );
 
-  const navegacion = el(
-    'nav',
-    { clase: 'nav-publica', atributos: { 'aria-label': 'Navegación principal' } },
-    ...ENLACES_PUBLICOS.map((enlace) => {
-      const activo = esActiva(ruta, enlace.ruta);
-      return el(
-        'a',
-        {
-          clase: `nav-enlace${activo ? ' activo' : ''}`,
-          href: enlace.ruta,
-          atributos: {
-            'data-ruta': '',
-            ...(activo ? { 'aria-current': 'page' } : {})
-          }
-        },
-        icono(enlace.icono, 16),
-        el('span', { texto: enlace.etiqueta })
-      );
-    })
-  );
+  const contenedor = el('div', { clase: 'cabecera-menu-tienda' }, boton, panel);
 
-  const encabezado = el('header', { clase: 'barra-superior' }, marca, navegacion);
-  const contenido = el('main', { clase: 'contenido-publico', atributos: { id: 'contenido' } });
+  const cerrar = () => {
+    panel.hidden = true;
+    boton.setAttribute('aria-expanded', 'false');
+  };
 
-  const enlacesTienda = el(
-    'ul',
-    { clase: 'pie-lista' },
-    ...ENLACES_PUBLICOS.map((enlace) =>
-      el(
-        'li',
-        {},
-        el('a', {
-          clase: 'pie-enlace',
-          href: enlace.ruta,
-          atributos: { 'data-ruta': '' },
-          texto: enlace.etiqueta
-        })
-      )
+  boton.addEventListener('click', () => {
+    const abrir = panel.hidden;
+    panel.hidden = !abrir;
+    boton.setAttribute('aria-expanded', String(abrir));
+  });
+
+  contenedor.addEventListener('focusout', (evento) => {
+    if (!contenedor.contains(evento.relatedTarget)) cerrar();
+  });
+
+  contenedor.addEventListener('keydown', (evento) => {
+    if (evento.key !== 'Escape') return;
+    cerrar();
+    boton.focus();
+  });
+
+  return { contenedor, panel };
+}
+
+function crearAcciones(usuario, router) {
+  const entradaBusqueda = el('input', {
+    clase: 'entrada buscador-cabecera-entrada',
+    id: 'buscador-cabecera-campo',
+    type: 'search',
+    name: 'buscar',
+    placeholder: 'Buscar productos',
+    atributos: { autocomplete: 'off' }
+  });
+
+  const formulario = el('form', {
+    clase: 'buscador-cabecera',
+    atributos: { id: 'buscador-cabecera', role: 'search' }
+  });
+  formulario.hidden = true;
+
+  const cerrarBusqueda = () => {
+    formulario.hidden = true;
+    botonBuscar.setAttribute('aria-expanded', 'false');
+  };
+
+  formulario.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    const termino = entradaBusqueda.value.trim();
+    const destino = termino ? `/catalogo?buscar=${encodeURIComponent(termino)}` : '/catalogo';
+    cerrarBusqueda();
+    if (router && typeof router.navegar === 'function') {
+      router.navegar(destino);
+    } else {
+      window.location.assign(destino);
+    }
+  });
+
+  formulario.append(
+    el('label', {
+      clase: 'solo-lectores',
+      atributos: { for: 'buscador-cabecera-campo' },
+      texto: 'Buscar productos'
+    }),
+    entradaBusqueda,
+    el(
+      'button',
+      {
+        clase: 'cabecera-accion buscador-enviar',
+        atributos: { type: 'submit', 'aria-label': 'Buscar productos' }
+      },
+      icono('buscar', 16)
     )
   );
 
-  const pie = el(
+  entradaBusqueda.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape') {
+      cerrarBusqueda();
+      botonBuscar.focus();
+    }
+  });
+
+  const botonBuscar = el(
+    'button',
+    {
+      clase: 'cabecera-accion',
+      atributos: {
+        type: 'button',
+        'aria-label': 'Abrir búsqueda',
+        'aria-expanded': 'false',
+        'aria-controls': 'buscador-cabecera'
+      }
+    },
+    icono('buscar', 18)
+  );
+
+  botonBuscar.addEventListener('click', () => {
+    const abrir = formulario.hidden;
+    formulario.hidden = !abrir;
+    botonBuscar.setAttribute('aria-expanded', String(abrir));
+    if (abrir) entradaBusqueda.focus();
+  });
+
+  const contador = el('span', {
+    clase: 'badge-carrito',
+    atributos: { 'aria-hidden': 'true' }
+  });
+  contador.hidden = true;
+
+  const enlaceCarrito = el(
+    'a',
+    {
+      clase: 'cabecera-accion carrito-enlace',
+      href: '/carrito',
+      atributos: { 'data-ruta': '', 'aria-label': 'Carrito' }
+    },
+    icono('carrito', 18),
+    contador
+  );
+
+  const actualizarContador = (total) => {
+    const cantidad = Math.max(0, Number(total) || 0);
+    contador.textContent = cantidad > 99 ? '99+' : String(cantidad);
+    contador.hidden = cantidad <= 0;
+    enlaceCarrito.setAttribute(
+      'aria-label',
+      cantidad > 0 ? `Carrito, ${cantidad} artículo${cantidad === 1 ? '' : 's'}` : 'Carrito'
+    );
+  };
+
+  const totalVisitante = () =>
+    leerCarritoVisitante().reduce((suma, item) => suma + (Number(item.cantidad) || 0), 0);
+
+  const refrescarContador = async () => {
+    if (usuario && usuario.rol === 'cliente') {
+      try {
+        const respuesta = await solicitar('/carrito');
+        actualizarContador(respuesta?.datos?.carrito?.totalArticulos || 0);
+        return;
+      } catch {
+        /* Si falla la consulta, se conserva el respaldo local. */
+      }
+    }
+    actualizarContador(totalVisitante());
+  };
+
+  if (window[SIMBOLO_CONTROLADOR]) window[SIMBOLO_CONTROLADOR].abort();
+  const controlador = new AbortController();
+  window[SIMBOLO_CONTROLADOR] = controlador;
+
+  window.addEventListener(EVENTO_CARRITO, refrescarContador, { signal: controlador.signal });
+  window.addEventListener(
+    'storage',
+    (evento) => {
+      if (!evento.key || evento.key === CLAVE_CARRITO_VISITANTE) refrescarContador();
+    },
+    { signal: controlador.signal }
+  );
+
+  refrescarContador();
+
+  return {
+    acciones: el('div', { clase: 'cabecera-acciones' }, botonBuscar, enlaceCarrito),
+    formulario,
+    actualizarContador
+  };
+}
+
+function crearMenuMovil(ruta) {
+  const categorias = el('div', {
+    clase: 'menu-movil-categorias',
+    atributos: { id: 'menu-movil-categorias' }
+  });
+  categorias.appendChild(
+    el('p', { clase: 'desplegable-vacio', texto: 'Cargando categorías...' })
+  );
+
+  const enlaces = ENLACES_PUBLICOS.map((enlace) => {
+    const activo = esActiva(ruta, enlace.ruta);
+    return el('a', {
+      clase: `menu-movil-enlace${activo ? ' activo' : ''}`,
+      href: enlace.ruta,
+      atributos: {
+        'data-ruta': '',
+        ...(activo ? { 'aria-current': 'page' } : {})
+      },
+      texto: enlace.etiqueta
+    });
+  });
+
+  const menu = el(
+    'nav',
+    { clase: 'menu-movil', atributos: { 'aria-label': 'Menú de la tienda' } },
+    el('p', { clase: 'menu-movil-titulo', texto: 'Tienda' }),
+    el('div', { clase: 'menu-movil-grupo' }, ...enlaces),
+    el('p', { clase: 'menu-movil-titulo', texto: 'Categorías' }),
+    categorias
+  );
+  menu.hidden = true;
+
+  return { menu, categorias };
+}
+
+async function cargarCategorias(panel, categoriasMovil) {
+  try {
+    const respuesta = await solicitar('/categorias');
+    const categorias = respuesta?.datos?.categorias || [];
+
+    if (categorias.length === 0) {
+      panel.replaceChildren(
+        el('p', { clase: 'desplegable-vacio', texto: 'Todavía no hay categorías publicadas.' })
+      );
+      categoriasMovil.replaceChildren(
+        el('p', { clase: 'desplegable-vacio', texto: 'Todavía no hay categorías publicadas.' })
+      );
+      return;
+    }
+
+    panel.replaceChildren(
+      ...categorias.map((categoria) =>
+        crearEnlaceCategoria(categoria, 'desplegable-enlace')
+      )
+    );
+    categoriasMovil.replaceChildren(
+      ...categorias.map((categoria) => crearEnlaceCategoria(categoria, 'menu-movil-enlace'))
+    );
+  } catch {
+    const mensaje = 'No se pudieron cargar las categorías.';
+    panel.replaceChildren(el('p', { clase: 'desplegable-vacio', texto: mensaje }));
+    categoriasMovil.replaceChildren(el('p', { clase: 'desplegable-vacio', texto: mensaje }));
+  }
+}
+
+function crearNavegacion(ruta) {
+  const { contenedor, panel } = crearMenuTienda();
+
+  const enlaces = ENLACES_PUBLICOS.map((enlace) => {
+    const activo = esActiva(ruta, enlace.ruta);
+    return el('a', {
+      clase: `cabecera-enlace${activo ? ' activo' : ''}`,
+      href: enlace.ruta,
+      atributos: {
+        'data-ruta': '',
+        ...(activo ? { 'aria-current': 'page' } : {})
+      },
+      texto: enlace.etiqueta
+    });
+  });
+
+  return {
+    navegacion: el(
+      'nav',
+      { clase: 'cabecera-nav', atributos: { 'aria-label': 'Navegación principal' } },
+      contenedor,
+      ...enlaces
+    ),
+    panel
+  };
+}
+
+function crearPie() {
+  const enlacesTienda = el(
+    'ul',
+    { clase: 'pie-lista' },
+    el('li', {}, el('a', { clase: 'pie-enlace', href: '/catalogo', atributos: { 'data-ruta': '' }, texto: 'Catálogo' })),
+    el('li', {}, el('a', { clase: 'pie-enlace', href: '/pedidos', atributos: { 'data-ruta': '' }, texto: 'Rastrear pedido' })),
+    el('li', {}, el('a', { clase: 'pie-enlace', href: '/carrito', atributos: { 'data-ruta': '' }, texto: 'Carrito' })),
+    el('li', {}, el('a', { clase: 'pie-enlace', href: '/cuenta', atributos: { 'data-ruta': '' }, texto: 'Mi cuenta' }))
+  );
+
+  return el(
     'footer',
     { clase: 'pie' },
     el(
       'div',
       { clase: 'pie-columnas' },
-      el(
-        'section',
-        { clase: 'pie-columna pie-columna-marca' },
-        el(
-          'a',
-          {
-            clase: 'pie-marca',
-            href: '/',
-            atributos: { 'data-ruta': '', 'aria-label': 'Nuba Beauty, ir al inicio' }
-          },
-          el('img', {
-            clase: 'pie-logo',
-            src: '/assets/brand/logo-nubaglow.png',
-            alt: 'Nuba Beauty'
-          }),
-          el('span', { clase: 'pie-marca-texto', texto: 'Nuba Beauty' })
-        ),
-        el('p', {
-          clase: 'pie-texto',
-          texto: 'Skincare y maquillaje seleccionados con criterio profesional en Sucre, Bolivia.'
-        })
-      ),
       el(
         'nav',
         { clase: 'pie-columna', atributos: { 'aria-label': 'Enlaces de la tienda' } },
@@ -117,35 +417,92 @@ export function crearLayoutPublico({ ruta }) {
       el(
         'section',
         { clase: 'pie-columna' },
-        el('h2', { clase: 'pie-titulo', texto: 'Contacto' }),
+        el('h2', { clase: 'pie-titulo', texto: 'Nuba Beauty' }),
         el('p', {
           clase: 'pie-texto',
-          texto: 'Atención por WhatsApp para consultas y coordinación de entregas.'
+          texto: 'Skincare y maquillaje seleccionados con criterio profesional en Sucre, Bolivia.'
         }),
         el('a', {
           clase: 'pie-enlace',
-          href: '/pedidos',
+          href: '/',
           atributos: { 'data-ruta': '' },
-          texto: 'Rastrear un pedido'
+          texto: 'Volver al inicio'
         })
       ),
       el(
         'section',
         { clase: 'pie-columna' },
-        el('h2', { clase: 'pie-titulo', texto: 'Proyecto académico' }),
-        el('p', { clase: 'pie-texto', texto: 'Ingeniería de Software · Grupo 11' }),
-        el('p', {
-          clase: 'pie-texto',
-          texto: 'Comprobantes y pagos son simulaciones con fines académicos, sin valor fiscal.'
-        })
+        el('h2', { clase: 'pie-titulo', texto: 'Atención' }),
+        el(
+          'ul',
+          { clase: 'pie-lista' },
+          el('li', { clase: 'pie-texto', texto: 'Pago contra entrega en Sucre' }),
+          el('li', {}, el('a', { clase: 'pie-enlace', href: '/pedidos', atributos: { 'data-ruta': '' }, texto: 'Rastreo de pedidos' })),
+          el('li', { clase: 'pie-texto', texto: 'Contacto por WhatsApp para coordinar tu entrega' })
+        )
       )
     ),
     el('p', {
       clase: 'pie-nota',
-      texto: 'Nuba Beauty · Sucre, Bolivia. Proyecto académico de Ingeniería de Software.'
+      texto: 'Proyecto académico de Ingeniería de Software · Nuba Beauty, Sucre, Bolivia.'
     })
   );
+}
 
-  raiz.append(encabezado, contenido, pie);
+export function crearLayoutPublico({ ruta, usuario, router }) {
+  const raiz = el('div', { clase: 'app-publico' });
+
+  const anuncio = crearBandaAnuncio();
+  const { acciones, formulario } = crearAcciones(usuario, router);
+  const { navegacion, panel } = crearNavegacion(ruta);
+  const { menu: menuMovil, categorias: categoriasMovil } = crearMenuMovil(ruta);
+
+  const botonMenu = el(
+    'button',
+    {
+      clase: 'cabecera-menu-boton',
+      atributos: {
+        type: 'button',
+        'aria-label': 'Abrir menú',
+        'aria-expanded': 'false',
+        'aria-controls': 'menu-movil'
+      }
+    },
+    icono('menu', 20)
+  );
+
+  menuMovil.setAttribute('id', 'menu-movil');
+
+  botonMenu.addEventListener('click', () => {
+    const abrir = menuMovil.hidden;
+    menuMovil.hidden = !abrir;
+    botonMenu.setAttribute('aria-expanded', String(abrir));
+    botonMenu.setAttribute('aria-label', abrir ? 'Cerrar menú' : 'Abrir menú');
+  });
+
+  const encabezado = el(
+    'header',
+    { clase: 'cabecera-tienda' },
+    el(
+      'div',
+      { clase: 'cabecera-fila' },
+      botonMenu,
+      crearMarca(),
+      navegacion,
+      acciones,
+      formulario
+    ),
+    menuMovil
+  );
+
+  const contenido = el('main', {
+    clase: 'contenido-publico',
+    atributos: { id: 'contenido' }
+  });
+
+  raiz.append(...[anuncio, encabezado, contenido, crearPie()].filter(Boolean));
+
+  cargarCategorias(panel, categoriasMovil);
+
   return { raiz, contenido };
 }

@@ -12,7 +12,8 @@ import { api } from '../../core/api.js';
 import { formatearBs, formatearFechaCorta } from '../../core/formato.js';
 import {
   agregarAlCarritoVisitante,
-  leerCarritoVisitante
+  leerCarritoVisitante,
+  notificarCarritoActualizado
 } from '../../core/carritoVisitante.js';
 import {
   alerta,
@@ -339,6 +340,7 @@ function crearInfoProducto(producto, { usuario }) {
       }
 
       estadoAccion.classList.add('exito');
+      notificarCarritoActualizado();
       selectorCantidad.value = '1';
     } catch (error) {
       let mensaje = error && error.message

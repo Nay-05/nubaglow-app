@@ -10,7 +10,7 @@
 import { el, icono } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { formatearBs } from '../../core/formato.js';
-import { agregarAlCarritoVisitante } from '../../core/carritoVisitante.js';
+import { agregarAlCarritoVisitante, notificarCarritoActualizado } from '../../core/carritoVisitante.js';
 import { imagenProducto } from '../comunes.js';
 
 export function estrellas(promedio, tamano = 14) {
@@ -177,6 +177,7 @@ async function agregarProducto({ producto, boton, textoBoton, estadoAccion, rout
       estadoAccion.textContent = 'Agregado al carrito de visitante.';
     }
 
+    notificarCarritoActualizado();
     estadoAccion.classList.add('exito');
   } catch (error) {
     const sesionVencida = error && error.estado === 401;
