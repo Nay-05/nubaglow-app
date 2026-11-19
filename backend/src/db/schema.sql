@@ -224,6 +224,9 @@ CREATE TABLE IF NOT EXISTS pagos (
     referencia VARCHAR(100),
     referencia_externa VARCHAR(150),
     paypal_order_id VARCHAR(150),
+    -- PayPal no opera en BOB: monto (Bs.) se convierte y se guarda el detalle.
+    monto_usd NUMERIC(10, 2),
+    tipo_cambio_bob_usd NUMERIC(12, 4),
     -- TEXT porque el comprobante puede almacenarse como data URL (base64).
     comprobante_url TEXT,
     fecha_vencimiento TIMESTAMPTZ,
@@ -236,6 +239,10 @@ CREATE TABLE IF NOT EXISTS pagos (
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_pagos_pedido UNIQUE (pedido_id),
     CONSTRAINT chk_pagos_monto CHECK (monto >= 0),
+    CONSTRAINT chk_pagos_monto_usd CHECK (monto_usd IS NULL OR monto_usd > 0),
+    CONSTRAINT chk_pagos_tipo_cambio CHECK (
+      tipo_cambio_bob_usd IS NULL OR tipo_cambio_bob_usd > 0
+    ),
     CONSTRAINT chk_pagos_metodo CHECK (metodo IN ('qr', 'qr_simple', 'deposito_bancario', 'paypal', 'contra_entrega')),
     CONSTRAINT chk_pagos_estado CHECK (estado IN ('Pendiente', 'En verificación', 'Aprobado', 'Rechazado'))
 );
@@ -481,6 +488,14 @@ ALTER TABLE pedidos
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS moneda VARCHAR(3) NOT NULL DEFAULT 'BOB';
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS referencia_externa VARCHAR(150);
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS paypal_order_id VARCHAR(150);
+ALTER TABLE pagos ADD COLUMN IF NOT EXISTS monto_usd NUMERIC(10, 2);
+ALTER TABLE pagos ADD COLUMN IF NOT EXISTS tipo_cambio_bob_usd NUMERIC(12, 4);
+ALTER TABLE pagos DROP CONSTRAINT IF EXISTS chk_pagos_monto_usd;
+ALTER TABLE pagos ADD CONSTRAINT chk_pagos_monto_usd
+  CHECK (monto_usd IS NULL OR monto_usd > 0);
+ALTER TABLE pagos DROP CONSTRAINT IF EXISTS chk_pagos_tipo_cambio;
+ALTER TABLE pagos ADD CONSTRAINT chk_pagos_tipo_cambio
+  CHECK (tipo_cambio_bob_usd IS NULL OR tipo_cambio_bob_usd > 0);
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS comprobante_url TEXT;
 ALTER TABLE pagos ALTER COLUMN comprobante_url TYPE TEXT;
 ALTER TABLE comprobantes_pago ALTER COLUMN url TYPE TEXT;
@@ -505,6 +520,8 @@ ALTER TABLE pagos
     CHECK (estado IN ('Pendiente', 'En verificación', 'Aprobado', 'Rechazado'));
 CREATE INDEX IF NOT EXISTS idx_pagos_estado ON pagos(estado);
 CREATE INDEX IF NOT EXISTS idx_pagos_paypal_order ON pagos(paypal_order_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pagos_paypal_order
+    ON pagos(paypal_order_id) WHERE paypal_order_id IS NOT NULL;
 
 -- 4. Envios: nuevo estado Empacado y responsables por etapa.
 ALTER TABLE envios ADD COLUMN IF NOT EXISTS preparado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL;

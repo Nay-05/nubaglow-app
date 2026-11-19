@@ -16,6 +16,7 @@
     "test:bloque-e": "ts-node src/tests/bloque_e.test.ts",
     "test:envio": "ts-node src/tests/envio_config.test.ts",
     "test:comprobante": "ts-node src/tests/comprobante_pago.test.ts",
+    "test:paypal": "ts-node src/tests/paypal.test.ts",
     "test:seguridad": "ts-node src/tests/seguridad.test.ts",
     "test:frontend": "ts-node src/tests/frontend.test.ts"
   },

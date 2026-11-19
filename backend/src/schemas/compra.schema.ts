@@ -65,10 +65,10 @@ export const crearPedidoSchema = z.object({
     .trim()
     .min(5, 'La direccion debe incluir calle, numero o detalles claros (minimo 5 caracteres)'),
   notas: z.string().trim().max(500, 'Las notas no pueden superar 500 caracteres').optional(),
-  metodo_pago: z.enum(['qr_simple', 'qr', 'deposito_bancario', 'contra_entrega'], {
+  metodo_pago: z.enum(['qr_simple', 'qr', 'deposito_bancario', 'paypal', 'contra_entrega'], {
     errorMap: () => ({
       message:
-        'Metodo de pago no valido. Opciones permitidas: qr_simple, deposito_bancario, contra_entrega'
+        'Metodo de pago no valido. Opciones permitidas: qr_simple, deposito_bancario, paypal, contra_entrega'
     })
   }),
   // Opcional: si se envia items se compran esos; si no se envia se procesa el carrito persistente
@@ -196,6 +196,34 @@ export const crearResenaSchema = z.object({
     .min(5, 'El comentario debe tener al menos 5 caracteres')
     .max(1000, 'El comentario no puede exceder 1000 caracteres')
 });
+
+// ----------------------------------------------------------------------------
+// 2.2 ORDENES PAYPAL
+// ----------------------------------------------------------------------------
+const pedidoIdPaypalSchema = z.coerce
+  .number({ invalid_type_error: 'El pedido es obligatorio' })
+  .int('El pedido debe ser un entero')
+  .positive('El pedido debe ser valido');
+
+const ordenIdPaypalSchema = z
+  .string({ required_error: 'La orden PayPal es obligatoria' })
+  .trim()
+  .min(3, 'La orden PayPal es invalida')
+  .max(150, 'La orden PayPal no puede exceder 150 caracteres');
+
+export const crearOrdenPaypalSchema = z.object({
+  pedido_id: pedidoIdPaypalSchema
+});
+
+export const capturarOrdenPaypalSchema = z.object({
+  pedido_id: pedidoIdPaypalSchema,
+  orden_id: ordenIdPaypalSchema
+});
+
+export const aprobarOrdenPaypalSimuladoSchema = capturarOrdenPaypalSchema;
+
+export type CrearOrdenPaypalInput = z.infer<typeof crearOrdenPaypalSchema>;
+export type CapturarOrdenPaypalInput = z.infer<typeof capturarOrdenPaypalSchema>;
 
 export type AgregarCarritoItemInput = z.infer<typeof agregarCarritoItemSchema>;
 export type ActualizarCarritoItemInput = z.infer<typeof actualizarCarritoItemSchema>;

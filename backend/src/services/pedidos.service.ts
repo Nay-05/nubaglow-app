@@ -17,6 +17,7 @@ import { AppError } from '../middlewares/errores';
 import { RolUsuario } from '../types';
 import { CrearPedidoInput } from '../schemas/compra.schema';
 import { fechaVencimientoPago } from '../config/pagos';
+import { esPaypalSimulado } from '../config/paypal';
 import { obtenerDatosCobro } from '../config/cobro';
 import { calcularCostoEnvio } from './cotizaciones.service';
 import { generarQrSimulado } from './qr.service';
@@ -53,6 +54,10 @@ export interface PedidoCompleto {
   pago?: {
     metodo: string;
     monto: number;
+    moneda?: string;
+    montoUsd?: number | null;
+    tipoCambioBobUsd?: number | null;
+    paypalOrderId?: string | null;
     estado: string;
     referencia: string | null;
     pagadoEn: string | null;
@@ -266,12 +271,13 @@ export class PedidosService {
         ? `QR-DEMO-${Math.floor(100000 + Math.random() * 900000)}`
         : null;
       const venceEn = esContraEntrega ? null : fechaVencimientoPago();
+      const pagoSimulado = metodoPago === 'paypal' ? esPaypalSimulado() : true;
 
       await cliente.query(
         `INSERT INTO pagos
          (pedido_id, metodo, monto, estado, referencia, simulado, pagado_en, fecha_vencimiento)
-         VALUES ($1, $2, $3, 'Pendiente', $4, TRUE, NULL, $5)`,
-        [pedidoId, metodoPago, totalCalculado, refPago, venceEn]
+         VALUES ($1, $2, $3, 'Pendiente', $4, $5, NULL, $6)`,
+        [pedidoId, metodoPago, totalCalculado, refPago, pagoSimulado, venceEn]
       );
 
       // 3.7. Registrar Envio
@@ -411,8 +417,10 @@ export class PedidosService {
 
     // Obtener pago
     const resPago = await consultar(
-      `SELECT metodo, monto, estado, referencia, pagado_en AS "pagadoEn",
-              fecha_vencimiento AS "fechaVencimiento", comprobante_url AS "comprobanteUrl"
+      `SELECT metodo, monto, moneda, estado, referencia, pagado_en AS "pagadoEn",
+              fecha_vencimiento AS "fechaVencimiento", comprobante_url AS "comprobanteUrl",
+              monto_usd AS "montoUsd", tipo_cambio_bob_usd AS "tipoCambioBobUsd",
+              paypal_order_id AS "paypalOrderId"
        FROM pagos WHERE pedido_id = $1`,
       [pedidoId]
     );
@@ -445,6 +453,12 @@ export class PedidosService {
       const pago: NonNullable<PedidoCompleto['pago']> = {
         ...resPago.rows[0],
         monto: Number(resPago.rows[0].monto),
+        montoUsd:
+          resPago.rows[0].montoUsd === null ? null : Number(resPago.rows[0].montoUsd),
+        tipoCambioBobUsd:
+          resPago.rows[0].tipoCambioBobUsd === null
+            ? null
+            : Number(resPago.rows[0].tipoCambioBobUsd),
         avisoSimulacion: obtenerDatosCobro().avisoSimulacion
       };
 

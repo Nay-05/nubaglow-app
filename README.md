@@ -56,6 +56,14 @@ ENVIO_GRATIS_DESDE=200
 
 # Tamano maximo por comprobante de pago en MB (se guarda en la BD)
 COMPROBANTE_MAX_MB=2
+
+# PayPal: simulado por defecto. Para sandbox completar credenciales ficticias.
+PAYPAL_MODO=simulado
+PAYPAL_CLIENT_ID=tu_client_id_de_sandbox_aqui
+PAYPAL_CLIENT_SECRET=tu_client_secret_de_sandbox_aqui
+PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
+# Bs. por 1 USD. DEFINIR POR EL NEGOCIO (ejemplo academico).
+PAYPAL_TIPO_CAMBIO_BOB_USD=6.96
 ```
 
 ### 2.3. Reglas de negocio configurables del envio
@@ -66,6 +74,15 @@ El costo de envio y el umbral de envio gratis **no son requisitos fijos del sist
 - `ENVIO_GRATIS_DESDE`: subtotal minimo en Bs. desde el cual el envio es gratuito. Ejemplo: `200`.
 
 La logica vive en `backend/src/config/envio.ts` y se aplica tanto en la cotizacion (`POST /api/pedidos/cotizar`) como al crear el pedido, por lo que modificar estas variables cambia el monto cotizado sin tocar codigo. Si la variable falta o no es un numero valido, se usa el valor de ejemplo como respaldo.
+
+### 2.4. PayPal: modo simulado y sandbox
+
+PayPal no opera con bolivianos. El servidor toma el total del pedido en Bs., lo convierte a USD con `PAYPAL_TIPO_CAMBIO_BOB_USD` (Bs. por 1 USD, valor de ejemplo `6.96` que debe definir el negocio) y guarda en `pagos` el monto original, el tipo de cambio y el monto USD.
+
+- **Modo simulado (por defecto):** `PAYPAL_MODO=simulado`. No se hacen llamadas externas. `POST /api/pagos/paypal/crear` genera una orden en memoria, `POST /api/pagos/paypal/simulado/aprobar` simula la aprobacion del comprador y `POST /api/pagos/paypal/capturar` la captura. El endpoint simulado responde `404` si `PAYPAL_MODO` no es `simulado` o si `NODE_ENV=production`.
+- **Modo sandbox:** cambiar a `PAYPAL_MODO=sandbox` y completar `PAYPAL_CLIENT_ID` y `PAYPAL_CLIENT_SECRET` de una app sandbox de PayPal. Opcionalmente ajustar `PAYPAL_BASE_URL` (por defecto `https://api-m.sandbox.paypal.com`). El backend usa OAuth2 y PayPal Orders v2: crea la orden con `intent=CAPTURE`, redirige con el enlace `payer-action` y captura en `/v2/checkout/orders/{id}/capture`. Si faltan credenciales responde `503`; nunca cae automaticamente a simulacion.
+- **Seguridad:** el cliente nunca envia montos ni estados de aprobacion. El pago solo pasa a `Aprobado` tras verificar en el servidor que la orden pertenece al pedido, que esta aprobada, que la moneda es USD y que el monto capturado coincide con el calculado. La URL de retorno no aprueba nada y la captura es idempotente.
+- **Pruebas:** `npm run test:paypal` cubre el flujo simulado, la idempotencia, los rechazos por monto/moneda/orden ajena, los permisos y el bloqueo del endpoint simulado en sandbox y produccion.
 
 ---
 
@@ -124,6 +141,9 @@ npm run test:envio
 
 # Probar la carga del comprobante de pago QR/deposito (requiere BD)
 npm run test:comprobante
+
+# Probar PayPal en modo simulado (crear, aprobar, capturar e idempotencia)
+npm run test:paypal
 
 # Ejecutar todas las suites secuencialmente
 npm run test:todos
@@ -220,6 +240,9 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 | `POST` | `/api/pedidos` | `cliente` | Checkout atómico en 1 sola transacción (`SELECT ... FOR UPDATE`, descuenta stock, Kardex, genera `NB-2026-XXXX`, pago, envío inicial 'Pendiente', vacía carrito) | `POST /api/pedidos`<br>`{"nombre_completo": "Mariana Gomez", "celular": "71234567", "correo": "mariana@ejemplo.com", "ciudad": "Sucre", "direccion": "Calle Nicolas Ortiz 45", "metodo_pago": "qr_simple", "notas": "Entregar en porteria"}` |
 | `POST` | `/api/pedidos/:id/comprobante` | `cliente` | Sube el comprobante de pago para QR simple o depósito (JPEG, PNG, WebP o PDF, máx. `COMPROBANTE_MAX_MB`, 2 MB por defecto). Exige referencia, fecha no futura y monto pagado. Pasa el pago a `En verificación` y audita. | `POST /api/pedidos/12/comprobante`<br>`{"nombre_archivo": "comprobante.png", "mime_type": "image/png", "referencia": "OP-123456", "fecha_deposito": "2026-11-19", "monto_pagado": 95, "contenido_base64": "iVBORw0KG..."}` |
 | `GET` | `/api/comprobantes/:id` | Dueño / vendedor / admin | Devuelve el comprobante inline con MIME validado y `X-Content-Type-Options: nosniff`. Almacén y logística reciben `403`. | `GET /api/comprobantes/5` |
+| `POST` | `/api/pagos/paypal/crear` | `cliente` | Crea la orden PayPal para un pedido con método `paypal` y pago `Pendiente`. Convierte Bs. a USD y devuelve `urlAprobacion`. | `POST /api/pagos/paypal/crear`<br>`{"pedido_id": 12}` |
+| `POST` | `/api/pagos/paypal/capturar` | `cliente` | Captura una sola vez la orden aprobada, valida monto/moneda y aprueba el pago. | `POST /api/pagos/paypal/capturar`<br>`{"pedido_id": 12, "orden_id": "SIM-PAYPAL-ABC123"}` |
+| `POST` | `/api/pagos/paypal/simulado/aprobar` | `cliente` | Solo en modo simulado y fuera de producción (`404` en otro caso). Simula la aprobación del comprador. | `POST /api/pagos/paypal/simulado/aprobar`<br>`{"pedido_id": 12, "orden_id": "SIM-PAYPAL-ABC123"}` |
 | `GET` | `/api/pedidos` | `autenticado` | Historial de pedidos (cliente solo ve los suyos; staff ve todos) | `GET /api/pedidos` |
 | `GET` | `/api/pedidos/:id` | `autenticado` | Detalle de pedido (retorna `403` si un cliente intenta ver pedido ajeno) | `GET /api/pedidos/12` |
 

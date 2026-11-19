@@ -15,9 +15,10 @@
     "test:bloque-e": "npm --prefix backend run test:bloque-e",
     "test:envio": "npm --prefix backend run test:envio",
     "test:comprobante": "npm --prefix backend run test:comprobante",
+    "test:paypal": "npm --prefix backend run test:paypal",
     "test:seguridad": "npm --prefix backend run test:seguridad",
     "test:frontend": "npm --prefix backend run test:frontend",
-    "test:todos": "npm run test:envio && npm run test:bloque-a && npm run test:bloque-b && npm run test:bloque-c && npm run test:bloque-d && npm run test:bloque-e && npm run test:comprobante && npm run test:seguridad && npm run test:frontend",
+    "test:todos": "npm run test:envio && npm run test:bloque-a && npm run test:bloque-b && npm run test:bloque-c && npm run test:bloque-d && npm run test:bloque-e && npm run test:comprobante && npm run test:paypal && npm run test:seguridad && npm run test:frontend",
     "backend:install": "npm --prefix backend install"
   },
   "keywords": [

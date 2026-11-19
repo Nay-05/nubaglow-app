@@ -103,6 +103,9 @@ export class PagosService {
         pg.referencia,
         pg.referencia_externa AS "referenciaExterna",
         pg.paypal_order_id AS "paypalOrderId",
+        pg.monto_usd AS "montoUsd",
+        pg.tipo_cambio_bob_usd AS "tipoCambioBobUsd",
+        pg.simulado,
         pg.comprobante_url AS "comprobanteUrl",
         pg.fecha_vencimiento AS "fechaVencimiento",
         pg.verificado_por AS "verificadoPor",
@@ -195,6 +198,12 @@ export class PagosService {
     return {
       ...resPago.rows[0],
       monto: Number(resPago.rows[0].monto),
+      montoUsd:
+        resPago.rows[0].montoUsd === null ? null : Number(resPago.rows[0].montoUsd),
+      tipoCambioBobUsd:
+        resPago.rows[0].tipoCambioBobUsd === null
+          ? null
+          : Number(resPago.rows[0].tipoCambioBobUsd),
       totalPedido,
       referenciaDeclarada: ultimoComprobante?.referencia ?? null,
       fechaDeposito: ultimoComprobante?.fechaDeposito ?? null,

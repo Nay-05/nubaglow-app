@@ -18,7 +18,7 @@ enviados por el cliente.
 | Endpoint | Método | Roles (middleware) | Restricción adicional |
 |---|---|---|---|
 | `/api/pedidos/cotizar` | POST | `cliente` | Calcula subtotal, envío y total desde la BD; ignora cualquier precio enviado por el cliente. |
-| `/api/pedidos` | POST | `cliente` | Crea el pedido en una transacción, descuenta stock y registra el pago en estado `Pendiente` (`qr_simple`, `deposito_bancario` o `contra_entrega`). |
+| `/api/pedidos` | POST | `cliente` | Crea el pedido en una transacción, descuenta stock y registra el pago en estado `Pendiente` (`qr_simple`, `deposito_bancario`, `paypal` o `contra_entrega`). |
 | `/api/pedidos/:id/comprobante` | POST | `cliente` | Solo el dueño del pedido. Acepta JPEG, PNG, WebP o PDF hasta `COMPROBANTE_MAX_MB` (2 MB por defecto) para pagos `qr_simple`/`qr` (legado)/`deposito_bancario`. Exige `referencia`, `fecha_deposito` no futura y `monto_pagado`; pasa el pago a `En verificación`, guarda el archivo en `comprobantes_pago` y audita. |
 | `/api/comprobantes/:id` | GET | Autenticado | Devuelve el archivo inline. Cliente solo si es dueño del pedido; `vendedor` y `admin` siempre; `almacen` y `logistica` reciben `403`. Usa el MIME validado, `Content-Disposition: inline` y `X-Content-Type-Options: nosniff`. |
 | `/api/pedidos` | GET | Autenticado | Lista únicamente los pedidos del usuario autenticado. |
@@ -72,6 +72,9 @@ Reglas de negocio del servicio de envíos:
 | `/api/staff/pagos/:id/rechazar` | PATCH | `vendedor`, `admin` | Solo pagos `Pendiente` / `En verificación`. Cancela el pedido y repone stock en la misma transacción. |
 | `/api/staff/pagos/vencidos/cancelar` | POST | `vendedor`, `admin` con `requerirRol('admin')` | Solo `admin`. Cancela pagos vencidos (`PAGO_VENCIMIENTO_HORAS`, por defecto 24 h), excluye `contra_entrega`, repone stock y audita. |
 | `/api/staff/pedidos/:id/cancelar` | POST | `admin` | Cancelación administrativa con reposición atómica e idempotente. |
+| `/api/pagos/paypal/crear` | POST | `cliente` | Solo el dueño del pedido. Exige método `paypal` y pago `Pendiente`; calcula el monto USD desde el total Bs. y devuelve `urlAprobacion`. |
+| `/api/pagos/paypal/capturar` | POST | `cliente` | Solo el dueño. Verifica que la orden pertenezca al pedido, que esté aprobada y que monto/moneda coincidan con lo calculado por el servidor. Captura una sola vez e idempotente. |
+| `/api/pagos/paypal/simulado/aprobar` | POST | `cliente` | Solo el dueño y solo si `PAYPAL_MODO=simulado` y `NODE_ENV` no es `production`. En otro caso responde `404`. Simula la aprobación del comprador para pruebas locales. |
 
 Reglas del servicio de pagos/cancelaciones:
 
@@ -93,6 +96,26 @@ Reglas del servicio de pagos/cancelaciones:
 - No se puede cancelar un pedido `En tránsito` o `Entregado`.
 - Toda aprobación, rechazo, cancelación y reposición queda en `auditoria` y en
   `pago_eventos`.
+
+Reglas de PayPal:
+
+- PayPal no acepta bolivianos. El servidor convierte el total del pedido con
+  `PAYPAL_TIPO_CAMBIO_BOB_USD` (Bs. por 1 USD) y redondea el monto USD a dos
+  decimales. En `pagos` se conservan `monto` (Bs.), `tipo_cambio_bob_usd`,
+  `monto_usd`, `paypal_order_id` y la captura en `referencia_externa`.
+- Crear una orden no aprueba el pago: queda `Pendiente`. Si el cliente cancela
+  la orden en PayPal o esta vence, puede pedir otra orden para el mismo pago;
+  el pago sigue `Pendiente` hasta que la captura sea verificada. Las reglas de
+  vencimiento del pago (`PAGO_VENCIMIENTO_HORAS`) y cancelación con reposición
+  de stock siguen aplicando.
+- Capturar exige que la orden pertenezca al pedido, que el estado devuelto por
+  PayPal sea `COMPLETED`/`APPROVED`, que la moneda sea `USD` y que el monto
+  coincida con el calculado por el servidor. Solo entonces el pago pasa a
+  `Aprobado`, registra `pago_eventos` y auditoría, y el almacén puede prepararlo.
+- La URL de retorno o cualquier dato enviado por el cliente no aprueban el pago.
+- `simulado/aprobar` está deshabilitado con `404` fuera de `PAYPAL_MODO=simulado`
+  o cuando `NODE_ENV=production`, para que nunca pueda simularse un pago en un
+  entorno productivo. Exige sesión del cliente dueño.
 
 ## Rutas POS
 
@@ -122,6 +145,9 @@ Reglas del servicio de pagos/cancelaciones:
 | `POST /api/pedidos` | X | - | - | - | - |
 | `POST /api/pedidos/:id/comprobante` | X | - | - | - | - |
 | `GET /api/comprobantes/:id` | Dueño | X | - | - | X |
+| `POST /api/pagos/paypal/crear` | Dueño | - | - | - | - |
+| `POST /api/pagos/paypal/capturar` | Dueño | - | - | - | - |
+| `POST /api/pagos/paypal/simulado/aprobar` | Dueño | - | - | - | - |
 | `GET /api/envios/rastreo/:codigo` | Público | Público | Público | Público | Público |
 | `PATCH /api/envios/:id/estado` | - | - | X | X | X |
 | `PATCH /api/staff/almacen/envios/:id/estado` | - | - | X | - | X |
