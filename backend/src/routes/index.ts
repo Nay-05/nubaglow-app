@@ -19,6 +19,9 @@ import posRoutes from './pos.routes';
 import inventarioRoutes from './inventario.routes';
 import reportesRoutes from './reportes.routes';
 import usuariosRoutes from './usuarios.routes';
+import staffAlmacenRoutes from './staff-almacen.routes';
+import staffLogisticaRoutes from './staff-logistica.routes';
+import staffPagosRoutes from './staff-pagos.routes';
 
 const apiRouter = Router();
 
@@ -44,5 +47,10 @@ apiRouter.use('/pos', posRoutes);
 apiRouter.use('/inventario', inventarioRoutes);
 apiRouter.use('/reportes', reportesRoutes);
 apiRouter.use('/usuarios', usuariosRoutes);
+
+// Envoltorios por rol para el portal interno (reutilizan los servicios existentes)
+apiRouter.use('/staff/almacen', staffAlmacenRoutes);
+apiRouter.use('/staff/logistica', staffLogisticaRoutes);
+apiRouter.use('/staff/pagos', staffPagosRoutes);
 
 export default apiRouter;

@@ -48,11 +48,13 @@ async function ejecutarPruebas() {
   // 1. Usuarios para pruebas
   let clienteAId: number;
   let clienteBId: number;
-  let operacionesId: number;
+  let almacenId: number;
+  let logisticaId: number;
 
   let tokenClienteA: string;
   let tokenClienteB: string;
-  let tokenOperaciones: string;
+  let tokenAlmacen: string;
+  let tokenLogistica: string;
 
   // 2. Articulos para pruebas
   let productoTestId: number;
@@ -82,12 +84,19 @@ async function ejecutarPruebas() {
     );
     clienteBId = resUserB.rows[0].id;
 
-    const resUserOp = await consultar(
+    const resUserAlmacen = await consultar(
       `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
-       VALUES ('Operador Nuba', $1, 'hash_test', 'logistica', TRUE) RETURNING id`,
-      [`operaciones_${sufijo}@nuba.bo`]
+       VALUES ('Almacen Nuba', $1, 'hash_test', 'almacen', TRUE) RETURNING id`,
+      [`almacen_${sufijo}@nuba.bo`]
     );
-    operacionesId = resUserOp.rows[0].id;
+    almacenId = resUserAlmacen.rows[0].id;
+
+    const resUserLogistica = await consultar(
+      `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
+       VALUES ('Logistica Nuba', $1, 'hash_test', 'logistica', TRUE) RETURNING id`,
+      [`logistica_${sufijo}@nuba.bo`]
+    );
+    logisticaId = resUserLogistica.rows[0].id;
 
     tokenClienteA = jwt.sign(
       { id: clienteAId, nombre: 'Camila Test A', email: `cliente_a_${sufijo}@nuba.bo`, rol: 'cliente', activo: true },
@@ -99,8 +108,13 @@ async function ejecutarPruebas() {
       JWT_SECRET,
       { expiresIn: '1h' }
     );
-    tokenOperaciones = jwt.sign(
-      { id: operacionesId, nombre: 'Operador Nuba', email: `operaciones_${sufijo}@nuba.bo`, rol: 'logistica', activo: true },
+    tokenAlmacen = jwt.sign(
+      { id: almacenId, nombre: 'Almacen Nuba', email: `almacen_${sufijo}@nuba.bo`, rol: 'almacen', activo: true },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    tokenLogistica = jwt.sign(
+      { id: logisticaId, nombre: 'Logistica Nuba', email: `logistica_${sufijo}@nuba.bo`, rol: 'logistica', activo: true },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -378,49 +392,100 @@ async function ejecutarPruebas() {
     });
     asegurar(resClienteCambiaEnvio.status === 403, 'Cliente intentando alterar estado de envio recibe 403 Prohibido');
 
-    // Operador intentando saltar de 'Pendiente' a 'Entregado' directamente -> 400
-    const resSaltoInvalido = await fetch(`${baseUrl}/api/envios/${envioCreadoId}/estado`, {
+    // Logistica intentando saltar de 'Pendiente' a 'Entregado' directamente -> 400
+    const resSaltoInvalido = await fetch(`${baseUrl}/api/staff/logistica/envios/${envioCreadoId}/estado`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenOperaciones}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenLogistica}` },
       body: JSON.stringify({ estado: 'Entregado' })
     });
-    asegurar(resSaltoInvalido.status === 400, 'Operador intentando saltar estados de envio recibe 400 Bad Request');
+    asegurar(resSaltoInvalido.status === 400, 'Logistica intentando saltar estados de envio recibe 400 Bad Request');
 
-    // Transicion valida 1: Pendiente -> En preparación
-    const resPrep = await fetch(`${baseUrl}/api/envios/${envioCreadoId}/estado`, {
+    // Almacen intentando despachar (En tránsito) -> 403 por rol
+    const resAlmacenDespacha = await fetch(`${baseUrl}/api/staff/almacen/envios/${envioCreadoId}/estado`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenOperaciones}` },
-      body: JSON.stringify({ estado: 'En preparación' })
-    });
-    asegurar(resPrep.status === 200, 'Operador avanza envio a "En preparación" (200 OK)');
-
-    // Transicion valida 2: En preparación -> En tránsito
-    const resTrans = await fetch(`${baseUrl}/api/envios/${envioCreadoId}/estado`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenOperaciones}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenAlmacen}` },
       body: JSON.stringify({ estado: 'En tránsito' })
     });
-    asegurar(resTrans.status === 200, 'Operador avanza envio a "En tránsito" (200 OK)');
+    asegurar(resAlmacenDespacha.status === 403, 'Almacen no puede despachar un envio (403)');
 
-    // Transicion valida 3: En tránsito -> Entregado (liquida pago contra entrega a Aprobado)
-    const resEntrega = await fetch(`${baseUrl}/api/envios/${envioCreadoId}/estado`, {
+    // Logistica intentando preparar -> 403 por rol
+    const resLogisticaPrepara = await fetch(`${baseUrl}/api/staff/logistica/envios/${envioCreadoId}/estado`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenOperaciones}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenLogistica}` },
+      body: JSON.stringify({ estado: 'En preparación' })
+    });
+    asegurar(resLogisticaPrepara.status === 403, 'Logistica no puede preparar un envio (403)');
+
+    // Transicion valida 1: Pendiente -> En preparación (almacen)
+    const resPrep = await fetch(`${baseUrl}/api/staff/almacen/envios/${envioCreadoId}/estado`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenAlmacen}` },
+      body: JSON.stringify({ estado: 'En preparación' })
+    });
+    asegurar(resPrep.status === 200, 'Almacen avanza envio a "En preparación" (200 OK)');
+
+    // Transicion valida 2: En preparación -> Empacado (almacen)
+    const resEmpacado = await fetch(`${baseUrl}/api/staff/almacen/envios/${envioCreadoId}/estado`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenAlmacen}` },
+      body: JSON.stringify({ estado: 'Empacado' })
+    });
+    asegurar(resEmpacado.status === 200, 'Almacen avanza envio a "Empacado" (200 OK)');
+
+    // Transicion valida 3: Empacado -> En tránsito (logistica)
+    const resTrans = await fetch(`${baseUrl}/api/staff/logistica/envios/${envioCreadoId}/estado`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenLogistica}` },
+      body: JSON.stringify({ estado: 'En tránsito' })
+    });
+    asegurar(resTrans.status === 200, 'Logistica avanza envio a "En tránsito" (200 OK)');
+
+    // Entregar sin datos de acta por la ruta legacy -> 400
+    const resEntregaSinActa = await fetch(`${baseUrl}/api/envios/${envioCreadoId}/estado`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenLogistica}` },
       body: JSON.stringify({ estado: 'Entregado' })
     });
-    asegurar(resEntrega.status === 200, 'Operador avanza envio a "Entregado" (200 OK)');
+    asegurar(resEntregaSinActa.status === 400, 'Entregar sin receptor, fecha, hora y nota es rechazado (400)');
+
+    // Transicion valida 4: En tránsito -> Entregado con acta de entrega obligatoria
+    const hoy = new Date().toISOString().slice(0, 10);
+    const resEntrega = await fetch(`${baseUrl}/api/staff/logistica/envios/${envioCreadoId}/entrega`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenLogistica}` },
+      body: JSON.stringify({
+        receptor: 'Camila Morales',
+        documento: 'CI 9876543',
+        fecha_entrega: hoy,
+        hora_entrega: '15:30',
+        nota: 'Entrega recibida conforme en puerta principal.'
+      })
+    });
+    asegurar(resEntrega.status === 200, 'Logistica cierra la entrega con receptor, fecha, hora y nota (200 OK)');
 
     // Verificar que el pago contra-entrega paso a 'Aprobado'
     const resPagoVerif = await consultar('SELECT estado, pagado_en FROM pagos WHERE pedido_id = $1', [pedidoCreadoId]);
     asegurar(
       resPagoVerif.rows[0].estado === 'Aprobado' && resPagoVerif.rows[0].pagado_en !== null,
-      'Pago contra-entrega liquidado a Aprobado con fecha al marcar Entregado'
+      'Pago contra-entrega liquidado a Aprobado con fecha al cerrar la entrega'
+    );
+
+    const resActa = await consultar(
+      `SELECT e.receptor, e.fecha_entrega, e.hora_entrega, e.nota
+       FROM entregas e
+       INNER JOIN envios en ON en.id = e.envio_id
+       WHERE en.id = $1`,
+      [envioCreadoId]
+    );
+    asegurar(
+      resActa.rows.length === 1 && resActa.rows[0].receptor === 'Camila Morales',
+      'Acta de entrega persistida con receptor y datos obligatorios'
     );
 
     // Intentar retroceder de Entregado a En tránsito -> 400
-    const resRetroceso = await fetch(`${baseUrl}/api/envios/${envioCreadoId}/estado`, {
+    const resRetroceso = await fetch(`${baseUrl}/api/staff/logistica/envios/${envioCreadoId}/estado`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenOperaciones}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenLogistica}` },
       body: JSON.stringify({ estado: 'En tránsito' })
     });
     asegurar(resRetroceso.status === 400, 'Intento de retroceder un envio entregado es rechazado (400)');
@@ -434,8 +499,8 @@ async function ejecutarPruebas() {
       'El estado devuelto en rastreo publico es Entregado'
     );
     asegurar(
-      dataRastreo.datos.rastreo.lineaDeTiempo.length === 4,
-      'La linea de tiempo contiene los 4 hitos secuenciales registrados'
+      dataRastreo.datos.rastreo.lineaDeTiempo.length === 5,
+      'La linea de tiempo contiene los 5 hitos secuenciales registrados'
     );
     asegurar(
       dataRastreo.datos.rastreo.destinatarioProtegido.celular.includes('****'),
@@ -499,14 +564,14 @@ async function ejecutarPruebas() {
     console.log(`============================================================\n`);
 
     server.close(async () => {
-      await limpiarDatosPrueba(productoTestId, [clienteAId, clienteBId, operacionesId]);
+      await limpiarDatosPrueba(productoTestId, [clienteAId, clienteBId, almacenId, logisticaId]);
       await cerrarPool();
       process.exit(fallos > 0 ? 1 : 0);
     });
   } catch (error) {
     console.error('Error critico durante la ejecucion de la suite Bloque C:', error);
     server.close(async () => {
-      await limpiarDatosPrueba(productoTestId, [clienteAId, clienteBId, operacionesId]);
+      await limpiarDatosPrueba(productoTestId, [clienteAId, clienteBId, almacenId, logisticaId]);
       await cerrarPool();
       process.exit(1);
     });
@@ -537,11 +602,21 @@ async function limpiarDatosPrueba(prodId?: number, userIds?: number[]) {
         const envios = await consultar('SELECT id FROM envios WHERE pedido_id = ANY($1::int[])', [pIds]);
         const eIds = envios.rows.map((e) => e.id);
         if (eIds.length > 0) {
+          await consultar('DELETE FROM entregas WHERE envio_id = ANY($1::int[])', [eIds]);
           await consultar('DELETE FROM envio_eventos WHERE envio_id = ANY($1::int[])', [eIds]);
           await consultar('DELETE FROM envios WHERE id = ANY($1::int[])', [eIds]);
         }
+        await consultar(
+          'DELETE FROM comprobantes_pago WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = ANY($1::int[]))',
+          [pIds]
+        );
+        await consultar(
+          'DELETE FROM pago_eventos WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = ANY($1::int[]))',
+          [pIds]
+        );
         await consultar('DELETE FROM pagos WHERE pedido_id = ANY($1::int[])', [pIds]);
         await consultar('DELETE FROM pedido_items WHERE pedido_id = ANY($1::int[])', [pIds]);
+        await consultar('DELETE FROM movimientos_inventario WHERE pedido_id = ANY($1::int[])', [pIds]);
         await consultar('DELETE FROM pedidos WHERE id = ANY($1::int[])', [pIds]);
       }
       await consultar('DELETE FROM carritos WHERE usuario_id = ANY($1::int[])', [userIds]);

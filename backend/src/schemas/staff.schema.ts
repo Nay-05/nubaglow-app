@@ -49,7 +49,18 @@ export const consultaReportesSchema = z.object({
 });
 
 // ----------------------------------------------------------------------------
-// 4. GESTION DE USUARIOS STAFF
+// 4. VERIFICACION DE PAGOS
+// ----------------------------------------------------------------------------
+export const rechazarPagoSchema = z.object({
+  motivo: z
+    .string({ required_error: 'El motivo de rechazo es obligatorio' })
+    .trim()
+    .min(5, 'El motivo del rechazo debe tener al menos 5 caracteres')
+    .max(500, 'El motivo del rechazo no puede exceder 500 caracteres')
+});
+
+// ----------------------------------------------------------------------------
+// 5. GESTION DE USUARIOS STAFF
 // ----------------------------------------------------------------------------
 export const rolesStaffValidos = ['vendedor', 'almacen', 'logistica', 'admin'] as const;
 
@@ -91,6 +102,7 @@ export const restablecerPasswordStaffSchema = z.object({
 export type CrearVentaPosInput = z.infer<typeof crearVentaPosSchema>;
 export type AjusteInventarioInput = z.infer<typeof ajusteInventarioSchema>;
 export type ConsultaReportesInput = z.infer<typeof consultaReportesSchema>;
+export type RechazarPagoInput = z.infer<typeof rechazarPagoSchema>;
 export type CrearUsuarioStaffInput = z.infer<typeof crearUsuarioStaffSchema>;
 export type ActualizarUsuarioStaffInput = z.infer<typeof actualizarUsuarioStaffSchema>;
 export type RestablecerPasswordStaffInput = z.infer<typeof restablecerPasswordStaffSchema>;

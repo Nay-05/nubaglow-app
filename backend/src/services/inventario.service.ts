@@ -187,9 +187,11 @@ export class InventarioService {
   }
 
   /**
-   * Cola de pedidos pendientes de preparacion y empaque para el modulo de almacen
+   * Cola de pedidos por etapa de envio.
+   * Almacen consulta Pendiente/En preparacion; logistica consulta Empacado.
    */
-  async colaDespachos() {
+  async colaDespachos(estados: string[] = ['Pendiente', 'En preparación']) {
+    const marcadores = estados.map((_, indice) => `$${indice + 1}`).join(', ');
     const consulta = `
       SELECT 
         e.id AS "envioId",
@@ -219,11 +221,11 @@ export class InventarioService {
       FROM envios e
       INNER JOIN pedidos p ON p.id = e.pedido_id
       LEFT JOIN pagos pg ON pg.pedido_id = p.id
-      WHERE e.estado IN ('Pendiente', 'En preparación')
+      WHERE e.estado IN (${marcadores})
       ORDER BY p.creado_en ASC;
     `;
 
-    const res = await consultar(consulta);
+    const res = await consultar(consulta, estados);
     return res.rows.map((r) => ({
       ...r,
       total: Number(r.total)

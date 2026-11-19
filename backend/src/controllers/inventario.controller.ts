@@ -60,3 +60,27 @@ export async function colaDespachos(_req: Request, res: Response, next: NextFunc
     next(error);
   }
 }
+
+export async function colaDespachosPreparacion(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pedidos = await inventarioService.colaDespachos(['Pendiente', 'En preparación']);
+    res.status(200).json({
+      exito: true,
+      datos: { pedidos }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function colaDespachosLogistica(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const pedidos = await inventarioService.colaDespachos(['Empacado']);
+    res.status(200).json({
+      exito: true,
+      datos: { pedidos }
+    });
+  } catch (error) {
+    next(error);
+  }
+}

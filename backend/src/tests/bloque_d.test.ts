@@ -13,7 +13,7 @@
  *    - Peticiones sin token -> 401
  *    - Cliente a POS, inventario, reportes o usuarios -> 403
  *    - Vendedor a reportes o usuarios -> 403
- *    - Operaciones a gestion de usuarios o POS -> 403
+ *    - Roles no autorizados a gestion de usuarios o POS -> 403
  * 8. Verificacion de registros en tabla auditoria (login, usuarios, precios, stock, envios).
  */
 
@@ -51,19 +51,21 @@ async function ejecutarPruebas() {
   let adminId: number;
   let vendedor1Id: number;
   let vendedor2Id: number;
-  let operacionesId: number;
+  let almacenId: number;
+  let logisticaId: number;
   let clienteId: number;
 
   let tokenAdmin: string;
   let tokenVendedor1: string;
   let tokenVendedor2: string;
-  let tokenOperaciones: string;
+  let tokenAlmacen: string;
+  let tokenLogistica: string;
   let tokenCliente: string;
 
   let productoTestId: number;
   let varianteTestId: number;
 
-  let nuevoOpId: number | undefined;
+  let nuevoAlmacenId: number | undefined;
   let userStaffAuditId: number | undefined;
   let envioAuditId: number | undefined;
   let pedidoAuditId: number | undefined;
@@ -94,12 +96,19 @@ async function ejecutarPruebas() {
     );
     vendedor2Id = resV2.rows[0].id;
 
-    const resOp = await consultar(
+    const resAlmacen = await consultar(
       `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
-       VALUES ('Operador Logistica', $1, 'hash_test', 'almacen', TRUE) RETURNING id`,
-      [`operaciones_d_${sufijo}@nuba.bo`]
+       VALUES ('Almacen Nuba', $1, 'hash_test', 'almacen', TRUE) RETURNING id`,
+      [`almacen_d_${sufijo}@nuba.bo`]
     );
-    operacionesId = resOp.rows[0].id;
+    almacenId = resAlmacen.rows[0].id;
+
+    const resLogistica = await consultar(
+      `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
+       VALUES ('Logistica Nuba', $1, 'hash_test', 'logistica', TRUE) RETURNING id`,
+      [`logistica_d_${sufijo}@nuba.bo`]
+    );
+    logisticaId = resLogistica.rows[0].id;
 
     const resCli = await consultar(
       `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
@@ -123,8 +132,13 @@ async function ejecutarPruebas() {
       JWT_SECRET,
       { expiresIn: '1h' }
     );
-    tokenOperaciones = jwt.sign(
-      { id: operacionesId, nombre: 'Operador Logistica', email: `operaciones_d_${sufijo}@nuba.bo`, rol: 'almacen', activo: true },
+    tokenAlmacen = jwt.sign(
+      { id: almacenId, nombre: 'Almacen Nuba', email: `almacen_d_${sufijo}@nuba.bo`, rol: 'almacen', activo: true },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    tokenLogistica = jwt.sign(
+      { id: logisticaId, nombre: 'Logistica Nuba', email: `logistica_d_${sufijo}@nuba.bo`, rol: 'logistica', activo: true },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -184,11 +198,45 @@ async function ejecutarPruebas() {
     });
     asegurar(resVenRep.status === 403, 'Vendedor intentando acceder a Reportes recibe 403 Prohibido');
 
-    // Operaciones intentando acceder a Gestion de Usuarios -> 403
-    const resOpUsers = await fetch(`${baseUrl}/api/usuarios`, {
-      headers: { Authorization: `Bearer ${tokenOperaciones}` }
+    // Almacen intentando acceder a Gestion de Usuarios -> 403
+    const resAlmacenUsers = await fetch(`${baseUrl}/api/usuarios`, {
+      headers: { Authorization: `Bearer ${tokenAlmacen}` }
     });
-    asegurar(resOpUsers.status === 403, 'Operaciones intentando acceder a Gestion de Usuarios recibe 403 Prohibido');
+    asegurar(resAlmacenUsers.status === 403, 'Almacen intentando acceder a Gestion de Usuarios recibe 403 Prohibido');
+
+    // Rutas staff: cada rol accede solo a su modulo
+    const resStaffAlmacen = await fetch(`${baseUrl}/api/staff/almacen/inventario`, {
+      headers: { Authorization: `Bearer ${tokenAlmacen}` }
+    });
+    asegurar(resStaffAlmacen.status === 200, 'Almacen accede a /api/staff/almacen/inventario (200)');
+
+    const resStaffAlmacenProhibido = await fetch(`${baseUrl}/api/staff/almacen/inventario`, {
+      headers: { Authorization: `Bearer ${tokenLogistica}` }
+    });
+    asegurar(resStaffAlmacenProhibido.status === 403, 'Logistica no accede al modulo staff de almacen (403)');
+
+    const resStaffLogistica = await fetch(`${baseUrl}/api/staff/logistica/despachos`, {
+      headers: { Authorization: `Bearer ${tokenLogistica}` }
+    });
+    asegurar(resStaffLogistica.status === 200, 'Logistica accede a /api/staff/logistica/despachos (200)');
+
+    const resStaffLogisticaProhibido = await fetch(`${baseUrl}/api/staff/logistica/despachos`, {
+      headers: { Authorization: `Bearer ${tokenAlmacen}` }
+    });
+    asegurar(resStaffLogisticaProhibido.status === 403, 'Almacen no accede al modulo staff de logistica (403)');
+
+    const resStaffPagos = await fetch(`${baseUrl}/api/staff/pagos`, {
+      headers: { Authorization: `Bearer ${tokenVendedor1}` }
+    });
+    asegurar(resStaffPagos.status === 200, 'Vendedor accede a la cola de verificacion de pagos (200)');
+
+    const resStaffPagosProhibido = await fetch(`${baseUrl}/api/staff/pagos`, {
+      headers: { Authorization: `Bearer ${tokenAlmacen}` }
+    });
+    asegurar(resStaffPagosProhibido.status === 403, 'Almacen no accede a la verificacion de pagos (403)');
+
+    const resStaffPagosSinToken = await fetch(`${baseUrl}/api/staff/pagos`);
+    asegurar(resStaffPagosSinToken.status === 401, 'Ruta staff de pagos sin token responde 401');
 
     // ------------------------------------------------------------------------
     // 2. VENTAS POS Y FACTURACION CORRELATIVA
@@ -282,10 +330,10 @@ async function ejecutarPruebas() {
     console.log('\n--- 4. Inventario, Kardex y Prevencion de Stock Negativo ---');
     // Listado de inventario
     const resInv = await fetch(`${baseUrl}/api/inventario`, {
-      headers: { Authorization: `Bearer ${tokenOperaciones}` }
+      headers: { Authorization: `Bearer ${tokenAlmacen}` }
     });
     const dataInv = (await resInv.json()) as any;
-    asegurar(resInv.status === 200, 'Operador lista inventario consolidado (200)');
+    asegurar(resInv.status === 200, 'Almacen lista inventario consolidado (200)');
     asegurar(Array.isArray(dataInv.datos.inventario), 'Inventario contiene lista de variantes con alertas');
 
     // Ingreso de mercaderia (+10 unidades)
@@ -293,7 +341,7 @@ async function ejecutarPruebas() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${tokenOperaciones}`
+        Authorization: `Bearer ${tokenAlmacen}`
       },
       body: JSON.stringify({
         tipo: 'entrada',
@@ -313,7 +361,7 @@ async function ejecutarPruebas() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${tokenOperaciones}`
+        Authorization: `Bearer ${tokenAlmacen}`
       },
       body: JSON.stringify({
         tipo: 'ajuste',
@@ -328,7 +376,7 @@ async function ejecutarPruebas() {
 
     // Consulta de Kardex por variante
     const resKardex = await fetch(`${baseUrl}/api/inventario/kardex/${varianteTestId}`, {
-      headers: { Authorization: `Bearer ${tokenOperaciones}` }
+      headers: { Authorization: `Bearer ${tokenAlmacen}` }
     });
     const dataKardex = (await resKardex.json()) as any;
     asegurar(resKardex.status === 200, 'Consulta de Kardex por variante responde 200');
@@ -337,11 +385,11 @@ async function ejecutarPruebas() {
       'El Kardex refleja ventas POS e ingreso de mercaderia con motivo y usuario responsable'
     );
 
-    // Cola de despachos de operaciones
+    // Cola de preparacion de almacen
     const resDespachos = await fetch(`${baseUrl}/api/inventario/despachos`, {
-      headers: { Authorization: `Bearer ${tokenOperaciones}` }
+      headers: { Authorization: `Bearer ${tokenAlmacen}` }
     });
-    asegurar(resDespachos.status === 200, 'Cola de pedidos pendientes de despacho responde 200');
+    asegurar(resDespachos.status === 200, 'Cola de pedidos pendientes de preparacion responde 200');
 
     // ------------------------------------------------------------------------
     // 5. REPORTES GERENCIALES (ADMIN)
@@ -377,23 +425,23 @@ async function ejecutarPruebas() {
     // ------------------------------------------------------------------------
     console.log('\n--- 6. Gestion de Usuarios Staff y Reglas de Proteccion ---');
     // Crear nuevo usuario de staff
-    const emailNuevoOp = `nuevo_operador_${sufijo}@nuba.bo`;
-    const resCrearOp = await fetch(`${baseUrl}/api/usuarios`, {
+    const emailNuevoAlmacen = `nuevo_almacen_${sufijo}@nuba.bo`;
+    const resCrearAlmacen = await fetch(`${baseUrl}/api/usuarios`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${tokenAdmin}`
       },
       body: JSON.stringify({
-        nombre: 'Nuevo Operador Almacen',
-        email: emailNuevoOp,
+        nombre: 'Nuevo Almacen Nuba',
+        email: emailNuevoAlmacen,
         password: 'PasswordNuevo!2026',
         rol: 'almacen'
       })
     });
-    const dataCrearOp = (await resCrearOp.json()) as any;
-    asegurar(resCrearOp.status === 201, 'Admin crea cuenta de operaciones (201)');
-    const nuevoOpId = dataCrearOp.datos.usuario.id;
+    const dataCrearAlmacen = (await resCrearAlmacen.json()) as any;
+    asegurar(resCrearAlmacen.status === 201, 'Admin crea cuenta de almacen (201)');
+    nuevoAlmacenId = dataCrearAlmacen.datos.usuario.id;
 
     // Listar staff
     const resListarStaff = await fetch(`${baseUrl}/api/usuarios`, {
@@ -402,12 +450,12 @@ async function ejecutarPruebas() {
     const dataListarStaff = (await resListarStaff.json()) as any;
     asegurar(resListarStaff.status === 200, 'Admin lista usuarios de staff');
     asegurar(
-      dataListarStaff.datos.usuarios.some((u: any) => u.id === nuevoOpId),
+      dataListarStaff.datos.usuarios.some((u: any) => u.id === nuevoAlmacenId),
       'El nuevo usuario figura en la lista de staff'
     );
 
     // Desactivar usuario nuevo
-    const resDesact = await fetch(`${baseUrl}/api/usuarios/${nuevoOpId}`, {
+    const resDesact = await fetch(`${baseUrl}/api/usuarios/${nuevoAlmacenId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -476,7 +524,7 @@ async function ejecutarPruebas() {
     }
 
     // Restablecer contrasena
-    const resResetPass = await fetch(`${baseUrl}/api/usuarios/${nuevoOpId}/password`, {
+    const resResetPass = await fetch(`${baseUrl}/api/usuarios/${nuevoAlmacenId}/password`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -567,14 +615,14 @@ async function ejecutarPruebas() {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${tokenOperaciones}`
+        Authorization: `Bearer ${tokenAlmacen}`
       },
       body: JSON.stringify({
         estado: 'En preparación',
         descripcion: 'Empaque verificado para productos cosmeticos'
       })
     });
-    asegurar(resCambioEstadoHttp.status === 200, 'Operador avanza estado de envio a En preparación (200)');
+    asegurar(resCambioEstadoHttp.status === 200, 'Almacen avanza estado de envio a En preparación (200)');
 
     const resAuditEnvio = await consultar(
       "SELECT accion, detalles FROM auditoria WHERE accion = 'CAMBIAR_ESTADO_ENVIO' AND registro_id = $1",
@@ -589,13 +637,126 @@ async function ejecutarPruebas() {
       'Auditoria CAMBIAR_ESTADO_ENVIO registra estadoAnterior (Pendiente) y nuevoEstado (En preparación)'
     );
 
-    // 7.4. Verificacion de acciones generales de auditoria
+    // 7.4. Verificacion de pagos: cola, aprobacion y rechazo con auditoria
+    const resPagoVerif = await consultar(
+      `INSERT INTO pagos (pedido_id, metodo, monto, estado, referencia_externa)
+       VALUES ($1, 'deposito_bancario', 95.00, 'En verificación', $2)
+       RETURNING id`,
+      [pedidoAuditId, `DEP-${sufijo}`]
+    );
+    const pagoVerifId = resPagoVerif.rows[0].id;
+
+    const resColaPagos = await fetch(`${baseUrl}/api/staff/pagos`, {
+      headers: { Authorization: `Bearer ${tokenVendedor1}` }
+    });
+    const dataColaPagos = (await resColaPagos.json()) as any;
+    asegurar(resColaPagos.status === 200, 'Vendedor consulta la cola de pagos en verificacion (200)');
+    asegurar(
+      dataColaPagos.datos.pagos.some((p: any) => p.id === pagoVerifId),
+      'El pago en verificacion aparece en la cola con su comprobante'
+    );
+
+    const resDetallePago = await fetch(`${baseUrl}/api/staff/pagos/${pagoVerifId}`, {
+      headers: { Authorization: `Bearer ${tokenVendedor1}` }
+    });
+    asegurar(resDetallePago.status === 200, 'Detalle del pago con eventos responde 200');
+
+    const resRechazoInvalido = await fetch(`${baseUrl}/api/staff/pagos/${pagoVerifId}/rechazar`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${tokenVendedor1}`
+      },
+      body: JSON.stringify({ motivo: '' })
+    });
+    asegurar(resRechazoInvalido.status === 400, 'Rechazo de pago sin motivo es bloqueado con 400');
+
+    const resAprobarPago = await fetch(`${baseUrl}/api/staff/pagos/${pagoVerifId}/aprobar`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${tokenVendedor1}` }
+    });
+    asegurar(resAprobarPago.status === 200, 'Vendedor aprueba el pago En verificación (200)');
+
+    const resPagoAprobado = await consultar(
+      'SELECT estado, verificado_por, fecha_verificacion FROM pagos WHERE id = $1',
+      [pagoVerifId]
+    );
+    asegurar(
+      resPagoAprobado.rows[0].estado === 'Aprobado' &&
+        resPagoAprobado.rows[0].verificado_por === vendedor1Id &&
+        resPagoAprobado.rows[0].fecha_verificacion !== null,
+      'Pago aprobado con responsable y fecha de verificacion'
+    );
+
+    const resEventoPago = await consultar(
+      "SELECT estado_nuevo FROM pago_eventos WHERE pago_id = $1",
+      [pagoVerifId]
+    );
+    asegurar(
+      resEventoPago.rows.some((e) => e.estado_nuevo === 'Aprobado'),
+      'La aprobacion de pago queda registrada en pago_eventos'
+    );
+
+    const resAuditPago = await consultar(
+      "SELECT accion FROM auditoria WHERE accion = 'APROBAR_PAGO' AND registro_id = $1",
+      [pagoVerifId]
+    );
+    asegurar(resAuditPago.rows.length === 1, 'La aprobacion de pago queda registrada en auditoria');
+
+    const resAprobarRepetido = await fetch(`${baseUrl}/api/staff/pagos/${pagoVerifId}/aprobar`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${tokenVendedor1}` }
+    });
+    asegurar(resAprobarRepetido.status === 409, 'Aprobar un pago ya aprobado devuelve 409');
+
+    await consultar('DELETE FROM pago_eventos WHERE pago_id = $1', [pagoVerifId]);
+    await consultar('DELETE FROM pagos WHERE id = $1', [pagoVerifId]);
+
+    const resPagoRechazo = await consultar(
+      `INSERT INTO pagos (pedido_id, metodo, monto, estado, referencia_externa)
+       VALUES ($1, 'qr', 95.00, 'En verificación', $2)
+       RETURNING id`,
+      [pedidoAuditId, `QR-${sufijo}`]
+    );
+    const pagoRechazoId = resPagoRechazo.rows[0].id;
+
+    const resRechazoPago = await fetch(`${baseUrl}/api/staff/pagos/${pagoRechazoId}/rechazar`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${tokenVendedor1}`
+      },
+      body: JSON.stringify({ motivo: 'Comprobante ilegible o monto no coincide' })
+    });
+    asegurar(resRechazoPago.status === 200, 'Vendedor rechaza el pago con motivo obligatorio (200)');
+
+    const resPagoRechazado = await consultar(
+      'SELECT estado, motivo_rechazo FROM pagos WHERE id = $1',
+      [pagoRechazoId]
+    );
+    asegurar(
+      resPagoRechazado.rows[0].estado === 'Rechazado' &&
+        resPagoRechazado.rows[0].motivo_rechazo.includes('Comprobante'),
+      'Pago rechazado conserva estado y motivo en la BD'
+    );
+
+    const resRechazoRepetido = await fetch(`${baseUrl}/api/staff/pagos/${pagoRechazoId}/rechazar`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${tokenVendedor1}`
+      },
+      body: JSON.stringify({ motivo: 'Segundo intento de rechazo' })
+    });
+    asegurar(resRechazoRepetido.status === 409, 'Rechazar un pago ya resuelto devuelve 409');
+
+    // 7.5. Verificacion de acciones generales de auditoria
     const resAudit = await consultar(
       `SELECT DISTINCT accion 
        FROM auditoria 
        WHERE usuario_id IN ($1, $2, $3, $4, $5)
        ORDER BY accion ASC`,
-      [adminId, vendedor1Id, vendedor2Id, operacionesId, userStaffAuditId]
+      [adminId, vendedor1Id, vendedor2Id, almacenId, userStaffAuditId]
     );
     const accionesRegistradas = resAudit.rows.map((r) => r.accion);
 
@@ -627,7 +788,7 @@ async function ejecutarPruebas() {
     server.close(async () => {
       await limpiarDatosPrueba(
         productoTestId,
-        [adminId, vendedor1Id, vendedor2Id, operacionesId, clienteId, nuevoOpId, userStaffAuditId],
+        [adminId, vendedor1Id, vendedor2Id, almacenId, logisticaId, clienteId, nuevoAlmacenId, userStaffAuditId],
         envioAuditId,
         pedidoAuditId,
         adminsEstadoOriginal
@@ -640,7 +801,7 @@ async function ejecutarPruebas() {
     server.close(async () => {
       await limpiarDatosPrueba(
         productoTestId,
-        [adminId, vendedor1Id, vendedor2Id, operacionesId, clienteId, nuevoOpId, userStaffAuditId],
+        [adminId, vendedor1Id, vendedor2Id, almacenId, logisticaId, clienteId, nuevoAlmacenId, userStaffAuditId],
         envioAuditId,
         pedidoAuditId,
         adminsEstadoOriginal
@@ -665,6 +826,21 @@ async function limpiarDatosPrueba(
       await consultar('DELETE FROM envios WHERE id = $1', [envioId]);
     }
     if (pedId) {
+      await consultar(
+        'DELETE FROM comprobantes_pago WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = $1)',
+        [pedId]
+      );
+      await consultar(
+        'DELETE FROM pago_eventos WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = $1)',
+        [pedId]
+      );
+      await consultar(
+        "DELETE FROM auditoria WHERE tabla_afectada = 'pagos' AND registro_id IN (SELECT id FROM pagos WHERE pedido_id = $1)",
+        [pedId]
+      );
+      await consultar('DELETE FROM pagos WHERE pedido_id = $1', [pedId]);
+      await consultar('DELETE FROM pedido_items WHERE pedido_id = $1', [pedId]);
+      await consultar('DELETE FROM movimientos_inventario WHERE pedido_id = $1', [pedId]);
       await consultar('DELETE FROM pedidos WHERE id = $1', [pedId]);
     }
     if (prodId) {

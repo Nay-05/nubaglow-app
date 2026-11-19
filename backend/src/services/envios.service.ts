@@ -12,6 +12,18 @@
 
 import { consultar, conTransaccion } from '../db';
 import { AppError } from '../middlewares/errores';
+import { RolUsuario } from '../types';
+
+export type EstadoEnvio = 'Pendiente' | 'En preparación' | 'Empacado' | 'En tránsito' | 'Entregado';
+
+export interface DatosEntrega {
+  receptor: string;
+  documento?: string;
+  fecha_entrega: string;
+  hora_entrega: string;
+  nota: string;
+  comprobante_url?: string;
+}
 
 function enmascararTexto(texto: string): string {
   if (!texto) return '';
@@ -107,9 +119,11 @@ export class EnviosService {
    */
   async cambiarEstado(
     envioId: number,
-    nuevoEstado: 'Pendiente' | 'En preparación' | 'En tránsito' | 'Entregado',
+    nuevoEstado: EstadoEnvio,
     descripcionPersonalizada: string | undefined,
-    usuarioId: number
+    usuarioId: number,
+    rolUsuario: RolUsuario,
+    datosEntrega?: DatosEntrega
   ) {
     const resActual = await consultar(
       'SELECT id, pedido_id, codigo_rastreo, estado FROM envios WHERE id = $1',
@@ -121,12 +135,36 @@ export class EnviosService {
     }
 
     const envio = resActual.rows[0];
-    const estadoActual = envio.estado;
+    const estadoActual: EstadoEnvio = envio.estado;
+
+    // Permisos por etapa: almacen prepara/empaca; logistica despacha/entrega.
+    const estadosPermitidosPorRol: Record<string, EstadoEnvio[]> = {
+      almacen: ['En preparación', 'Empacado'],
+      logistica: ['En tránsito', 'Entregado'],
+      admin: ['En preparación', 'Empacado', 'En tránsito', 'Entregado']
+    };
+
+    const estadosPermitidos = estadosPermitidosPorRol[rolUsuario];
+    if (!estadosPermitidos || !estadosPermitidos.includes(nuevoEstado)) {
+      throw new AppError(
+        `Acceso denegado: el rol '${rolUsuario}' no puede cambiar un envio a '${nuevoEstado}'`,
+        403
+      );
+    }
+
+    // La entrega solo se cierra con acta: receptor, fecha, hora y nota.
+    if (nuevoEstado === 'Entregado' && !datosEntrega) {
+      throw new AppError(
+        'La entrega requiere comprobante con receptor, fecha, hora y nota',
+        400
+      );
+    }
 
     // Regla estricta: flujo paso a paso sin saltos ni retrocesos
-    const transicionesValidas: Record<string, string> = {
+    const transicionesValidas: Record<string, EstadoEnvio> = {
       'Pendiente': 'En preparación',
-      'En preparación': 'En tránsito',
+      'En preparación': 'Empacado',
+      'Empacado': 'En tránsito',
       'En tránsito': 'Entregado'
     };
 
@@ -142,6 +180,7 @@ export class EnviosService {
     // Textos descriptivos por defecto si no se ingresa descripcion especifica
     const descripcionesPorDefecto: Record<string, string> = {
       'En preparación': 'El paquete ha sido preparado y acondicionado con embalaje de proteccion dermocosmetica.',
+      'Empacado': 'El paquete fue empacado y esta listo para ser despachado por logistica.',
       'En tránsito': 'El paquete fue entregado al transportista y se encuentra en camino al domicilio de destino.',
       'Entregado': 'Paquete entregado exitosamente al cliente en la direccion de destino.'
     };
@@ -149,14 +188,18 @@ export class EnviosService {
     const descFinal = descripcionPersonalizada?.trim() || descripcionesPorDefecto[nuevoEstado] || `Estado actualizado a ${nuevoEstado}`;
 
     return await conTransaccion(async (cliente) => {
-      // 1. Actualizar tabla envios
-      let sqlFecha = '';
-      if (nuevoEstado === 'En tránsito') sqlFecha = ', fecha_despacho = NOW()';
-      if (nuevoEstado === 'Entregado') sqlFecha = ', fecha_entrega = NOW()';
+      // 1. Actualizar tabla envios y registrar al responsable de la etapa
+      let camposResponsable = '';
+      if (nuevoEstado === 'En preparación') camposResponsable = ', preparado_por = $3';
+      if (nuevoEstado === 'Empacado') camposResponsable = ', empacado_por = $3';
+      if (nuevoEstado === 'En tránsito') camposResponsable = ', despachado_por = $3, fecha_despacho = NOW()';
+      if (nuevoEstado === 'Entregado') camposResponsable = ', entregado_por = $3, fecha_entrega = NOW()';
 
       await cliente.query(
-        `UPDATE envios SET estado = $1, actualizado_en = NOW() ${sqlFecha} WHERE id = $2`,
-        [nuevoEstado, envioId]
+        `UPDATE envios
+         SET estado = $1, actualizado_en = NOW() ${camposResponsable}
+         WHERE id = $2`,
+        [nuevoEstado, envioId, usuarioId]
       );
 
       // 2. Sincronizar estado en la tabla pedidos
@@ -172,17 +215,55 @@ export class EnviosService {
         [envioId, nuevoEstado, descFinal, usuarioId]
       );
 
-      // 4. Si pasa a 'Entregado' y el pago era 'contra_entrega' pendiente, se marca como Aprobado
-      if (nuevoEstado === 'Entregado') {
+      // 4. Cierre de entrega: acta con receptor, fecha, hora y nota
+      if (nuevoEstado === 'Entregado' && datosEntrega) {
+        const resEntregaExistente = await cliente.query('SELECT id FROM entregas WHERE envio_id = $1', [envioId]);
+        if (resEntregaExistente.rows.length > 0) {
+          throw new AppError('Este envio ya tiene una entrega registrada', 409);
+        }
+
         await cliente.query(
-          `UPDATE pagos 
-           SET estado = 'Aprobado', pagado_en = NOW() 
-           WHERE pedido_id = $1 AND metodo = 'contra_entrega' AND estado = 'Pendiente'`,
-          [envio.pedido_id]
+          `INSERT INTO entregas
+           (pedido_id, envio_id, receptor, documento, fecha_entrega, hora_entrega, nota, comprobante_url, usuario_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            envio.pedido_id,
+            envioId,
+            datosEntrega.receptor.trim(),
+            datosEntrega.documento?.trim() || null,
+            datosEntrega.fecha_entrega,
+            datosEntrega.hora_entrega,
+            datosEntrega.nota.trim(),
+            datosEntrega.comprobante_url?.trim() || null,
+            usuarioId
+          ]
         );
       }
 
-      // 5. Auditoria de la operacion
+      // 5. Si pasa a 'Entregado' y el pago era 'contra_entrega' pendiente, se marca como Aprobado
+      if (nuevoEstado === 'Entregado') {
+        const resPagoLiquidado = await cliente.query(
+          `UPDATE pagos
+           SET estado = 'Aprobado', pagado_en = NOW(), actualizado_en = NOW()
+           WHERE pedido_id = $1 AND metodo = 'contra_entrega' AND estado = 'Pendiente'
+           RETURNING id`,
+          [envio.pedido_id]
+        );
+
+        if (resPagoLiquidado.rows.length > 0) {
+          await cliente.query(
+            `INSERT INTO pago_eventos (pago_id, estado_anterior, estado_nuevo, descripcion, usuario_id)
+             VALUES ($1, 'Pendiente', 'Aprobado', $2, $3)`,
+            [
+              resPagoLiquidado.rows[0].id,
+              'Pago contra entrega cobrado al momento de la entrega.',
+              usuarioId
+            ]
+          );
+        }
+      }
+
+      // 6. Auditoria de la operacion
       await cliente.query(
         `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, detalles)
          VALUES ($1, 'CAMBIAR_ESTADO_ENVIO', 'envios', $2, $3)`,
@@ -193,7 +274,14 @@ export class EnviosService {
             codigoRastreo: envio.codigo_rastreo,
             estadoAnterior: estadoActual,
             nuevoEstado,
-            descripcion: descFinal
+            descripcion: descFinal,
+            ...(datosEntrega
+              ? {
+                  receptor: datosEntrega.receptor,
+                  fechaEntrega: datosEntrega.fecha_entrega,
+                  horaEntrega: datosEntrega.hora_entrega
+                }
+              : {})
           })
         ]
       );
@@ -206,6 +294,25 @@ export class EnviosService {
         descripcion: descFinal
       };
     });
+  }
+
+  /**
+   * Cierre de entrega con acta: reutiliza la transicion controlada a 'Entregado'.
+   */
+  async cerrarEntrega(
+    envioId: number,
+    datosEntrega: DatosEntrega,
+    usuarioId: number,
+    rolUsuario: RolUsuario
+  ) {
+    return this.cambiarEstado(
+      envioId,
+      'Entregado',
+      `Entrega cerrada con receptor ${datosEntrega.receptor.trim()}.`,
+      usuarioId,
+      rolUsuario,
+      datosEntrega
+    );
   }
 }
 

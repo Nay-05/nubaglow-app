@@ -66,15 +66,43 @@ export const crearPedidoSchema = z.object({
 // ----------------------------------------------------------------------------
 // 3. ENVIOS Y EVENTOS
 // ----------------------------------------------------------------------------
-export const estadosEnvioValidos = ['Pendiente', 'En preparación', 'En tránsito', 'Entregado'] as const;
+export const estadosEnvioValidos = [
+  'Pendiente',
+  'En preparación',
+  'Empacado',
+  'En tránsito',
+  'Entregado'
+] as const;
 
 export const cambiarEstadoEnvioSchema = z.object({
   estado: z.enum(estadosEnvioValidos, {
     errorMap: () => ({
-      message: 'Estado de envio invalido. Opciones: Pendiente, En preparación, En tránsito, Entregado'
+      message:
+        'Estado de envio invalido. Opciones: Pendiente, En preparación, Empacado, En tránsito, Entregado'
     })
   }),
   descripcion: z.string().trim().max(500).optional()
+});
+
+export const cerrarEntregaSchema = z.object({
+  receptor: z
+    .string({ required_error: 'El nombre del receptor es obligatorio' })
+    .trim()
+    .min(3, 'El receptor debe tener al menos 3 caracteres')
+    .max(150),
+  documento: z.string().trim().max(50).optional(),
+  fecha_entrega: z
+    .string({ required_error: 'La fecha de entrega es obligatoria' })
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha de entrega debe tener formato YYYY-MM-DD'),
+  hora_entrega: z
+    .string({ required_error: 'La hora de entrega es obligatoria' })
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'La hora de entrega debe tener formato HH:MM'),
+  nota: z
+    .string({ required_error: 'La nota de entrega es obligatoria' })
+    .trim()
+    .min(3, 'La nota debe tener al menos 3 caracteres')
+    .max(500),
+  comprobante_url: z.string().trim().url('El comprobante debe ser una URL valida').max(500).optional()
 });
 
 // ----------------------------------------------------------------------------
