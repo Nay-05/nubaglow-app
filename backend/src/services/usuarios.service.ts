@@ -52,7 +52,7 @@ export class UsuariosService {
   }
 
   /**
-   * Crea una nueva cuenta de personal interno (vendedor, operaciones o admin)
+   * Crea una nueva cuenta de personal interno (vendedor, almacen, logistica o admin)
    */
   async crearStaff(datos: CrearUsuarioStaffInput, adminId: number): Promise<UsuarioStaffItem> {
     const emailNormalizado = datos.email.trim().toLowerCase();

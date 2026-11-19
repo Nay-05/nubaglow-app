@@ -6,7 +6,7 @@
 
 import { Request } from 'express';
 
-export type RolUsuario = 'cliente' | 'vendedor' | 'operaciones' | 'admin';
+export type RolUsuario = 'cliente' | 'vendedor' | 'almacen' | 'logistica' | 'admin';
 
 export interface UsuarioAutenticado {
   id: number;

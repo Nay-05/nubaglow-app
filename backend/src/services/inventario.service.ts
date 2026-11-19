@@ -187,7 +187,7 @@ export class InventarioService {
   }
 
   /**
-   * Cola de pedidos pendientes de despacho para el modulo unificado de operaciones
+   * Cola de pedidos pendientes de preparacion y empaque para el modulo de almacen
    */
   async colaDespachos() {
     const consulta = `

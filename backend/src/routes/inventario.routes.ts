@@ -17,8 +17,8 @@ import { ajusteInventarioSchema } from '../schemas/staff.schema';
 
 const router = Router();
 
-// Proteccion de rol: exclusivo para operaciones y admin
-router.use(verificarToken, requerirRol('operaciones', 'admin'));
+// Proteccion de rol: inventario y preparacion exclusivos de almacen y admin
+router.use(verificarToken, requerirRol('almacen', 'admin'));
 
 router.get('/', listarInventario);
 router.post('/ajustes/:varianteId', validar({ body: ajusteInventarioSchema }), ajustarStock);

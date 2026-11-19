@@ -249,9 +249,9 @@ export class PedidosService {
       }
 
       // 3.6. Registrar Pago
-      const esQR = datos.metodo_pago === 'qr_simple';
+      const esQR = datos.metodo_pago === 'qr';
       const refPago = esQR ? `QR-DEMO-${Math.floor(100000 + Math.random() * 900000)}` : null;
-      const estadoPago = esQR ? 'Aprobado' : 'Pendiente';
+      const estadoPago = esQR ? 'En verificación' : 'Pendiente';
 
       await cliente.query(
         `INSERT INTO pagos (pedido_id, metodo, monto, estado, referencia, simulado, pagado_en)

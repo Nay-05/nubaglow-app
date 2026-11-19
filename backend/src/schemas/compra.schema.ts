@@ -54,8 +54,10 @@ export const crearPedidoSchema = z.object({
     .trim()
     .min(5, 'La direccion debe incluir calle, numero o detalles claros (minimo 5 caracteres)'),
   notas: z.string().trim().max(500, 'Las notas no pueden superar 500 caracteres').optional(),
-  metodo_pago: z.enum(['qr_simple', 'contra_entrega'], {
-    errorMap: () => ({ message: 'Metodo de pago no valido. Opciones permitidas: qr_simple, contra_entrega' })
+  metodo_pago: z.enum(['qr', 'deposito_bancario', 'paypal', 'contra_entrega'], {
+    errorMap: () => ({
+      message: 'Metodo de pago no valido. Opciones permitidas: qr, deposito_bancario, paypal, contra_entrega'
+    })
   }),
   // Opcional: si se envia items se compran esos; si no se envia se procesa el carrito persistente
   items: z.array(crearPedidoItemSchema).min(1, 'Debe incluir al menos un item para comprar').optional()

@@ -158,7 +158,7 @@ app.get(/^\/staff(?:\/.*)?$/, (req, res, next) => {
     return res.redirect('/');
   }
 
-  // 3. Es miembro autorizado del personal ('admin', 'operaciones', 'vendedor'): permitir servir la SPA
+  // 3. Es miembro autorizado del personal ('admin', 'almacen', 'logistica', 'vendedor'): permitir servir la SPA
   return next();
 });
 

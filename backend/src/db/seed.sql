@@ -1,7 +1,7 @@
 -- ============================================================================
 -- NubaGlow App — Script SQL de Datos Maestros de Prueba (seed.sql)
 -- Proyecto de Ingenieria de Software — Grupo 11 (Nuba Beauty, Sucre, Bolivia)
--- Version: 1.0.0
+-- Version: 1.1.0
 -- Idempotente: puede ejecutarse en el SQL Editor de Supabase o mediante npm run db:seed
 -- ============================================================================
 
@@ -344,7 +344,7 @@ WHERE NOT EXISTS (
 -- Por mandato de seguridad estricta de CLAUDE.md, las contrasenas nunca deben
 -- estar quemadas en texto plano en este archivo SQL ni en el repositorio Git.
 -- 
--- Para sembrar los 4 usuarios (admin, operaciones, vendedor, cliente) con
+-- Para sembrar los 5 usuarios (admin, almacen, logistica, vendedor, cliente) con
 -- contrasenas criptograficas unicas generadas al vuelo mediante bcrypt (coste >= 12):
 -- Ejecute en la terminal:
 -- npm run db:seed

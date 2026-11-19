@@ -23,7 +23,7 @@ router.get('/salud/solo-admin', verificarToken, requerirRol('admin'), verificarA
 router.get(
   '/salud/solo-staff',
   verificarToken,
-  requerirRol('vendedor', 'operaciones', 'admin'),
+  requerirRol('vendedor', 'almacen', 'logistica', 'admin'),
   verificarAutenticacionPrueba
 );
 

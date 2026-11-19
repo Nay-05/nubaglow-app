@@ -87,7 +87,7 @@ export async function loginCliente(req: Request, res: Response, next: NextFuncti
 }
 
 /**
- * Login de personal interno (staff: vendedor, operaciones, admin)
+ * Login de personal interno (staff: vendedor, almacen, logistica, admin)
  */
 export async function loginStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {

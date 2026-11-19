@@ -51,7 +51,7 @@ export const consultaReportesSchema = z.object({
 // ----------------------------------------------------------------------------
 // 4. GESTION DE USUARIOS STAFF
 // ----------------------------------------------------------------------------
-export const rolesStaffValidos = ['vendedor', 'operaciones', 'admin'] as const;
+export const rolesStaffValidos = ['vendedor', 'almacen', 'logistica', 'admin'] as const;
 
 export const crearUsuarioStaffSchema = z.object({
   nombre: z
@@ -70,7 +70,7 @@ export const crearUsuarioStaffSchema = z.object({
     .regex(/[A-Z]/, 'La contrasena debe contener al menos una mayuscula')
     .regex(/[0-9]/, 'La contrasena debe contener al menos un numero'),
   rol: z.enum(rolesStaffValidos, {
-    errorMap: () => ({ message: 'Rol de personal no valido. Opciones permitidas: vendedor, operaciones, admin' })
+    errorMap: () => ({ message: 'Rol de personal no valido. Opciones permitidas: vendedor, almacen, logistica, admin' })
   })
 });
 

@@ -6,7 +6,7 @@
  * - Consulta publica por codigo de rastreo con anonimizacion de datos personales.
  * - Linea de tiempo detallada de envio_eventos.
  * - Transicion de estados estricta paso a paso (Pendiente -> En preparacion -> En transito -> Entregado).
- * - Restringido a roles 'operaciones' y 'admin'.
+ * - Restringido a roles 'almacen', 'logistica' y 'admin'.
  * - Liquidacion automatica de pagos contra-entrega al pasar a 'Entregado'.
  */
 
@@ -103,7 +103,7 @@ export class EnviosService {
   }
 
   /**
-   * Transicion controlada de estado de envio (solo operaciones y admin)
+   * Transicion controlada de estado de envio (almacen, logistica y admin)
    */
   async cambiarEstado(
     envioId: number,

@@ -28,7 +28,7 @@ router.post('/registro', limitadorRegistro, validar({ body: registroSchema }), r
 // Login de clientes (tienda publica)
 router.post('/login', limitadorLogin, validar({ body: loginSchema }), loginCliente);
 
-// Login de personal interno (portal de staff: vendedor, operaciones, admin)
+// Login de personal interno (portal de staff: vendedor, almacen, logistica, admin)
 router.post('/staff-login', limitadorLogin, validar({ body: loginSchema }), loginStaff);
 
 // Renovacion de token (Refresh)

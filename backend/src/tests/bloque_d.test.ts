@@ -96,7 +96,7 @@ async function ejecutarPruebas() {
 
     const resOp = await consultar(
       `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
-       VALUES ('Operador Logistica', $1, 'hash_test', 'operaciones', TRUE) RETURNING id`,
+       VALUES ('Operador Logistica', $1, 'hash_test', 'almacen', TRUE) RETURNING id`,
       [`operaciones_d_${sufijo}@nuba.bo`]
     );
     operacionesId = resOp.rows[0].id;
@@ -124,7 +124,7 @@ async function ejecutarPruebas() {
       { expiresIn: '1h' }
     );
     tokenOperaciones = jwt.sign(
-      { id: operacionesId, nombre: 'Operador Logistica', email: `operaciones_d_${sufijo}@nuba.bo`, rol: 'operaciones', activo: true },
+      { id: operacionesId, nombre: 'Operador Logistica', email: `operaciones_d_${sufijo}@nuba.bo`, rol: 'almacen', activo: true },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -388,7 +388,7 @@ async function ejecutarPruebas() {
         nombre: 'Nuevo Operador Almacen',
         email: emailNuevoOp,
         password: 'PasswordNuevo!2026',
-        rol: 'operaciones'
+        rol: 'almacen'
       })
     });
     const dataCrearOp = (await resCrearOp.json()) as any;

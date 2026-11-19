@@ -142,7 +142,7 @@ export function autenticacionOpcional(req: Request, _res: Response, next: NextFu
  * El rol proviene EXCLUSIVAMENTE del token firmado criptograficamente en el backend,
  * NUNCA de parametros enviados por el cliente.
  * 
- * @param rolesPermitidos Lista de roles con autorizacion (ej: 'admin', 'operaciones')
+ * @param rolesPermitidos Lista de roles con autorizacion (ej: 'admin', 'almacen')
  */
 export function requerirRol(...rolesPermitidos: RolUsuario[]) {
   return (req: Request, res: Response, next: NextFunction): void => {

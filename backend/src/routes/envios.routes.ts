@@ -16,11 +16,11 @@ const router = Router();
 // Consulta publica de rastreo por codigo unico (ej: NB-2026-0101)
 router.get('/rastreo/:codigo', validar({ params: codigoRastreoParamSchema }), rastreoPublico);
 
-// Cambio de estado de envio paso a paso (restringido a operaciones y admin)
+// Cambio de estado de envio paso a paso (almacen prepara/empaca; logistica despacha/entrega)
 router.patch(
   '/:id/estado',
   verificarToken,
-  requerirRol('operaciones', 'admin'),
+  requerirRol('almacen', 'logistica', 'admin'),
   validar({ params: idParamSchema, body: cambiarEstadoEnvioSchema }),
   cambiarEstadoEnvio
 );

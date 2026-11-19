@@ -112,7 +112,7 @@ export class AuthService {
   /**
    * Autenticacion unificada con segregacion estricta de portales.
    * - esPortalStaff = false: solo permite rol 'cliente'. Rechaza staff.
-   * - esPortalStaff = true: permite roles 'vendedor', 'operaciones', 'admin'. Rechaza 'cliente'.
+   * - esPortalStaff = true: permite roles 'vendedor', 'almacen', 'logistica', 'admin'. Rechaza 'cliente'.
    */
   async autenticar(datos: LoginInput, esPortalStaff: boolean): Promise<AuthResultado> {
     const emailNormalizado = datos.email.trim().toLowerCase();

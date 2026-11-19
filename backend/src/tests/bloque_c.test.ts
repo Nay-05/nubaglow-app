@@ -84,7 +84,7 @@ async function ejecutarPruebas() {
 
     const resUserOp = await consultar(
       `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
-       VALUES ('Operador Nuba', $1, 'hash_test', 'operaciones', TRUE) RETURNING id`,
+       VALUES ('Operador Nuba', $1, 'hash_test', 'logistica', TRUE) RETURNING id`,
       [`operaciones_${sufijo}@nuba.bo`]
     );
     operacionesId = resUserOp.rows[0].id;
@@ -100,7 +100,7 @@ async function ejecutarPruebas() {
       { expiresIn: '1h' }
     );
     tokenOperaciones = jwt.sign(
-      { id: operacionesId, nombre: 'Operador Nuba', email: `operaciones_${sufijo}@nuba.bo`, rol: 'operaciones', activo: true },
+      { id: operacionesId, nombre: 'Operador Nuba', email: `operaciones_${sufijo}@nuba.bo`, rol: 'logistica', activo: true },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -307,7 +307,7 @@ async function ejecutarPruebas() {
       correo_cliente: `cliente_a_${sufijo}@nuba.bo`,
       ciudad: 'Sucre',
       direccion: 'Calle Calvo #120',
-      metodo_pago: 'qr_simple',
+      metodo_pago: 'qr',
       items: [{ variante_id: varianteConcurrenteId, cantidad: 1 }]
     };
     const payloadConcurrenteB = {
@@ -316,7 +316,7 @@ async function ejecutarPruebas() {
       correo_cliente: `cliente_b_${sufijo}@nuba.bo`,
       ciudad: 'Sucre',
       direccion: 'Av. Hernando Siles #450',
-      metodo_pago: 'qr_simple',
+      metodo_pago: 'qr',
       items: [{ variante_id: varianteConcurrenteId, cantidad: 1 }]
     };
 

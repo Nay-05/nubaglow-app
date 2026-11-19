@@ -3,7 +3,7 @@
  * NUBAGLOW APP - SCRIPT DE POBLADO DE BASE DE DATOS (SEED)
  * ============================================================================
  * Inserta los datos maestros de prueba:
- * - 4 Usuarios correspondientes a los 4 roles RBAC (admin, operaciones, vendedor, cliente)
+ * - 5 Usuarios correspondientes a los 5 roles RBAC (admin, almacen, logistica, vendedor, cliente)
  *   con contrasenas hasheadas con bcrypt (coste >= 12). Las contrasenas se imprimen
  *   exclusivamente en la terminal y se guardan en el archivo local 'seed_passwords.txt'
  *   (ignorado por git).
@@ -36,7 +36,7 @@ async function sembrarBaseDeDatos() {
     process.exit(1);
   }
 
-  // Generar contrasenas para los 4 roles (sin exponerlas en git ni en el codigo fuente)
+  // Generar contrasenas para los 5 roles (sin exponerlas en git ni en el codigo fuente)
   const cuentas = [
     {
       nombre: 'Administradora Nuba',
@@ -45,10 +45,16 @@ async function sembrarBaseDeDatos() {
       passwordPlana: generarPasswordSegura('admin')
     },
     {
-      nombre: 'Operaciones y Almacen Nuba',
-      email: 'operaciones@nuba.bo',
-      rol: 'operaciones',
-      passwordPlana: generarPasswordSegura('operaciones')
+      nombre: 'Responsable de Almacen Nuba',
+      email: 'almacen@nuba.bo',
+      rol: 'almacen',
+      passwordPlana: generarPasswordSegura('almacen')
+    },
+    {
+      nombre: 'Responsable de Logistica Nuba',
+      email: 'logistica@nuba.bo',
+      rol: 'logistica',
+      passwordPlana: generarPasswordSegura('logistica')
     },
     {
       nombre: 'Vendedor Mostrador Nuba',
@@ -66,7 +72,7 @@ async function sembrarBaseDeDatos() {
 
   await conTransaccion(async (cliente) => {
     // ------------------------------------------------------------------------
-    // 1. USUARIOS (4 Roles RBAC)
+    // 1. USUARIOS (5 Roles RBAC)
     // ------------------------------------------------------------------------
     console.log('\n1. Creando usuarios de prueba por rol con bcrypt (coste 12)...');
     const bcyrptRounds = 12;
@@ -688,7 +694,7 @@ async function sembrarBaseDeDatos() {
       );
       await cliente.query(
         `INSERT INTO pagos (pedido_id, metodo, monto, estado, referencia, simulado, pagado_en)
-         VALUES ($1, 'qr_simple', 280.00, 'Aprobado', 'QR-DEMO-8924', TRUE, NOW());`,
+         VALUES ($1, 'qr', 280.00, 'Aprobado', 'QR-DEMO-8924', TRUE, NOW());`,
         [pedido1Id]
       );
       const resEnvio1 = await cliente.query(
