@@ -53,6 +53,9 @@ CLIENT_URL=http://localhost:5173
 # Reglas de negocio de envio (las define el negocio)
 ENVIO_COSTO=15
 ENVIO_GRATIS_DESDE=200
+
+# Tamano maximo por comprobante de pago en MB (se guarda en la BD)
+COMPROBANTE_MAX_MB=2
 ```
 
 ### 2.3. Reglas de negocio configurables del envio
@@ -215,7 +218,8 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 |---|---|---|---|---|
 | `POST` | `/api/pedidos/cotizar` | `cliente` | Cotiza subtotal, costo de envío y total desde la BD (ignora precios del cliente). El envío usa `ENVIO_COSTO` y `ENVIO_GRATIS_DESDE`. | `POST /api/pedidos/cotizar`<br>`{"ciudad": "Sucre", "items": [{"variante_id": 1, "cantidad": 2}]}` |
 | `POST` | `/api/pedidos` | `cliente` | Checkout atómico en 1 sola transacción (`SELECT ... FOR UPDATE`, descuenta stock, Kardex, genera `NB-2026-XXXX`, pago, envío inicial 'Pendiente', vacía carrito) | `POST /api/pedidos`<br>`{"nombre_completo": "Mariana Gomez", "celular": "71234567", "correo": "mariana@ejemplo.com", "ciudad": "Sucre", "direccion": "Calle Nicolas Ortiz 45", "metodo_pago": "qr_simple", "notas": "Entregar en porteria"}` |
-| `POST` | `/api/pedidos/:id/comprobante` | `cliente` | Sube el comprobante de pago para QR simple o depósito (JPEG, PNG, WebP o PDF, máx. 5 MB). Pasa el pago a `En verificación` y audita. | `POST /api/pedidos/12/comprobante`<br>`{"nombre_archivo": "comprobante.png", "mime_type": "image/png", "contenido_base64": "iVBORw0KG..."}` |
+| `POST` | `/api/pedidos/:id/comprobante` | `cliente` | Sube el comprobante de pago para QR simple o depósito (JPEG, PNG, WebP o PDF, máx. `COMPROBANTE_MAX_MB`, 2 MB por defecto). Exige referencia, fecha no futura y monto pagado. Pasa el pago a `En verificación` y audita. | `POST /api/pedidos/12/comprobante`<br>`{"nombre_archivo": "comprobante.png", "mime_type": "image/png", "referencia": "OP-123456", "fecha_deposito": "2026-11-19", "monto_pagado": 95, "contenido_base64": "iVBORw0KG..."}` |
+| `GET` | `/api/comprobantes/:id` | Dueño / vendedor / admin | Devuelve el comprobante inline con MIME validado y `X-Content-Type-Options: nosniff`. Almacén y logística reciben `403`. | `GET /api/comprobantes/5` |
 | `GET` | `/api/pedidos` | `autenticado` | Historial de pedidos (cliente solo ve los suyos; staff ve todos) | `GET /api/pedidos` |
 | `GET` | `/api/pedidos/:id` | `autenticado` | Detalle de pedido (retorna `403` si un cliente intenta ver pedido ajeno) | `GET /api/pedidos/12` |
 

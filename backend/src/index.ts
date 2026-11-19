@@ -18,6 +18,7 @@ import apiRouter from './routes';
 import { proteccionCsrf } from './middlewares/csrf';
 import { AppError, manejadorErrores, rutaNoEncontrada } from './middlewares/errores';
 import { cerrarPool } from './db';
+import { limiteCuerpoComprobante } from './config/comprobantes';
 
 // 1. Cargar variables de entorno desde la raiz del workspace o backend/
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -91,9 +92,10 @@ app.use(
 );
 
 // 4. Procesamiento de cuerpo, cookies y proteccion CSRF
-// Limite de 8 MB para admitir comprobantes de pago en base64 (maximo real 5 MB).
-app.use(express.json({ limit: '8mb' }));
-app.use(express.urlencoded({ extended: true, limit: '8mb' }));
+// El limite se calcula desde COMPROBANTE_MAX_MB (por defecto 2 MB de archivo).
+const limiteCuerpo = limiteCuerpoComprobante();
+app.use(express.json({ limit: limiteCuerpo }));
+app.use(express.urlencoded({ extended: true, limit: limiteCuerpo }));
 app.use(cookieParser());
 app.use(proteccionCsrf);
 

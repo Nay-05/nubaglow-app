@@ -272,9 +272,13 @@ CREATE TABLE IF NOT EXISTS comprobantes_pago (
     mime_type VARCHAR(100) NOT NULL,
     tamano_bytes INTEGER NOT NULL DEFAULT 0,
     hash_sha256 VARCHAR(64),
+    referencia VARCHAR(150),
+    fecha_deposito DATE,
+    monto_pagado NUMERIC(10, 2),
     subido_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_comprobantes_tamano CHECK (tamano_bytes >= 0)
+    CONSTRAINT chk_comprobantes_tamano CHECK (tamano_bytes >= 0),
+    CONSTRAINT chk_comprobantes_monto CHECK (monto_pagado IS NULL OR monto_pagado > 0)
 );
 
 CREATE INDEX IF NOT EXISTS idx_comprobantes_pago ON comprobantes_pago(pago_id);
@@ -480,6 +484,12 @@ ALTER TABLE pagos ADD COLUMN IF NOT EXISTS paypal_order_id VARCHAR(150);
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS comprobante_url TEXT;
 ALTER TABLE pagos ALTER COLUMN comprobante_url TYPE TEXT;
 ALTER TABLE comprobantes_pago ALTER COLUMN url TYPE TEXT;
+ALTER TABLE comprobantes_pago ADD COLUMN IF NOT EXISTS referencia VARCHAR(150);
+ALTER TABLE comprobantes_pago ADD COLUMN IF NOT EXISTS fecha_deposito DATE;
+ALTER TABLE comprobantes_pago ADD COLUMN IF NOT EXISTS monto_pagado NUMERIC(10, 2);
+ALTER TABLE comprobantes_pago DROP CONSTRAINT IF EXISTS chk_comprobantes_monto;
+ALTER TABLE comprobantes_pago ADD CONSTRAINT chk_comprobantes_monto
+  CHECK (monto_pagado IS NULL OR monto_pagado > 0);
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_vencimiento TIMESTAMPTZ;
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS verificado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL;
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_verificacion TIMESTAMPTZ;

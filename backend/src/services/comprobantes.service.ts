@@ -12,14 +12,16 @@
  */
 
 import crypto from 'crypto';
-import { conTransaccion } from '../db';
+import { consultar, conTransaccion } from '../db';
 import { AppError } from '../middlewares/errores';
 import { SubirComprobantePagoInput } from '../schemas/compra.schema';
+import { RolUsuario } from '../types';
+import { maxMbComprobante, tamanoMaximoComprobanteBytes } from '../config/comprobantes';
 
-const TAMANO_MAXIMO_BYTES = 5 * 1024 * 1024;
 // 'qr' se conserva como alias legado de 'qr_simple'.
 const METODOS_CON_COMPROBANTE = ['qr_simple', 'qr', 'deposito_bancario'];
 const ESTADOS_QUE_ACEPTAN_COMPROBANTE = ['Pendiente', 'En verificación'];
+const ROLES_QUE_LEEN_COMPROBANTE: RolUsuario[] = ['cliente', 'vendedor', 'admin'];
 
 interface ArchivoValidado {
   buffer: Buffer;
@@ -37,16 +39,27 @@ export interface ComprobanteRegistrado {
   mimeType: string;
   tamanoBytes: number;
   hashSha256: string;
+  referencia: string;
+  fechaDeposito: string;
+  montoPagado: number;
+  hashDuplicado: boolean;
+  advertenciaHash: string | null;
   recibidoEn: string;
 }
 
-function limpiarNombreArchivo(nombre: string): string {
+export interface ComprobanteDescarga {
+  buffer: Buffer;
+  mimeType: string;
+  nombreArchivo: string;
+}
+
+export function limpiarNombreArchivo(nombre: string): string {
   const base = nombre.split(/[\\/]/).pop() || 'comprobante';
   const limpio = base.replace(/[^\w.\- ()]/g, '_').trim().slice(0, 255);
   return limpio || 'comprobante';
 }
 
-function detectarMimeReal(buffer: Buffer): string | null {
+export function detectarMimeReal(buffer: Buffer): string | null {
   if (buffer.length >= 4 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
     return 'image/jpeg';
   }
@@ -84,8 +97,12 @@ function validarArchivo(datos: SubirComprobantePagoInput): ArchivoValidado {
   if (buffer.length === 0) {
     throw new AppError('El comprobante esta vacio', 400);
   }
-  if (buffer.length > TAMANO_MAXIMO_BYTES) {
-    throw new AppError('El comprobante excede el tamano maximo permitido (5 MB)', 400);
+  const limiteBytes = tamanoMaximoComprobanteBytes();
+  if (buffer.length > limiteBytes) {
+    throw new AppError(
+      `El comprobante excede el tamano maximo permitido (${maxMbComprobante()} MB)`,
+      400
+    );
   }
 
   const mimeReal = detectarMimeReal(buffer);
@@ -175,11 +192,26 @@ export class ComprobantesService {
       }
 
       const dataUrl = `data:${archivo.mimeType};base64,${archivo.buffer.toString('base64')}`;
+      const montoPagado = Math.round(Number(datos.monto_pagado) * 100) / 100;
+
+      // El mismo archivo en otro pedido no se rechaza: solo se marca la advertencia.
+      const resDuplicado = await cliente.query(
+        `SELECT cp.id, p.pedido_id AS "pedidoId"
+         FROM comprobantes_pago cp
+         INNER JOIN pagos p ON p.id = cp.pago_id
+         WHERE cp.hash_sha256 = $1
+           AND p.pedido_id <> $2
+         ORDER BY cp.id ASC
+         LIMIT 1`,
+        [archivo.hashSha256, pedidoId]
+      );
+      const duplicado = resDuplicado.rows[0] ?? null;
 
       const resComprobante = await cliente.query(
         `INSERT INTO comprobantes_pago
-         (pago_id, nombre_archivo, url, mime_type, tamano_bytes, hash_sha256, subido_por)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         (pago_id, nombre_archivo, url, mime_type, tamano_bytes, hash_sha256,
+          referencia, fecha_deposito, monto_pagado, subido_por)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING id, creado_en AS "recibidoEn"`,
         [
           pago.id,
@@ -188,6 +220,9 @@ export class ComprobantesService {
           archivo.mimeType,
           archivo.buffer.length,
           archivo.hashSha256,
+          datos.referencia,
+          datos.fecha_deposito,
+          montoPagado,
           usuarioId
         ]
       );
@@ -225,7 +260,12 @@ export class ComprobantesService {
             nombreArchivo: archivo.nombreArchivo,
             mimeType: archivo.mimeType,
             tamanoBytes: archivo.buffer.length,
-            hashSha256: archivo.hashSha256
+            hashSha256: archivo.hashSha256,
+            referencia: datos.referencia,
+            fechaDeposito: datos.fecha_deposito,
+            montoPagado,
+            hashDuplicado: Boolean(duplicado),
+            pedidoDuplicadoId: duplicado?.pedidoId ?? null
           })
         ]
       );
@@ -239,9 +279,71 @@ export class ComprobantesService {
         mimeType: archivo.mimeType,
         tamanoBytes: archivo.buffer.length,
         hashSha256: archivo.hashSha256,
+        referencia: datos.referencia,
+        fechaDeposito: datos.fecha_deposito,
+        montoPagado,
+        hashDuplicado: Boolean(duplicado),
+        advertenciaHash: duplicado
+          ? 'El mismo archivo ya fue subido en otro pedido'
+          : null,
         recibidoEn: comprobante.recibidoEn
       };
     });
+  }
+
+  /**
+   * Devuelve el archivo binario para visualizacion inline.
+   * Solo el cliente dueno, vendedor y admin pueden leerlo.
+   */
+  async obtenerParaDescarga(
+    comprobanteId: number,
+    usuarioId: number,
+    rol: RolUsuario
+  ): Promise<ComprobanteDescarga> {
+    const res = await consultar(
+      `SELECT cp.id,
+              cp.url,
+              cp.mime_type AS "mimeType",
+              cp.nombre_archivo AS "nombreArchivo",
+              p.pedido_id AS "pedidoId",
+              pe.usuario_id AS "propietarioId"
+       FROM comprobantes_pago cp
+       INNER JOIN pagos p ON p.id = cp.pago_id
+       INNER JOIN pedidos pe ON pe.id = p.pedido_id
+       WHERE cp.id = $1`,
+      [comprobanteId]
+    );
+
+    if (res.rows.length === 0) {
+      throw new AppError('Comprobante no encontrado', 404);
+    }
+
+    const comprobante = res.rows[0];
+
+    if (!ROLES_QUE_LEEN_COMPROBANTE.includes(rol)) {
+      throw new AppError('Acceso denegado: su rol no puede visualizar comprobantes de pago', 403);
+    }
+    if (rol === 'cliente' && Number(comprobante.propietarioId) !== Number(usuarioId)) {
+      throw new AppError('Acceso denegado: el comprobante no pertenece a un pedido suyo', 403);
+    }
+
+    const coincidencia = /^data:([^;]+);base64,([\s\S]+)$/.exec(String(comprobante.url || ''));
+    if (!coincidencia) {
+      throw new AppError('El comprobante almacenado no tiene un formato descargable', 422);
+    }
+
+    const buffer = Buffer.from(coincidencia[2], 'base64');
+    const mimeReal = buffer.length > 0 ? detectarMimeReal(buffer) : null;
+
+    if (!mimeReal || mimeReal !== comprobante.mimeType) {
+      throw new AppError('El comprobante almacenado no es un archivo valido', 422);
+    }
+
+    return {
+      buffer,
+      mimeType: mimeReal,
+      nombreArchivo: limpiarNombreArchivo(comprobante.nombreArchivo)
+    };
   }
 }
 

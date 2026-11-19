@@ -85,6 +85,25 @@ export const mimeTiposComprobante = [
   'application/pdf'
 ] as const;
 
+function esFechaNoFutura(valor: string): boolean {
+  const partes = valor.split('-').map(Number);
+  if (partes.length !== 3 || partes.some((p) => !Number.isInteger(p))) return false;
+
+  const [anio, mes, dia] = partes;
+  const fecha = new Date(anio, mes - 1, dia);
+  if (
+    fecha.getFullYear() !== anio ||
+    fecha.getMonth() !== mes - 1 ||
+    fecha.getDate() !== dia
+  ) {
+    return false;
+  }
+
+  const hoy = new Date();
+  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  return fecha.getTime() <= inicioHoy.getTime();
+}
+
 export const subirComprobantePagoSchema = z.object({
   nombre_archivo: z
     .string({ required_error: 'El nombre del archivo es obligatorio' })
@@ -97,12 +116,26 @@ export const subirComprobantePagoSchema = z.object({
         'Tipo de archivo no permitido. Formatos aceptados: image/jpeg, image/png, image/webp, application/pdf'
     })
   }),
-  // Acepta base64 puro o un data URL (data:image/png;base64,...). Maximo 5 MB reales.
+  referencia: z
+    .string({ required_error: 'La referencia u operacion del pago es obligatoria' })
+    .trim()
+    .min(3, 'La referencia debe tener al menos 3 caracteres')
+    .max(150, 'La referencia no puede exceder 150 caracteres'),
+  fecha_deposito: z
+    .string({ required_error: 'La fecha del deposito es obligatoria' })
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha del deposito debe tener formato YYYY-MM-DD')
+    .refine(esFechaNoFutura, 'La fecha del deposito no puede ser futura ni una fecha invalida'),
+  monto_pagado: z.coerce
+    .number({ invalid_type_error: 'El monto pagado debe ser un numero' })
+    .positive('El monto pagado debe ser mayor a cero')
+    .max(1_000_000, 'El monto pagado excede el maximo permitido'),
+  // Acepta base64 puro o un data URL (data:image/png;base64,...). El limite real
+  // lo aplica el servicio segun COMPROBANTE_MAX_MB.
   contenido_base64: z
     .string({ required_error: 'El contenido del comprobante es obligatorio' })
     .trim()
     .min(1, 'El contenido del comprobante no puede estar vacio')
-    .max(8_000_000, 'El comprobante excede el tamano maximo permitido (5 MB)')
+    .max(30_000_000, 'El comprobante excede el tamano maximo permitido')
 });
 
 // ----------------------------------------------------------------------------

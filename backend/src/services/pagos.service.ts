@@ -128,12 +128,28 @@ export class PagosService {
 
     const [resComprobantes, resEventos] = await Promise.all([
       consultar(
-        `SELECT id, nombre_archivo AS "nombreArchivo", url, mime_type AS "mimeType",
-                tamano_bytes AS "tamanoBytes", creado_en AS "creadoEn"
-         FROM comprobantes_pago
-         WHERE pago_id = $1
-         ORDER BY creado_en ASC`,
-        [pagoId]
+        `SELECT cp.id,
+                cp.nombre_archivo AS "nombreArchivo",
+                cp.url,
+                cp.mime_type AS "mimeType",
+                cp.tamano_bytes AS "tamanoBytes",
+                cp.hash_sha256 AS "hashSha256",
+                cp.referencia,
+                TO_CHAR(cp.fecha_deposito, 'YYYY-MM-DD') AS "fechaDeposito",
+                cp.monto_pagado AS "montoPagado",
+                cp.creado_en AS "creadoEn",
+                EXISTS (
+                  SELECT 1
+                  FROM comprobantes_pago cp2
+                  INNER JOIN pagos p2 ON p2.id = cp2.pago_id
+                  WHERE cp2.hash_sha256 = cp.hash_sha256
+                    AND cp2.id <> cp.id
+                    AND p2.pedido_id <> $2
+                ) AS "hashDuplicado"
+         FROM comprobantes_pago cp
+         WHERE cp.pago_id = $1
+         ORDER BY cp.creado_en ASC`,
+        [pagoId, resPago.rows[0].pedidoId]
       ),
       consultar(
         `SELECT pe.id, pe.estado_anterior AS "estadoAnterior", pe.estado_nuevo AS "estadoNuevo",
@@ -146,11 +162,46 @@ export class PagosService {
       )
     ]);
 
+    const totalPedido = Number(resPago.rows[0].totalPedido);
+
+    const comprobantes = resComprobantes.rows.map((comprobante) => {
+      const montoPagado =
+        comprobante.montoPagado === null || comprobante.montoPagado === undefined
+          ? null
+          : Number(comprobante.montoPagado);
+      const montoCoincide =
+        montoPagado === null ? null : Math.abs(montoPagado - totalPedido) < 0.005;
+      const hashDuplicado = Boolean(comprobante.hashDuplicado);
+
+      return {
+        ...comprobante,
+        montoPagado,
+        montoCoincide,
+        hashDuplicado,
+        advertenciaMonto:
+          montoPagado !== null && !montoCoincide
+            ? `El monto declarado (${montoPagado.toFixed(2)} Bs.) no coincide con el total del pedido (${totalPedido.toFixed(2)} Bs.)`
+            : null,
+        advertenciaHash: hashDuplicado
+          ? 'El mismo archivo (SHA-256) ya fue subido en otro pedido'
+          : null
+      };
+    });
+
+    const ultimoComprobante = comprobantes.length > 0
+      ? comprobantes[comprobantes.length - 1]
+      : null;
+
     return {
       ...resPago.rows[0],
       monto: Number(resPago.rows[0].monto),
-      totalPedido: Number(resPago.rows[0].totalPedido),
-      comprobantes: resComprobantes.rows,
+      totalPedido,
+      referenciaDeclarada: ultimoComprobante?.referencia ?? null,
+      fechaDeposito: ultimoComprobante?.fechaDeposito ?? null,
+      montoPagado: ultimoComprobante?.montoPagado ?? null,
+      montoCoincide: ultimoComprobante?.montoCoincide ?? null,
+      advertenciaMonto: ultimoComprobante?.advertenciaMonto ?? null,
+      comprobantes,
       eventos: resEventos.rows
     };
   }

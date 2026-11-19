@@ -19,7 +19,8 @@ enviados por el cliente.
 |---|---|---|---|
 | `/api/pedidos/cotizar` | POST | `cliente` | Calcula subtotal, envío y total desde la BD; ignora cualquier precio enviado por el cliente. |
 | `/api/pedidos` | POST | `cliente` | Crea el pedido en una transacción, descuenta stock y registra el pago en estado `Pendiente` (`qr_simple`, `deposito_bancario` o `contra_entrega`). |
-| `/api/pedidos/:id/comprobante` | POST | `cliente` | Solo el dueño del pedido. Acepta JPEG, PNG, WebP o PDF (máx. 5 MB) para pagos `qr_simple`/`qr` (legado)/`deposito_bancario`; pasa el pago a `En verificación`, guarda el archivo en `comprobantes_pago` y audita. |
+| `/api/pedidos/:id/comprobante` | POST | `cliente` | Solo el dueño del pedido. Acepta JPEG, PNG, WebP o PDF hasta `COMPROBANTE_MAX_MB` (2 MB por defecto) para pagos `qr_simple`/`qr` (legado)/`deposito_bancario`. Exige `referencia`, `fecha_deposito` no futura y `monto_pagado`; pasa el pago a `En verificación`, guarda el archivo en `comprobantes_pago` y audita. |
+| `/api/comprobantes/:id` | GET | Autenticado | Devuelve el archivo inline. Cliente solo si es dueño del pedido; `vendedor` y `admin` siempre; `almacen` y `logistica` reciben `403`. Usa el MIME validado, `Content-Disposition: inline` y `X-Content-Type-Options: nosniff`. |
 | `/api/pedidos` | GET | Autenticado | Lista únicamente los pedidos del usuario autenticado. |
 | `/api/pedidos/:id` | GET | Autenticado | El cliente solo puede ver pedidos propios; el personal interno puede consultar el detalle. |
 
@@ -78,6 +79,14 @@ Reglas del servicio de pagos/cancelaciones:
   `deposito_bancario` en estado `Pendiente` o `En verificación`. Al recibirlo, el
   pago pasa a `En verificación`; un pago `Aprobado`, `Rechazado`, cancelado o
   vencido rechaza la carga.
+- El comprobante exige `referencia`, `fecha_deposito` (no futura) y `monto_pagado`.
+  El tamaño máximo se configura con `COMPROBANTE_MAX_MB` (2 MB por defecto) y el
+  contenido real debe coincidir con el MIME declarado.
+- Si el mismo SHA-256 ya fue subido en otro pedido, la carga no se rechaza; el
+  detalle del pago muestra la advertencia `hashDuplicado`/`advertenciaHash`.
+- El detalle de `/api/staff/pagos/:id` expone `totalPedido`, y por comprobante
+  `referencia`, `fechaDeposito`, `montoPagado`, `montoCoincide` y
+  `advertenciaMonto` cuando el monto declarado no coincide con el total.
 - El rechazo y el vencimiento cancelan el pedido y reponen el stock con un movimiento
   de Kardex `reposicion_cancelacion`.
 - La cancelación es idempotente: un segundo intento no vuelve a reponer stock.
@@ -112,6 +121,7 @@ Reglas del servicio de pagos/cancelaciones:
 | `POST /api/pedidos/cotizar` | X | - | - | - | - |
 | `POST /api/pedidos` | X | - | - | - | - |
 | `POST /api/pedidos/:id/comprobante` | X | - | - | - | - |
+| `GET /api/comprobantes/:id` | Dueño | X | - | - | X |
 | `GET /api/envios/rastreo/:codigo` | Público | Público | Público | Público | Público |
 | `PATCH /api/envios/:id/estado` | - | - | X | X | X |
 | `PATCH /api/staff/almacen/envios/:id/estado` | - | - | X | - | X |

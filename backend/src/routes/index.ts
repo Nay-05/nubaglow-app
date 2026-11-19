@@ -13,6 +13,7 @@ import productosRoutes from './productos.routes';
 import variantesRoutes from './variantes.routes';
 import carritoRoutes from './carrito.routes';
 import pedidosRoutes from './pedidos.routes';
+import comprobantesRoutes from './comprobantes.routes';
 import enviosRoutes from './envios.routes';
 import resenasRoutes from './resenas.routes';
 import posRoutes from './pos.routes';
@@ -40,6 +41,7 @@ apiRouter.use('/variantes', variantesRoutes);
 // Modulo de compra: carrito, pedidos, envios y resenas
 apiRouter.use('/carrito', carritoRoutes);
 apiRouter.use('/pedidos', pedidosRoutes);
+apiRouter.use('/comprobantes', comprobantesRoutes);
 apiRouter.use('/envios', enviosRoutes);
 apiRouter.use('/resenas', resenasRoutes);
 
