@@ -23,6 +23,7 @@ import { vistaPedidos } from './vistas/publicas/pedidos.js';
 import { vistaCarrito } from './vistas/publicas/carrito.js';
 import { vistaCuenta } from './vistas/publicas/cuenta.js';
 import { vistaLogin } from './vistas/publicas/login.js';
+import { vistaCheckout } from './vistas/publicas/checkout.js';
 import { vistaNoEncontrada } from './vistas/publicas/noEncontrado.js';
 
 import { vistaLoginStaff } from './vistas/staff/login.js';
@@ -70,6 +71,7 @@ router
   .registrar('/producto/:slug', vistaProducto, { titulo: 'Producto' })
   .registrar('/pedidos', vistaPedidos, { titulo: 'Rastreo de pedidos' })
   .registrar('/carrito', vistaCarrito, { titulo: 'Carrito', acceso: accesoCarrito })
+  .registrar('/checkout', vistaCheckout, { titulo: 'Finalizar compra' })
   .registrar('/cuenta', vistaCuenta, { titulo: 'Mi cuenta', acceso: accesoCuenta })
   .registrar('/login', vistaLogin, { titulo: 'Iniciar sesión', acceso: accesoLoginCliente });
 

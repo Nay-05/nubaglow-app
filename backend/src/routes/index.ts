@@ -21,6 +21,7 @@ import posRoutes from './pos.routes';
 import inventarioRoutes from './inventario.routes';
 import reportesRoutes from './reportes.routes';
 import usuariosRoutes from './usuarios.routes';
+import configRoutes from './config.routes';
 import staffAlmacenRoutes from './staff-almacen.routes';
 import staffLogisticaRoutes from './staff-logistica.routes';
 import staffPagosRoutes from './staff-pagos.routes';
@@ -52,6 +53,9 @@ apiRouter.use('/pos', posRoutes);
 apiRouter.use('/inventario', inventarioRoutes);
 apiRouter.use('/reportes', reportesRoutes);
 apiRouter.use('/usuarios', usuariosRoutes);
+
+// Modulo de configuracion publico (modos de pago, etc)
+apiRouter.use('/config', configRoutes);
 
 // Envoltorios por rol para el portal interno (reutilizan los servicios existentes)
 apiRouter.use('/staff/almacen', staffAlmacenRoutes);
