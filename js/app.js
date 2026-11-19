@@ -59,7 +59,7 @@ function accesoCuenta(usuario) {
 }
 
 function accesoCarrito(usuario) {
-  if (!usuario) return '/login?redirigir=/carrito';
+  if (!usuario) return null;
   return usuario.rol === 'cliente' ? null : rutaInicioPorRol(usuario.rol);
 }
 
