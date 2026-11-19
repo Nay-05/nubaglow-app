@@ -26,6 +26,17 @@ export const crearPedidoItemSchema = z.object({
   cantidad: z.coerce.number().int().min(1, 'La cantidad minima es 1')
 });
 
+export const cotizarPedidoSchema = z.object({
+  ciudad: z
+    .string({ required_error: 'La ciudad de entrega es obligatoria' })
+    .trim()
+    .min(2, 'La ciudad debe tener al menos 2 caracteres')
+    .max(100),
+  items: z
+    .array(crearPedidoItemSchema)
+    .min(1, 'Debe incluir al menos un item para cotizar')
+});
+
 export const crearPedidoSchema = z.object({
   nombre_cliente: z
     .string({ required_error: 'El nombre completo del cliente es obligatorio' })
@@ -54,9 +65,10 @@ export const crearPedidoSchema = z.object({
     .trim()
     .min(5, 'La direccion debe incluir calle, numero o detalles claros (minimo 5 caracteres)'),
   notas: z.string().trim().max(500, 'Las notas no pueden superar 500 caracteres').optional(),
-  metodo_pago: z.enum(['qr', 'deposito_bancario', 'paypal', 'contra_entrega'], {
+  metodo_pago: z.enum(['qr_simple', 'qr', 'deposito_bancario', 'contra_entrega'], {
     errorMap: () => ({
-      message: 'Metodo de pago no valido. Opciones permitidas: qr, deposito_bancario, paypal, contra_entrega'
+      message:
+        'Metodo de pago no valido. Opciones permitidas: qr_simple, deposito_bancario, contra_entrega'
     })
   }),
   // Opcional: si se envia items se compran esos; si no se envia se procesa el carrito persistente
@@ -124,6 +136,7 @@ export const crearResenaSchema = z.object({
 
 export type AgregarCarritoItemInput = z.infer<typeof agregarCarritoItemSchema>;
 export type ActualizarCarritoItemInput = z.infer<typeof actualizarCarritoItemSchema>;
+export type CotizarPedidoInput = z.infer<typeof cotizarPedidoSchema>;
 export type CrearPedidoInput = z.infer<typeof crearPedidoSchema>;
 export type CambiarEstadoEnvioInput = z.infer<typeof cambiarEstadoEnvioSchema>;
 export type CrearResenaInput = z.infer<typeof crearResenaSchema>;

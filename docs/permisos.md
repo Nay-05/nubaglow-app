@@ -13,6 +13,15 @@ enviados por el cliente.
   ruta. La columna **Restricción adicional** indica reglas del servicio que acotan
   todavía más lo que puede hacer cada rol.
 
+## Rutas de pedidos y cobro
+
+| Endpoint | Método | Roles (middleware) | Restricción adicional |
+|---|---|---|---|
+| `/api/pedidos/cotizar` | POST | `cliente` | Calcula subtotal, envío y total desde la BD; ignora cualquier precio enviado por el cliente. |
+| `/api/pedidos` | POST | `cliente` | Crea el pedido en una transacción, descuenta stock y registra el pago en estado `Pendiente` (`qr_simple`, `deposito_bancario` o `contra_entrega`). |
+| `/api/pedidos` | GET | Autenticado | Lista únicamente los pedidos del usuario autenticado. |
+| `/api/pedidos/:id` | GET | Autenticado | El cliente solo puede ver pedidos propios; el personal interno puede consultar el detalle. |
+
 ## Rutas de envíos
 
 | Endpoint | Método | Roles (middleware) | Restricción adicional |
@@ -88,6 +97,8 @@ Reglas del servicio de pagos/cancelaciones:
 
 | Endpoint | cliente | vendedor | almacen | logistica | admin |
 |---|---:|---:|---:|---:|---:|
+| `POST /api/pedidos/cotizar` | X | - | - | - | - |
+| `POST /api/pedidos` | X | - | - | - | - |
 | `GET /api/envios/rastreo/:codigo` | Público | Público | Público | Público | Público |
 | `PATCH /api/envios/:id/estado` | - | - | X | X | X |
 | `PATCH /api/staff/almacen/envios/:id/estado` | - | - | X | - | X |

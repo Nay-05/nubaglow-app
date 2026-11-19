@@ -6,16 +6,26 @@
 
 import { Router } from 'express';
 import {
+  cotizarPedido,
   crearPedido,
   listarMisPedidos,
   obtenerDetallePedido
 } from '../controllers/pedidos.controller';
 import { validar } from '../middlewares/validar';
 import { verificarToken, requerirRol } from '../middlewares/autenticacion';
-import { crearPedidoSchema } from '../schemas/compra.schema';
+import { crearPedidoSchema, cotizarPedidoSchema } from '../schemas/compra.schema';
 import { idParamSchema } from '../schemas/comun.schema';
 
 const router = Router();
+
+// Cotizacion server-side (solo clientes autenticados)
+router.post(
+  '/cotizar',
+  verificarToken,
+  requerirRol('cliente'),
+  validar({ body: cotizarPedidoSchema }),
+  cotizarPedido
+);
 
 // Crear pedido (solo clientes autenticados)
 router.post('/', verificarToken, requerirRol('cliente'), validar({ body: crearPedidoSchema }), crearPedido);

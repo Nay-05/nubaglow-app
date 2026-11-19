@@ -235,7 +235,7 @@ CREATE TABLE IF NOT EXISTS pagos (
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_pagos_pedido UNIQUE (pedido_id),
     CONSTRAINT chk_pagos_monto CHECK (monto >= 0),
-    CONSTRAINT chk_pagos_metodo CHECK (metodo IN ('qr', 'deposito_bancario', 'paypal', 'contra_entrega')),
+    CONSTRAINT chk_pagos_metodo CHECK (metodo IN ('qr', 'qr_simple', 'deposito_bancario', 'paypal', 'contra_entrega')),
     CONSTRAINT chk_pagos_estado CHECK (estado IN ('Pendiente', 'En verificación', 'Aprobado', 'Rechazado'))
 );
 
@@ -482,10 +482,9 @@ ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_verificacion TIMESTAMPTZ;
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT;
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE pagos DROP CONSTRAINT IF EXISTS chk_pagos_metodo;
-UPDATE pagos SET metodo = 'qr' WHERE metodo = 'qr_simple';
 ALTER TABLE pagos
     ADD CONSTRAINT chk_pagos_metodo
-    CHECK (metodo IN ('qr', 'deposito_bancario', 'paypal', 'contra_entrega'));
+    CHECK (metodo IN ('qr', 'qr_simple', 'deposito_bancario', 'paypal', 'contra_entrega'));
 ALTER TABLE pagos DROP CONSTRAINT IF EXISTS chk_pagos_estado;
 ALTER TABLE pagos
     ADD CONSTRAINT chk_pagos_estado

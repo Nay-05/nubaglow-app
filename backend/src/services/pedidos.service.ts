@@ -17,6 +17,9 @@ import { AppError } from '../middlewares/errores';
 import { RolUsuario } from '../types';
 import { CrearPedidoInput } from '../schemas/compra.schema';
 import { fechaVencimientoPago } from '../config/pagos';
+import { obtenerDatosCobro } from '../config/cobro';
+import { calcularCostoEnvio } from './cotizaciones.service';
+import { generarQrSimulado } from './qr.service';
 import { pagosService } from './pagos.service';
 
 export interface ItemPedidoResumen {
@@ -53,6 +56,10 @@ export interface PedidoCompleto {
     estado: string;
     referencia: string | null;
     pagadoEn: string | null;
+    fechaVencimiento?: string | null;
+    comprobanteUrl?: string | null;
+    qrDataUrl?: string;
+    avisoSimulacion?: string;
   };
   envio?: {
     id: number;
@@ -190,8 +197,8 @@ export class PedidosService {
       }
 
       subtotalCalculado = Math.round(subtotalCalculado * 100) / 100;
-      // Regla de envio: Envio gratis para compras >= 200 Bs., de lo contrario 15 Bs. fijo
-      const costoEnvio = subtotalCalculado >= 200 ? 0.0 : 15.0;
+      // Misma regla que la cotizacion: sin subtotal no hay envio; desde 200 Bs. es gratis.
+      const costoEnvio = calcularCostoEnvio(subtotalCalculado);
       const totalCalculado = Math.round((subtotalCalculado + costoEnvio) * 100) / 100;
 
       // 3.3. Generar codigo unico de rastreo NB-2026-XXXX
@@ -251,25 +258,20 @@ export class PedidosService {
       }
 
       // 3.6. Registrar Pago
-      const esQR = datos.metodo_pago === 'qr';
-      const esContraEntrega = datos.metodo_pago === 'contra_entrega';
-      const refPago = esQR ? `QR-DEMO-${Math.floor(100000 + Math.random() * 900000)}` : null;
-      const estadoPago = esQR ? 'En verificación' : 'Pendiente';
+      // 'qr' se conserva como alias legado; en BD se normaliza a 'qr_simple'.
+      const metodoPago = datos.metodo_pago === 'qr' ? 'qr_simple' : datos.metodo_pago;
+      const esQR = metodoPago === 'qr_simple';
+      const esContraEntrega = metodoPago === 'contra_entrega';
+      const refPago = esQR
+        ? `QR-DEMO-${Math.floor(100000 + Math.random() * 900000)}`
+        : null;
       const venceEn = esContraEntrega ? null : fechaVencimientoPago();
 
       await cliente.query(
         `INSERT INTO pagos
          (pedido_id, metodo, monto, estado, referencia, simulado, pagado_en, fecha_vencimiento)
-         VALUES ($1, $2, $3, $4, $5, TRUE, $6, $7)`,
-        [
-          pedidoId,
-          datos.metodo_pago,
-          totalCalculado,
-          estadoPago,
-          refPago,
-          esQR ? new Date() : null,
-          venceEn
-        ]
+         VALUES ($1, $2, $3, 'Pendiente', $4, TRUE, NULL, $5)`,
+        [pedidoId, metodoPago, totalCalculado, refPago, venceEn]
       );
 
       // 3.7. Registrar Envio
@@ -300,7 +302,7 @@ export class PedidosService {
       await cliente.query(
         `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, detalles)
          VALUES ($1, 'CREAR_PEDIDO_WEB', 'pedidos', $2, $3)`,
-        [usuarioId, pedidoId, JSON.stringify({ codigoRastreo, total: totalCalculado, metodoPago: datos.metodo_pago })]
+        [usuarioId, pedidoId, JSON.stringify({ codigoRastreo, total: totalCalculado, metodoPago })]
       );
 
       return { id: pedidoId, codigoRastreo };
@@ -409,7 +411,9 @@ export class PedidosService {
 
     // Obtener pago
     const resPago = await consultar(
-      'SELECT metodo, monto, estado, referencia, pagado_en AS "pagadoEn" FROM pagos WHERE pedido_id = $1',
+      `SELECT metodo, monto, estado, referencia, pagado_en AS "pagadoEn",
+              fecha_vencimiento AS "fechaVencimiento", comprobante_url AS "comprobanteUrl"
+       FROM pagos WHERE pedido_id = $1`,
       [pedidoId]
     );
 
@@ -436,6 +440,25 @@ export class PedidosService {
       };
     }
 
+    let pagoCompleto: PedidoCompleto['pago'] = undefined;
+    if (resPago.rows.length > 0) {
+      const pago: NonNullable<PedidoCompleto['pago']> = {
+        ...resPago.rows[0],
+        monto: Number(resPago.rows[0].monto),
+        avisoSimulacion: obtenerDatosCobro().avisoSimulacion
+      };
+
+      if (pago.metodo === 'qr_simple') {
+        pago.qrDataUrl = await generarQrSimulado(
+          pedido.codigoRastreo,
+          pago.monto,
+          pago.referencia
+        );
+      }
+
+      pagoCompleto = pago;
+    }
+
     return {
       ...pedido,
       subtotal: Number(pedido.subtotal),
@@ -446,7 +469,7 @@ export class PedidosService {
         precioUnitario: Number(i.precioUnitario),
         subtotal: Number(i.subtotal)
       })),
-      pago: resPago.rows.length > 0 ? { ...resPago.rows[0], monto: Number(resPago.rows[0].monto) } : undefined,
+      pago: pagoCompleto,
       envio: envioCompleto
     };
   }

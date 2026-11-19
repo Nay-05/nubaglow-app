@@ -6,7 +6,21 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { pedidosService } from '../services/pedidos.service';
+import { cotizacionesService } from '../services/cotizaciones.service';
 import { cancelarPedido } from '../services/cancelaciones.service';
+import { obtenerDatosCobro } from '../config/cobro';
+
+export async function cotizarPedido(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const cotizacion = await cotizacionesService.cotizar(req.body);
+    res.status(200).json({
+      exito: true,
+      datos: { cotizacion }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function crearPedido(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -15,7 +29,11 @@ export async function crearPedido(req: Request, res: Response, next: NextFunctio
     res.status(201).json({
       exito: true,
       mensaje: 'Pedido confirmado exitosamente',
-      datos: { pedido }
+      datos: {
+        pedido,
+        cobro: obtenerDatosCobro(),
+        simulacion: true
+      }
     });
   } catch (error) {
     next(error);
