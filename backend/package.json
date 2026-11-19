@@ -14,6 +14,7 @@
     "test:bloque-c": "ts-node src/tests/bloque_c.test.ts",
     "test:bloque-d": "ts-node src/tests/bloque_d.test.ts",
     "test:bloque-e": "ts-node src/tests/bloque_e.test.ts",
+    "test:envio": "ts-node src/tests/envio_config.test.ts",
     "test:seguridad": "ts-node src/tests/seguridad.test.ts",
     "test:frontend": "ts-node src/tests/frontend.test.ts"
   },

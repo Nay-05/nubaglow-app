@@ -9,11 +9,10 @@
 import { consultar } from '../db';
 import { AppError } from '../middlewares/errores';
 import { CotizarPedidoInput } from '../schemas/compra.schema';
+import { calcularCostoEnvio } from '../config/envio';
 
-export function calcularCostoEnvio(subtotal: number): number {
-  if (subtotal <= 0) return 0;
-  return subtotal >= 200 ? 0 : 15;
-}
+// Se reexporta para conservar el punto de entrada usado por pedidos.service.
+export { calcularCostoEnvio };
 
 export interface ItemCotizado {
   varianteId: number;

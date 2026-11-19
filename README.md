@@ -49,7 +49,20 @@ JWT_REFRESH_SECRET=tu_clave_secreta_refresh_debe_tener_minimo_32_caracteres
 
 # Origen permitido para CORS (Frontend)
 CLIENT_URL=http://localhost:5173
+
+# Reglas de negocio de envio (las define el negocio)
+ENVIO_COSTO=15
+ENVIO_GRATIS_DESDE=200
 ```
+
+### 2.3. Reglas de negocio configurables del envio
+
+El costo de envio y el umbral de envio gratis **no son requisitos fijos del sistema**: los define el negocio. Se configuran exclusivamente por entorno:
+
+- `ENVIO_COSTO`: costo fijo en Bolivianos (Bs.) cuando el subtotal no alcanza el umbral. Ejemplo: `15`.
+- `ENVIO_GRATIS_DESDE`: subtotal minimo en Bs. desde el cual el envio es gratuito. Ejemplo: `200`.
+
+La logica vive en `backend/src/config/envio.ts` y se aplica tanto en la cotizacion (`POST /api/pedidos/cotizar`) como al crear el pedido, por lo que modificar estas variables cambia el monto cotizado sin tocar codigo. Si la variable falta o no es un numero valido, se usa el valor de ejemplo como respaldo.
 
 ---
 

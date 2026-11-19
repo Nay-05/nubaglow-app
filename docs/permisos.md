@@ -22,6 +22,13 @@ enviados por el cliente.
 | `/api/pedidos` | GET | Autenticado | Lista únicamente los pedidos del usuario autenticado. |
 | `/api/pedidos/:id` | GET | Autenticado | El cliente solo puede ver pedidos propios; el personal interno puede consultar el detalle. |
 
+Regla de negocio del envío:
+
+- El costo de envío y el umbral de envío gratis los define el negocio mediante
+  las variables de entorno `ENVIO_COSTO` y `ENVIO_GRATIS_DESDE` (ver
+  `backend/src/config/envio.ts`). No son valores fijos del sistema; la cotización
+  y la creación del pedido usan siempre la configuración vigente.
+
 ## Rutas de envíos
 
 | Endpoint | Método | Roles (middleware) | Restricción adicional |
