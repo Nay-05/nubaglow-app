@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS productos (
     categoria_id INTEGER NOT NULL REFERENCES categorias(id) ON DELETE RESTRICT,
     nombre VARCHAR(200) NOT NULL,
     slug VARCHAR(220) NOT NULL,
-    marca VARCHAR(100) NOT NULL DEFAULT 'Nuba Beauty',
+    marca VARCHAR(100) NOT NULL DEFAULT 'NubaGlow',
     tipo_piel VARCHAR(50) NOT NULL DEFAULT 'Todo tipo',
     descripcion TEXT NOT NULL,
     ingredientes TEXT NOT NULL,

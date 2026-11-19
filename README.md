@@ -161,7 +161,7 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 |---|---|---|---|---|
 | `GET` | `/api/productos` | `público` | Listado con búsqueda (`q`), filtros combinables (`categoria`, `tipo_piel`, `precio_min`, `precio_max`), orden y paginación | `GET /api/productos?categoria=serums&tipo_piel=Seca&precio_min=50&precio_max=200&orden=precio_asc&pagina=1&limite=10` |
 | `GET` | `/api/productos/:slug` | `público` | Detalle completo de producto por slug con variantes, imágenes y promedio de reseñas | `GET /api/productos/serum-acido-hialuronico-multi-molecular-b5` |
-| `POST` | `/api/productos` | `admin` | Crea producto maestro con validación Zod | `POST /api/productos`<br>`{"categoria_id": 1, "nombre": "Gel Limpiador Suave", "slug": "gel-limpiador-suave", "marca": "Nuba Beauty", "tipo_piel": "Sensible", "descripcion": "...", "ingredientes": "...", "modo_uso": "..."}` |
+| `POST` | `/api/productos` | `admin` | Crea producto maestro con validación Zod | `POST /api/productos`<br>`{"categoria_id": 1, "nombre": "Gel Limpiador Suave", "slug": "gel-limpiador-suave", "marca": "NubaGlow", "tipo_piel": "Sensible", "descripcion": "...", "ingredientes": "...", "modo_uso": "..."}` |
 | `PUT` | `/api/productos/:id` | `admin` | Actualiza información del producto | `PUT /api/productos/1`<br>`{"nombre": "Serum Acido Hialuronico Pro Edition"}` |
 | `DELETE` | `/api/productos/:id` | `admin` | Elimina producto | `DELETE /api/productos/1` |
 

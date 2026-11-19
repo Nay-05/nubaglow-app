@@ -747,7 +747,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoria_id\": 1,\n  \"nombre\": \"Gel Limpiador Suave Postman\",\n  \"slug\": \"gel-limpiador-suave-postman\",\n  \"marca\": \"Nuba Beauty\",\n  \"tipo_piel\": \"Sensible\",\n  \"descripcion\": \"Limpiador facial suave con centella asiatica\",\n  \"ingredientes\": \"Aqua, Centella Asiatica, Glicerina\",\n  \"modo_uso\": \"Aplicar dia y noche sobre rostro humedo\",\n  \"activo\": true\n}",
+              "raw": "{\n  \"categoria_id\": 1,\n  \"nombre\": \"Gel Limpiador Suave Postman\",\n  \"slug\": \"gel-limpiador-suave-postman\",\n  \"marca\": \"NubaGlow\",\n  \"tipo_piel\": \"Sensible\",\n  \"descripcion\": \"Limpiador facial suave con centella asiatica\",\n  \"ingredientes\": \"Aqua, Centella Asiatica, Glicerina\",\n  \"modo_uso\": \"Aplicar dia y noche sobre rostro humedo\",\n  \"activo\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"

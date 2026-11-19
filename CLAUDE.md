@@ -3,7 +3,7 @@
 Este archivo es el contexto permanente del proyecto. Léelo completo antes de modificar cualquier cosa y respétalo en cada cambio.
 
 ## 1. Qué es el proyecto
-E-commerce y sistema de gestión interna de cosméticos y skincare para **Nuba Beauty** (Sucre, Bolivia). Es un proyecto académico diseñado con estándares de producción reales: tienda pública (catálogo, carrito, pagos, rastreo), portal interno unificado por roles, base de datos relacional persistente y seguridad robusta.
+E-commerce y sistema de gestión interna de cosméticos y skincare para **Nuba Beauty** (Sucre, Bolivia), que se muestra al público como **NubaGlow**. Es un proyecto académico diseñado con estándares de producción reales: tienda pública (catálogo, carrito, pagos, rastreo), portal interno unificado por roles, base de datos relacional persistente y seguridad robusta.
 
 Se va a **defender oralmente**: el código debe ser limpio, modular, comentado en las partes críticas y fácilmente explicable por estudiantes (backend y frontend).
 
@@ -47,6 +47,7 @@ Para evitar fragmentación innecesaria de pantallas, **Almacén y Logística se 
 ## 5. Identidad Visual, Logo y Referencias (Espacio para Assets)
 Organiza los recursos gráficos del proyecto en la carpeta `assets/` siguiendo esta estructura antes de maquetar:
 
+- **Nombre visible de la marca:** Toda la interfaz, correos y comprobantes PDF deben mostrar **NubaGlow** (una sola palabra, con N y G mayúsculas). **Nuba Beauty** se reserva únicamente para referencias al negocio real (p. ej. "Una tienda de Nuba Beauty, Sucre, Bolivia"). No renombrar archivos ni rutas como `assets/brand/logo-nubaglow.png`.
 - **Logotipo Oficial:**
   - Ruta: `assets/brand/logo-nubaglow.png` ( versión alternativa clara/oscura si aplica cambiar el fondo o busca crear un corazon del color mas oscuro de la paleta en un fondo con el color mas claro):
   - Favicon: `assets/brand/icono1.png`como inspiracion es un corazon en un redondo y tambien para decoraciones `assets/brand/icono2.png`.
@@ -134,7 +135,7 @@ Tablas mínimas requeridas:
 ## 11. Notificaciones y Comprobantes PDF
 - **Correo:** `Nodemailer` (SMTP configurable por `.env`) para confirmación de pedidos y envío de recibos.
 - **Telegram:** Notificación automática vía Bot API al canal/chat de operaciones cuando ingresa un nuevo pedido web.
-- **PDF (`pdfkit`):** Generación de comprobante de compra online y factura o recibo de venta POS (enviado tambien al correo electronico) con el logotipo de Nuba Beauty, número correlativo, detalle de variantes, total en Bolivianos (Bs.) y código de rastreo. *(Nota visible en el documento: "Comprobante académico de simulación — Sin valor fiscal").*
+- **PDF (`pdfkit`):** Generación de comprobante de compra online y factura o recibo de venta POS (enviado tambien al correo electronico) con el logotipo de NubaGlow, número correlativo, detalle de variantes, total en Bolivianos (Bs.) y código de rastreo. *(Nota visible en el documento: "Comprobante académico de simulación — Sin valor fiscal").*
 
 ## 12. Convenciones de Código y Definición de Terminado
 - **Idioma:** Nombres de dominio, tablas, rutas de API y variables de negocio en **español** (`pedidos`, `variantes`, `obtenerStock`); términos técnicos del lenguaje en inglés (`controller`, `middleware`, `router`).

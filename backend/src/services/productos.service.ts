@@ -317,7 +317,7 @@ export class ProductosService {
           datos.categoria_id,
           datos.nombre.trim(),
           slugFinal,
-          datos.marca?.trim() || 'Nuba Beauty',
+          datos.marca?.trim() || 'NubaGlow',
           datos.tipo_piel,
           datos.descripcion.trim(),
           datos.ingredientes.trim(),

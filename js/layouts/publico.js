@@ -4,7 +4,7 @@
  * ============================================================================
  * Cabecera editorial con banda de anuncios cerrable, menu Tienda alimentado
  * por /api/categorias, buscador, contador de carrito y menu movil. El pie se
- * organiza en columnas (Tienda, Nuba Beauty y Atencion) sin enlaces al portal
+ * organiza en columnas (Tienda, NubaGlow y Atencion) sin enlaces al portal
  * interno ni redes sociales ficticias. Todo el DOM se crea con helpers seguros.
  */
 
@@ -82,14 +82,14 @@ function crearMarca() {
     {
       clase: 'marca',
       href: '/',
-      atributos: { 'data-ruta': '', 'aria-label': 'Nuba Beauty, ir al inicio' }
+      atributos: { 'data-ruta': '', 'aria-label': 'NubaGlow, ir al inicio' }
     },
     el('img', {
       clase: 'marca-imagen',
       src: '/assets/brand/logo-nubaglow.png',
-      alt: 'Nuba Beauty'
+      alt: 'NubaGlow'
     }),
-    el('span', { clase: 'marca-texto', texto: 'Nuba Beauty' })
+    el('span', { clase: 'marca-texto', texto: 'NubaGlow' })
   );
 }
 
@@ -413,7 +413,7 @@ function crearPie() {
       el(
         'section',
         { clase: 'pie-columna' },
-        el('h2', { clase: 'pie-titulo', texto: 'Nuba Beauty' }),
+        el('h2', { clase: 'pie-titulo', texto: 'NubaGlow' }),
         el('p', {
           clase: 'pie-texto',
           texto: 'Skincare y maquillaje seleccionados con criterio profesional en Sucre, Bolivia.'

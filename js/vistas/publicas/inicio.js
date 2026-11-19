@@ -246,7 +246,7 @@ function crearHeroCarrusel() {
       clase: 'hero-carrusel',
       atributos: {
         'aria-roledescription': 'carrusel',
-        'aria-label': 'Campañas de Nuba Beauty'
+        'aria-label': 'Campañas de NubaGlow'
       }
     },
     pista,
@@ -389,20 +389,20 @@ function crearEditorial(producto) {
       el('h2', {
         clase: 'editorial-titulo',
         atributos: { id: 'titulo-editorial' },
-        texto: producto.nombre || 'Producto Nuba Beauty'
+        texto: producto.nombre || 'Producto NubaGlow'
       }),
       el('p', {
         clase: 'editorial-descripcion',
         texto:
           producto.descripcion ||
-          'Una selección de Nuba Beauty para sumar a tu ritual de belleza diario.'
+          'Una selección de NubaGlow para sumar a tu ritual de belleza diario.'
       }),
       el(
         'div',
         { clase: 'editorial-meta' },
         el('span', {
           clase: 'editorial-categoria',
-          texto: producto.categoriaNombre || 'Nuba Beauty'
+          texto: producto.categoriaNombre || 'NubaGlow'
         }),
         el('span', {
           clase: 'editorial-precio',
@@ -516,7 +516,7 @@ export const vistaInicio = {
       { clase: 'inicio' },
       el('h1', {
         clase: 'solo-lectores',
-        texto: 'Nuba Beauty · Skincare y maquillaje en Sucre, Bolivia'
+        texto: 'NubaGlow · Skincare y maquillaje en Sucre, Bolivia'
       }),
       crearHeroCarrusel(),
       crearSeccionMasVendidos(masVendidos, resultadoVendidos.status === 'rejected', {

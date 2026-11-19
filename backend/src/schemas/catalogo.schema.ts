@@ -71,7 +71,7 @@ export const crearProductoSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'El slug solo puede contener minusculas, numeros y guiones')
     .max(220)
     .optional(),
-  marca: z.string().trim().max(100).default('Nuba Beauty'),
+  marca: z.string().trim().max(100).default('NubaGlow'),
   tipo_piel: z.enum(tiposPielValidos, {
     errorMap: () => ({ message: 'Tipo de piel invalido. Opciones: Todo tipo, Seca, Grasa, Mixta, Sensible' })
   }),

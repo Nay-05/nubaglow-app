@@ -102,14 +102,14 @@ export function crearTarjetaProducto(producto, { router, usuario }) {
     el(
       'div',
       { clase: 'tarjeta-cuerpo' },
-      el('span', { clase: 'tarjeta-marca', texto: producto.marca || 'Nuba Beauty' }),
+      el('span', { clase: 'tarjeta-marca', texto: producto.marca || 'NubaGlow' }),
       el(
         'h2',
         { clase: 'tarjeta-titulo' },
         el('a', {
           href: ruta,
           atributos: { 'data-ruta': '' },
-          texto: producto.nombre || 'Producto Nuba Beauty'
+          texto: producto.nombre || 'Producto NubaGlow'
         })
       ),
       el('p', {

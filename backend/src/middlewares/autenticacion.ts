@@ -72,7 +72,7 @@ export function verificarToken(req: Request, res: Response, next: NextFunction):
     if (decodificado.activo === false) {
       res.status(403).json({
         exito: false,
-        error: 'Cuenta desactivada. Contacte a la administracion de Nuba Beauty'
+        error: 'Cuenta desactivada. Contacte a la administracion de NubaGlow'
       });
       return;
     }

@@ -243,11 +243,11 @@ function crearMiniCarrito({ usuario, router }) {
             { clase: 'mini-sugerencia-info' },
             el('span', {
               clase: 'mini-sugerencia-nombre',
-              texto: producto.nombre || 'Producto Nuba Beauty'
+              texto: producto.nombre || 'Producto NubaGlow'
             }),
             el('span', {
               clase: 'mini-sugerencia-meta',
-              texto: producto.categoriaNombre || 'Nuba Beauty'
+              texto: producto.categoriaNombre || 'NubaGlow'
             })
           )
         );

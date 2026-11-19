@@ -19,7 +19,7 @@ export const vistaLoginStaff = {
       el('h2', { clase: 'formulario-titulo', texto: 'Iniciar sesión' }),
       el('p', {
         clase: 'texto-suave',
-        texto: 'Portal interno de Nuba Beauty. Solo cuentas creadas por administración.'
+        texto: 'Portal interno de NubaGlow. Solo cuentas creadas por administración.'
       })
     );
 

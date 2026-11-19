@@ -217,8 +217,8 @@ function crearInfoProducto(producto, { usuario }) {
   const info = el(
     'div',
     { clase: 'ficha-info' },
-    el('span', { clase: 'tarjeta-marca', texto: producto.marca || 'Nuba Beauty' }),
-    el('h1', { clase: 'ficha-titulo', texto: producto.nombre || 'Producto Nuba Beauty' }),
+    el('span', { clase: 'tarjeta-marca', texto: producto.marca || 'NubaGlow' }),
+    el('h1', { clase: 'ficha-titulo', texto: producto.nombre || 'Producto NubaGlow' }),
     valoracionNodo,
     el(
       'div',
@@ -600,7 +600,7 @@ function crearPanelResenas(producto, { usuario, alActualizarValoracion }) {
               { clase: 'resena-autor-bloque' },
               el('p', {
                 clase: 'resena-autor',
-                texto: resena.autor || 'Cliente Nuba Beauty'
+                texto: resena.autor || 'Cliente NubaGlow'
               }),
               el('p', {
                 clase: 'resena-fecha',

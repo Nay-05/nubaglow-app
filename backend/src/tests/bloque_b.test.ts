@@ -350,7 +350,7 @@ async function ejecutarPruebas() {
       categoria_id: categoriaTestId,
       nombre: `Producto Test ${sufijo}`,
       slug: nuevoProductoSlug,
-      marca: 'Nuba Beauty',
+      marca: 'NubaGlow',
       tipo_piel: 'Todo tipo',
       descripcion: 'Descripcion cientifica de prueba dermatologica para evaluacion.',
       ingredientes: 'Aqua, Niacinamide, Glycerin.',
