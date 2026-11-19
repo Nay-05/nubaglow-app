@@ -76,6 +76,36 @@ export const crearPedidoSchema = z.object({
 });
 
 // ----------------------------------------------------------------------------
+// 2.1 COMPROBANTE DE PAGO (QR SIMPLE / DEPOSITO BANCARIO)
+// ----------------------------------------------------------------------------
+export const mimeTiposComprobante = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf'
+] as const;
+
+export const subirComprobantePagoSchema = z.object({
+  nombre_archivo: z
+    .string({ required_error: 'El nombre del archivo es obligatorio' })
+    .trim()
+    .min(1, 'El nombre del archivo no puede estar vacio')
+    .max(255, 'El nombre del archivo no puede exceder 255 caracteres'),
+  mime_type: z.enum(mimeTiposComprobante, {
+    errorMap: () => ({
+      message:
+        'Tipo de archivo no permitido. Formatos aceptados: image/jpeg, image/png, image/webp, application/pdf'
+    })
+  }),
+  // Acepta base64 puro o un data URL (data:image/png;base64,...). Maximo 5 MB reales.
+  contenido_base64: z
+    .string({ required_error: 'El contenido del comprobante es obligatorio' })
+    .trim()
+    .min(1, 'El contenido del comprobante no puede estar vacio')
+    .max(8_000_000, 'El comprobante excede el tamano maximo permitido (5 MB)')
+});
+
+// ----------------------------------------------------------------------------
 // 3. ENVIOS Y EVENTOS
 // ----------------------------------------------------------------------------
 export const estadosEnvioValidos = [
@@ -138,5 +168,6 @@ export type AgregarCarritoItemInput = z.infer<typeof agregarCarritoItemSchema>;
 export type ActualizarCarritoItemInput = z.infer<typeof actualizarCarritoItemSchema>;
 export type CotizarPedidoInput = z.infer<typeof cotizarPedidoSchema>;
 export type CrearPedidoInput = z.infer<typeof crearPedidoSchema>;
+export type SubirComprobantePagoInput = z.infer<typeof subirComprobantePagoSchema>;
 export type CambiarEstadoEnvioInput = z.infer<typeof cambiarEstadoEnvioSchema>;
 export type CrearResenaInput = z.infer<typeof crearResenaSchema>;

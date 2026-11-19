@@ -19,6 +19,7 @@ enviados por el cliente.
 |---|---|---|---|
 | `/api/pedidos/cotizar` | POST | `cliente` | Calcula subtotal, envío y total desde la BD; ignora cualquier precio enviado por el cliente. |
 | `/api/pedidos` | POST | `cliente` | Crea el pedido en una transacción, descuenta stock y registra el pago en estado `Pendiente` (`qr_simple`, `deposito_bancario` o `contra_entrega`). |
+| `/api/pedidos/:id/comprobante` | POST | `cliente` | Solo el dueño del pedido. Acepta JPEG, PNG, WebP o PDF (máx. 5 MB) para pagos `qr_simple`/`qr` (legado)/`deposito_bancario`; pasa el pago a `En verificación`, guarda el archivo en `comprobantes_pago` y audita. |
 | `/api/pedidos` | GET | Autenticado | Lista únicamente los pedidos del usuario autenticado. |
 | `/api/pedidos/:id` | GET | Autenticado | El cliente solo puede ver pedidos propios; el personal interno puede consultar el detalle. |
 
@@ -73,6 +74,10 @@ Reglas de negocio del servicio de envíos:
 
 Reglas del servicio de pagos/cancelaciones:
 
+- Solo el cliente dueño puede subir el comprobante de un pago `qr_simple` o
+  `deposito_bancario` en estado `Pendiente` o `En verificación`. Al recibirlo, el
+  pago pasa a `En verificación`; un pago `Aprobado`, `Rechazado`, cancelado o
+  vencido rechaza la carga.
 - El rechazo y el vencimiento cancelan el pedido y reponen el stock con un movimiento
   de Kardex `reposicion_cancelacion`.
 - La cancelación es idempotente: un segundo intento no vuelve a reponer stock.
@@ -106,6 +111,7 @@ Reglas del servicio de pagos/cancelaciones:
 |---|---:|---:|---:|---:|---:|
 | `POST /api/pedidos/cotizar` | X | - | - | - | - |
 | `POST /api/pedidos` | X | - | - | - | - |
+| `POST /api/pedidos/:id/comprobante` | X | - | - | - | - |
 | `GET /api/envios/rastreo/:codigo` | Público | Público | Público | Público | Público |
 | `PATCH /api/envios/:id/estado` | - | - | X | X | X |
 | `PATCH /api/staff/almacen/envios/:id/estado` | - | - | X | - | X |

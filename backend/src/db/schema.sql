@@ -224,7 +224,8 @@ CREATE TABLE IF NOT EXISTS pagos (
     referencia VARCHAR(100),
     referencia_externa VARCHAR(150),
     paypal_order_id VARCHAR(150),
-    comprobante_url VARCHAR(500),
+    -- TEXT porque el comprobante puede almacenarse como data URL (base64).
+    comprobante_url TEXT,
     fecha_vencimiento TIMESTAMPTZ,
     verificado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     fecha_verificacion TIMESTAMPTZ,
@@ -266,7 +267,8 @@ CREATE TABLE IF NOT EXISTS comprobantes_pago (
     id SERIAL PRIMARY KEY,
     pago_id INTEGER NOT NULL REFERENCES pagos(id) ON DELETE RESTRICT,
     nombre_archivo VARCHAR(255) NOT NULL,
-    url VARCHAR(500) NOT NULL,
+    -- El comprobante se guarda como data URL; TEXT evita el limite de 500 chars.
+    url TEXT NOT NULL,
     mime_type VARCHAR(100) NOT NULL,
     tamano_bytes INTEGER NOT NULL DEFAULT 0,
     hash_sha256 VARCHAR(64),
@@ -475,7 +477,9 @@ ALTER TABLE pedidos
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS moneda VARCHAR(3) NOT NULL DEFAULT 'BOB';
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS referencia_externa VARCHAR(150);
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS paypal_order_id VARCHAR(150);
-ALTER TABLE pagos ADD COLUMN IF NOT EXISTS comprobante_url VARCHAR(500);
+ALTER TABLE pagos ADD COLUMN IF NOT EXISTS comprobante_url TEXT;
+ALTER TABLE pagos ALTER COLUMN comprobante_url TYPE TEXT;
+ALTER TABLE comprobantes_pago ALTER COLUMN url TYPE TEXT;
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_vencimiento TIMESTAMPTZ;
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS verificado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL;
 ALTER TABLE pagos ADD COLUMN IF NOT EXISTS fecha_verificacion TIMESTAMPTZ;

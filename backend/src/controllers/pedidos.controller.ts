@@ -8,6 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 import { pedidosService } from '../services/pedidos.service';
 import { cotizacionesService } from '../services/cotizaciones.service';
 import { cancelarPedido } from '../services/cancelaciones.service';
+import { comprobantesService } from '../services/comprobantes.service';
 import { obtenerDatosCobro } from '../config/cobro';
 
 export async function cotizarPedido(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -34,6 +35,27 @@ export async function crearPedido(req: Request, res: Response, next: NextFunctio
         cobro: obtenerDatosCobro(),
         simulacion: true
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function registrarComprobantePago(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const pedidoId = Number(req.params.id);
+    const usuarioId = req.usuario!.id;
+    const comprobante = await comprobantesService.registrar(pedidoId, usuarioId, req.body);
+
+    res.status(201).json({
+      exito: true,
+      mensaje:
+        'Comprobante de pago recibido. El pago quedo En verificación para revision manual',
+      datos: { comprobante, simulacion: true }
     });
   } catch (error) {
     next(error);

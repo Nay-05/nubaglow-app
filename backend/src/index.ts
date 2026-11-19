@@ -91,8 +91,9 @@ app.use(
 );
 
 // 4. Procesamiento de cuerpo, cookies y proteccion CSRF
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+// Limite de 8 MB para admitir comprobantes de pago en base64 (maximo real 5 MB).
+app.use(express.json({ limit: '8mb' }));
+app.use(express.urlencoded({ extended: true, limit: '8mb' }));
 app.use(cookieParser());
 app.use(proteccionCsrf);
 

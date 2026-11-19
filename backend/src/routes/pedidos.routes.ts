@@ -9,11 +9,16 @@ import {
   cotizarPedido,
   crearPedido,
   listarMisPedidos,
-  obtenerDetallePedido
+  obtenerDetallePedido,
+  registrarComprobantePago
 } from '../controllers/pedidos.controller';
 import { validar } from '../middlewares/validar';
 import { verificarToken, requerirRol } from '../middlewares/autenticacion';
-import { crearPedidoSchema, cotizarPedidoSchema } from '../schemas/compra.schema';
+import {
+  crearPedidoSchema,
+  cotizarPedidoSchema,
+  subirComprobantePagoSchema
+} from '../schemas/compra.schema';
 import { idParamSchema } from '../schemas/comun.schema';
 
 const router = Router();
@@ -29,6 +34,15 @@ router.post(
 
 // Crear pedido (solo clientes autenticados)
 router.post('/', verificarToken, requerirRol('cliente'), validar({ body: crearPedidoSchema }), crearPedido);
+
+// Subir comprobante de pago QR simple / deposito bancario (solo el cliente dueño)
+router.post(
+  '/:id/comprobante',
+  verificarToken,
+  requerirRol('cliente'),
+  validar({ params: idParamSchema, body: subirComprobantePagoSchema }),
+  registrarComprobantePago
+);
 
 // Listar mis pedidos
 router.get('/', verificarToken, listarMisPedidos);

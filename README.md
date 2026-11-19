@@ -116,7 +116,13 @@ npm run test:bloque-c
 # Ejecutar suite Bloque D (POS, facturacion, inventario, reportes y auditoria) - 54 pruebas
 npm run test:bloque-d
 
-# Ejecutar todas las suites secuencialmente (139 pruebas conjuntas)
+# Verificar que el costo y el umbral de envio se leen de ENVIO_COSTO / ENVIO_GRATIS_DESDE
+npm run test:envio
+
+# Probar la carga del comprobante de pago QR/deposito (requiere BD)
+npm run test:comprobante
+
+# Ejecutar todas las suites secuencialmente
 npm run test:todos
 ```
 
@@ -207,7 +213,9 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 
 | Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
 |---|---|---|---|---|
+| `POST` | `/api/pedidos/cotizar` | `cliente` | Cotiza subtotal, costo de envío y total desde la BD (ignora precios del cliente). El envío usa `ENVIO_COSTO` y `ENVIO_GRATIS_DESDE`. | `POST /api/pedidos/cotizar`<br>`{"ciudad": "Sucre", "items": [{"variante_id": 1, "cantidad": 2}]}` |
 | `POST` | `/api/pedidos` | `cliente` | Checkout atómico en 1 sola transacción (`SELECT ... FOR UPDATE`, descuenta stock, Kardex, genera `NB-2026-XXXX`, pago, envío inicial 'Pendiente', vacía carrito) | `POST /api/pedidos`<br>`{"nombre_completo": "Mariana Gomez", "celular": "71234567", "correo": "mariana@ejemplo.com", "ciudad": "Sucre", "direccion": "Calle Nicolas Ortiz 45", "metodo_pago": "qr_simple", "notas": "Entregar en porteria"}` |
+| `POST` | `/api/pedidos/:id/comprobante` | `cliente` | Sube el comprobante de pago para QR simple o depósito (JPEG, PNG, WebP o PDF, máx. 5 MB). Pasa el pago a `En verificación` y audita. | `POST /api/pedidos/12/comprobante`<br>`{"nombre_archivo": "comprobante.png", "mime_type": "image/png", "contenido_base64": "iVBORw0KG..."}` |
 | `GET` | `/api/pedidos` | `autenticado` | Historial de pedidos (cliente solo ve los suyos; staff ve todos) | `GET /api/pedidos` |
 | `GET` | `/api/pedidos/:id` | `autenticado` | Detalle de pedido (retorna `403` si un cliente intenta ver pedido ajeno) | `GET /api/pedidos/12` |
 
