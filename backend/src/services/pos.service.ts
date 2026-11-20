@@ -16,6 +16,8 @@ import { consultar, conTransaccion } from '../db';
 import { AppError } from '../middlewares/errores';
 import { RolUsuario } from '../types';
 import { CrearVentaPosInput } from '../schemas/staff.schema';
+import { notificacionesService } from './notificaciones.service';
+import { posPdfService } from './posPdf.service';
 
 export interface VentaPosResumen {
   id: number;
@@ -77,7 +79,7 @@ export class PosService {
     const itemsOrdenados = [...datos.items].sort((a, b) => a.variante_id - b.variante_id);
     const idsVariantes = itemsOrdenados.map((i) => i.variante_id);
 
-    return await conTransaccion(async (cliente) => {
+    const venta = await conTransaccion(async (cliente) => {
       // 2. Bloquear filas con SELECT ... FOR UPDATE
       const resBloqueo = await cliente.query(
         `SELECT 
@@ -122,7 +124,9 @@ export class PosService {
 
         if (info.stock < item.cantidad) {
           throw new AppError(
-            `Stock insuficiente para '${info.productoNombre} - ${info.varianteNombre}'. Disponible: ${info.stock}, solicitado: ${item.cantidad}`,
+            `Stock insuficiente para '${info.productoNombre} - ` +
+              `${info.varianteNombre}'. Disponible: ${info.stock}, ` +
+              `solicitado: ${item.cantidad}`,
             400
           );
         }
@@ -167,10 +171,21 @@ export class PosService {
       // 5. Generar ticket y registrar venta_pos
       const numeroTicket = await this.generarTicketUnico(cliente);
 
+      const detalleVenta = itemsProcesados.map((item) => ({
+        productoNombre: item.productoNombre,
+        varianteNombre: item.varianteNombre,
+        sku: item.sku,
+        cantidad: item.cantidad,
+        precioUnitario: item.precioUnitario,
+        subtotal: item.subtotal
+      }));
+
       const resVenta = await cliente.query(
-        `INSERT INTO ventas_pos 
-         (numero_ticket, vendedor_id, subtotal, total, metodo_pago, monto_recibido, cambio, cliente_nombre, cliente_nit_ci, cliente_correo)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `INSERT INTO ventas_pos
+         (numero_ticket, vendedor_id, subtotal, total, metodo_pago,
+          monto_recibido, cambio, cliente_nombre, cliente_nit_ci,
+          cliente_correo, detalle)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          RETURNING id, creado_en`,
         [
           numeroTicket,
@@ -182,7 +197,8 @@ export class PosService {
           cambio,
           datos.cliente_nombre?.trim() || null,
           datos.cliente_nit_ci?.trim() || null,
-          datos.cliente_correo?.trim() || null
+          datos.cliente_correo?.trim() || null,
+          JSON.stringify(detalleVenta)
         ]
       );
       const ventaId = resVenta.rows[0].id;
@@ -268,6 +284,100 @@ export class PosService {
         }))
       };
     });
+
+    // Envío opcional del comprobante fuera de la transacción.
+    if (venta.clienteCorreo) {
+      try {
+        const adjunto = await posPdfService.generar(venta);
+        await notificacionesService.enviarCorreo({
+          pedidoId: null,
+          destinatario: venta.clienteCorreo,
+          asunto: `NubaGlow: comprobante de venta ${venta.numeroTicket}`,
+          cuerpo: [
+            `Hola ${venta.clienteNombre || 'cliente'},`,
+            '',
+            'Gracias por tu compra en NubaGlow.',
+            `Ticket: ${venta.numeroTicket}`,
+            `Factura: ${venta.factura?.numeroFactura || 'Sin factura'}`,
+            `Total: Bs. ${Number(venta.total).toFixed(2)}`,
+            `Método de pago: ${venta.metodoPago}`,
+            '',
+            'Adjuntamos tu comprobante en PDF.',
+            'Comprobante académico de simulación — Sin valor fiscal.'
+          ].join('\n'),
+          adjuntos: [
+            {
+              filename: adjunto.nombreArchivo,
+              content: adjunto.buffer,
+              contentType: 'application/pdf'
+            }
+          ]
+        });
+      } catch (error) {
+        console.error(
+          'No se pudo generar o enviar el comprobante POS:',
+          error
+        );
+      }
+    }
+
+    return venta;
+  }
+
+  /**
+   * Devuelve una venta con su detalle para el comprobante PDF.
+   */
+  async obtenerVentaDetalle(
+    ventaId: number,
+    usuarioId: number,
+    rolUsuario: RolUsuario
+  ) {
+    const res = await consultar(
+      `SELECT vp.id,
+              vp.numero_ticket AS "numeroTicket",
+              vp.vendedor_id AS "vendedorId",
+              u.nombre AS "vendedorNombre",
+              vp.subtotal,
+              vp.total,
+              vp.metodo_pago AS "metodoPago",
+              vp.monto_recibido AS "montoRecibido",
+              vp.cambio,
+              vp.cliente_nombre AS "clienteNombre",
+              vp.cliente_nit_ci AS "clienteNitCi",
+              vp.cliente_correo AS "clienteCorreo",
+              vp.detalle,
+              vp.creado_en AS "creadoEn",
+              f.numero_factura AS "numeroFactura"
+       FROM ventas_pos vp
+       INNER JOIN usuarios u ON u.id = vp.vendedor_id
+       LEFT JOIN facturas f ON f.venta_pos_id = vp.id
+       WHERE vp.id = $1`,
+      [ventaId]
+    );
+
+    if (res.rows.length === 0) {
+      throw new AppError('Venta POS no encontrada', 404);
+    }
+
+    const venta = res.rows[0];
+
+    if (
+      rolUsuario === 'vendedor' &&
+      Number(venta.vendedorId) !== Number(usuarioId)
+    ) {
+      throw new AppError('Acceso denegado: la venta no le pertenece', 403);
+    }
+
+    const items = Array.isArray(venta.detalle) ? venta.detalle : [];
+
+    return {
+      ...venta,
+      subtotal: Number(venta.subtotal),
+      total: Number(venta.total),
+      montoRecibido: Number(venta.montoRecibido),
+      cambio: Number(venta.cambio),
+      items
+    };
   }
 
   /**
@@ -275,14 +385,29 @@ export class PosService {
    * - Vendedor solo ve las suyas
    * - Admin ve todas
    */
-  async historialVentas(vendedorId: number, rolUsuario: RolUsuario) {
-    let clausulaWhere = '';
+  async historialVentas(
+    vendedorId: number,
+    rolUsuario: RolUsuario,
+    fecha?: string
+  ) {
+    const condiciones: string[] = [];
     const parametros: any[] = [];
 
     if (rolUsuario === 'vendedor') {
-      clausulaWhere = 'WHERE vp.vendedor_id = $1';
       parametros.push(vendedorId);
+      condiciones.push(`vp.vendedor_id = $${parametros.length}`);
     }
+
+    if (fecha) {
+      parametros.push(fecha);
+      condiciones.push(
+        `(vp.creado_en AT TIME ZONE 'America/La_Paz')::date = ` +
+          `$${parametros.length}::date`
+      );
+    }
+
+    const clausulaWhere =
+      condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
 
     const consulta = `
       SELECT 
@@ -322,7 +447,11 @@ export class PosService {
    * Cierre de caja diario
    */
   async cierreCaja(vendedorId: number, rolUsuario: RolUsuario, fecha?: string) {
-    const fechaFiltro = fecha || new Date().toISOString().slice(0, 10);
+    const fechaFiltro =
+      fecha ||
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/La_Paz'
+      }).format(new Date());
     const parametros: any[] = [fechaFiltro];
 
     let filtroVendedor = '';
@@ -338,7 +467,8 @@ export class PosService {
         COALESCE(SUM(CASE WHEN metodo_pago = 'Efectivo' THEN total ELSE 0 END), 0)::numeric AS "totalEfectivo",
         COALESCE(SUM(CASE WHEN metodo_pago = 'QR Simple' THEN total ELSE 0 END), 0)::numeric AS "totalQR"
       FROM ventas_pos vp
-      WHERE DATE(vp.creado_en) = $1 ${filtroVendedor};
+      WHERE (vp.creado_en AT TIME ZONE 'America/La_Paz')::date = $1::date
+        ${filtroVendedor};
     `;
 
     const res = await consultar(consulta, parametros);

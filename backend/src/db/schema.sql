@@ -371,6 +371,7 @@ CREATE TABLE IF NOT EXISTS ventas_pos (
     cliente_nombre VARCHAR(150),
     cliente_nit_ci VARCHAR(50),
     cliente_correo VARCHAR(255),
+    detalle JSONB NOT NULL DEFAULT '[]'::jsonb,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_ventas_pos_ticket UNIQUE (numero_ticket),
     CONSTRAINT chk_ventas_pos_total CHECK (total >= 0),
@@ -557,3 +558,7 @@ ALTER TABLE notificaciones
     CHECK (
         estado IN ('Pendiente', 'Enviado', 'Fallido', 'enviada', 'fallida', 'omitida')
     );
+
+-- 7. Ventas POS: detalle de artículos para comprobantes posteriores.
+ALTER TABLE ventas_pos
+    ADD COLUMN IF NOT EXISTS detalle JSONB NOT NULL DEFAULT '[]'::jsonb;

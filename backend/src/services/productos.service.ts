@@ -94,10 +94,16 @@ export class ProductosService {
     if (filtros.buscar && filtros.buscar.trim()) {
       const termino = `%${filtros.buscar.trim().toLowerCase()}%`;
       condiciones.push(`(
-        LOWER(p.nombre) LIKE $${contadorParametros} OR 
-        LOWER(p.marca) LIKE $${contadorParametros} OR 
-        LOWER(p.descripcion) LIKE $${contadorParametros} OR 
-        LOWER(p.ingredientes) LIKE $${contadorParametros}
+        LOWER(p.nombre) LIKE $${contadorParametros} OR
+        LOWER(p.marca) LIKE $${contadorParametros} OR
+        LOWER(p.descripcion) LIKE $${contadorParametros} OR
+        LOWER(p.ingredientes) LIKE $${contadorParametros} OR
+        LOWER(c.nombre) LIKE $${contadorParametros} OR
+        EXISTS (
+          SELECT 1 FROM variantes v2
+          WHERE v2.producto_id = p.id
+            AND LOWER(v2.sku) LIKE $${contadorParametros}
+        )
       )`);
       parametros.push(termino);
       contadorParametros++;

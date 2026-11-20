@@ -163,7 +163,7 @@ npm run test:bloque-b
 # Ejecutar suite Bloque C (Carrito persistente, pedidos atomicos, rastreo y resenas) - 36 pruebas
 npm run test:bloque-c
 
-# Ejecutar suite Bloque D (POS, facturacion, inventario, reportes y auditoria) - 54 pruebas
+# Ejecutar suite Bloque D (POS, facturacion, inventario, reportes y auditoria) - 86 pruebas
 npm run test:bloque-d
 
 # Verificar que el costo y el umbral de envio se leen de ENVIO_COSTO / ENVIO_GRATIS_DESDE
@@ -300,9 +300,10 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 
 | Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
 |---|---|---|---|---|
-| `POST` | `/api/pos` | `vendedor`, `admin` | Venta en mostrador en 1 transacción atómica (`FOR UPDATE`, descuenta stock, Kardex, genera factura correlativa). Precios y totales siempre calculados en el servidor | `POST /api/pos`<br>`{"items": [{"variante_id": 1, "cantidad": 2}], "metodo_pago": "Efectivo", "monto_recibido": 200.00, "cliente_nombre": "Carlos Mendoza", "cliente_nit_ci": "5689123", "cliente_email": "carlos@email.com"}` |
-| `GET` | `/api/pos/historial` | `vendedor`, `admin` | Historial de ventas segregado: el vendedor solo ve sus propias ventas; el administrador ve todas | `GET /api/pos/historial` |
-| `GET` | `/api/pos/cierre-caja` | `vendedor`, `admin` | Arqueo diario de caja (total ventas, desglose en Efectivo y QR Simple) | `GET /api/pos/cierre-caja` |
+| `POST` | `/api/pos` | `vendedor`, `admin` | Venta en mostrador en 1 transacción atómica (`FOR UPDATE`, descuenta stock, Kardex, genera factura correlativa). Precios y totales siempre calculados en el servidor. Envía el comprobante PDF al correo si se informa `cliente_correo` | `POST /api/pos`<br>`{"items": [{"variante_id": 1, "cantidad": 2}], "metodo_pago": "Efectivo", "monto_recibido": 200.00, "cliente_nombre": "Carlos Mendoza", "cliente_nit_ci": "5689123", "cliente_correo": "carlos@email.com"}` |
+| `GET` | `/api/pos/historial` | `vendedor`, `admin` | Historial de ventas segregado por vendedor. Acepta `?fecha=YYYY-MM-DD` y agrupa por fecha local de Bolivia | `GET /api/pos/historial?fecha=2026-11-20` |
+| `GET` | `/api/pos/cierre-caja` | `vendedor`, `admin` | Arqueo diario de caja (total ventas, desglose en Efectivo y QR Simple). Acepta `?fecha=YYYY-MM-DD` | `GET /api/pos/cierre-caja?fecha=2026-11-20` |
+| `GET` | `/api/pos/ventas/:id/comprobante-pdf` | `vendedor`, `admin` | Descarga el comprobante PDF de una venta POS. El vendedor solo accede a sus propias ventas; el admin accede a cualquiera | `GET /api/pos/ventas/15/comprobante-pdf` |
 
 ---
 

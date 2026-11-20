@@ -5860,3 +5860,265 @@ body.mini-carrito-abierto {
 .pedidos-pagina .buscador {
   align-items: flex-end;
 }
+
+/* --------------------------------------------------------------------------
+   16. Punto de venta (POS)
+   -------------------------------------------------------------------------- */
+.pos-staff {
+  gap: var(--space-4);
+}
+
+.pos-mensajes:empty,
+.pos-mensajes-venta:empty {
+  display: none;
+}
+
+.pos-grid {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.pos-panel {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-5);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-silver);
+  border-radius: var(--radius-lg);
+}
+
+.pos-panel-busqueda {
+  align-content: start;
+}
+
+.pos-resultados,
+.pos-variantes-lista,
+.pos-lineas,
+.pos-cierre,
+.pos-historial {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pos-producto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-ivory);
+  border: 1px solid var(--color-silver);
+  border-radius: var(--radius-md);
+}
+
+.pos-producto-info,
+.pos-variante-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pos-producto-acciones,
+.pos-variante-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pos-precio {
+  color: var(--color-wine-plum);
+  white-space: nowrap;
+}
+
+.pos-variantes-panel {
+  background-color: var(--color-sand-dune);
+}
+
+.pos-subtitulo {
+  font-size: 20px;
+}
+
+.pos-variante {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-silver);
+  border-radius: var(--radius-md);
+}
+
+.pos-linea {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-silver);
+}
+
+.pos-linea:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.pos-linea-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pos-linea-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.pos-linea-subtotal {
+  color: var(--color-wine-plum);
+  white-space: nowrap;
+}
+
+.pos-linea-quitar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background-color: transparent;
+  border: 1px solid var(--color-silver);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+}
+
+.pos-linea-quitar:hover {
+  background-color: var(--color-error-soft);
+}
+
+.pos-resumen {
+  display: grid;
+  gap: 6px;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-silver);
+}
+
+.pos-resumen-linea,
+.pos-resumen-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pos-resumen-linea {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.pos-resumen-total {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-wine-plum);
+}
+
+.pos-form-venta {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pos-panel-cliente {
+  padding: var(--space-4);
+  background-color: var(--color-ivory);
+  border: 1px solid var(--color-silver);
+  border-radius: var(--radius-md);
+}
+
+.pos-form-campos {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pos-exito {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-success-soft);
+  border: 1px solid var(--color-almond-silk);
+  border-radius: var(--radius-md);
+}
+
+.pos-exito-total {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-wine-plum);
+}
+
+.pos-exito-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pos-filtro-fecha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pos-filtro-fecha .entrada {
+  width: auto;
+  min-width: 170px;
+}
+
+.pos-cierre {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.pos-cierre-tarjeta {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3);
+  background-color: var(--color-sand-dune);
+  border: 1px solid var(--color-silver);
+  border-radius: var(--radius-md);
+}
+
+.pos-cierre-tarjeta span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.pos-cierre-tarjeta strong {
+  font-size: 19px;
+  color: var(--color-wine-plum);
+}
+
+@media (min-width: 760px) {
+  .pos-form-campos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1000px) {
+  .pos-grid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+    align-items: start;
+  }
+
+  .pos-panel-carrito {
+    position: sticky;
+    top: var(--space-5);
+  }
+}

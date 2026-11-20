@@ -143,7 +143,13 @@ async function ejecutarPruebas() {
       { expiresIn: '1h' }
     );
     tokenLogistica = jwt.sign(
-      { id: logisticaId, nombre: 'Logistica Nuba', email: `logistica_d_${sufijo}@nuba.bo`, rol: 'logistica', activo: true },
+      {
+        id: logisticaId,
+        nombre: 'Logistica Nuba',
+        email: `logistica_d_${sufijo}@nuba.bo`,
+        rol: 'logistica',
+        activo: true
+      },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -277,6 +283,42 @@ async function ejecutarPruebas() {
       'Factura correlativa registrada en BD'
     );
 
+    const venta1Id = dataVenta1.datos.venta.id;
+    const urlPdfPos = `${baseUrl}/api/pos/ventas/${venta1Id}/comprobante-pdf`;
+    const resPdfPropio = await fetch(urlPdfPos, {
+      headers: { Authorization: `Bearer ${tokenVendedor1}` }
+    });
+    const pdfPropio = Buffer.from(await resPdfPropio.arrayBuffer());
+    asegurar(resPdfPropio.status === 200, 'Vendedor descarga el PDF de su venta POS (200)');
+    asegurar(
+      resPdfPropio.headers.get('content-type') === 'application/pdf',
+      'El comprobante POS declara Content-Type application/pdf'
+    );
+    asegurar(pdfPropio.subarray(0, 4).toString() === '%PDF', 'El comprobante POS empieza con %PDF');
+    asegurar(
+      String(resPdfPropio.headers.get('content-disposition')).includes('comprobante-pos-'),
+      'El comprobante POS usa un nombre de archivo seguro'
+    );
+
+    const resPdfAjeno = await fetch(urlPdfPos, {
+      headers: { Authorization: `Bearer ${tokenVendedor2}` }
+    });
+    asegurar(resPdfAjeno.status === 403, 'Otro vendedor no descarga el PDF de una venta ajena (403)');
+
+    const resPdfAdmin = await fetch(urlPdfPos, {
+      headers: { Authorization: `Bearer ${tokenAdmin}` }
+    });
+    asegurar(resPdfAdmin.status === 200, 'Admin descarga el PDF de cualquier venta POS (200)');
+
+    const resPdfSinToken = await fetch(urlPdfPos);
+    asegurar(resPdfSinToken.status === 401, 'El PDF POS exige sesion (401)');
+
+    const resPdfInexistente = await fetch(
+      `${baseUrl}/api/pos/ventas/999999999/comprobante-pdf`,
+      { headers: { Authorization: `Bearer ${tokenAdmin}` } }
+    );
+    asegurar(resPdfInexistente.status === 404, 'El PDF de una venta inexistente responde 404');
+
     // Stock paso de 15 a 13
     const resStockPostVenta = await consultar('SELECT stock FROM variantes WHERE id = $1', [varianteTestId]);
     asegurar(resStockPostVenta.rows[0].stock === 13, 'Stock descontado en BD de 15 a 13');
@@ -328,6 +370,63 @@ async function ejecutarPruebas() {
       dataCierre.datos.cierre.totalRecaudado >= 240.00,
       'Cierre de caja acumula ventas en Efectivo y QR'
     );
+
+    const resFechaPosInvalida = await fetch(
+      `${baseUrl}/api/pos/historial?fecha=2026-02-30`,
+      { headers: { Authorization: `Bearer ${tokenVendedor1}` } }
+    );
+    asegurar(
+      resFechaPosInvalida.status === 400,
+      'Una fecha de calendario invalida es rechazada en el historial POS (400)'
+    );
+
+    // Una venta a las 02:00 UTC pertenece al dia anterior en Bolivia (UTC-4).
+    await consultar(
+      `UPDATE ventas_pos SET creado_en = '2026-01-10T02:00:00Z'
+       WHERE id = $1`,
+      [venta1Id]
+    );
+    const resDiaBolivia = await fetch(
+      `${baseUrl}/api/pos/historial?fecha=2026-01-09`,
+      { headers: { Authorization: `Bearer ${tokenVendedor1}` } }
+    );
+    const dataDiaBolivia = (await resDiaBolivia.json()) as any;
+    asegurar(
+      dataDiaBolivia.datos.ventas.some((v: any) => v.id === venta1Id),
+      'El historial POS agrupa la venta en la fecha local de Bolivia'
+    );
+    const resDiaUtc = await fetch(
+      `${baseUrl}/api/pos/historial?fecha=2026-01-10`,
+      { headers: { Authorization: `Bearer ${tokenVendedor1}` } }
+    );
+    const dataDiaUtc = (await resDiaUtc.json()) as any;
+    asegurar(
+      !dataDiaUtc.datos.ventas.some((v: any) => v.id === venta1Id),
+      'El historial POS no adelanta la venta al dia UTC siguiente'
+    );
+
+    const resCierreBolivia = await fetch(
+      `${baseUrl}/api/pos/cierre-caja?fecha=2026-01-09`,
+      { headers: { Authorization: `Bearer ${tokenVendedor1}` } }
+    );
+    const dataCierreBolivia = (await resCierreBolivia.json()) as any;
+    asegurar(
+      dataCierreBolivia.datos.cierre.totalTickets === 1 &&
+        dataCierreBolivia.datos.cierre.totalRecaudado === 160,
+      'El cierre de caja usa la fecha local de Bolivia'
+    );
+    const resCierreUtc = await fetch(
+      `${baseUrl}/api/pos/cierre-caja?fecha=2026-01-10`,
+      { headers: { Authorization: `Bearer ${tokenVendedor1}` } }
+    );
+    const dataCierreUtc = (await resCierreUtc.json()) as any;
+    asegurar(
+      dataCierreUtc.datos.cierre.totalTickets === 0,
+      'El cierre de caja no cuenta la venta en el dia UTC siguiente'
+    );
+    await consultar('UPDATE ventas_pos SET creado_en = NOW() WHERE id = $1', [
+      venta1Id
+    ]);
 
     // ------------------------------------------------------------------------
     // 4. INVENTARIO, KARDEX Y STOCK NEGATIVO IMPOSIBLE
@@ -595,8 +694,11 @@ async function ejecutarPruebas() {
     // 7.3. Verificacion de CAMBIAR_ESTADO_ENVIO con estado anterior y nuevo
     const codigoRastreoTest = `NB-2026-${sufijo}`;
     const resPedidoAudit = await consultar(
-      `INSERT INTO pedidos (usuario_id, codigo_rastreo, subtotal, costo_envio, total, estado, nombre_cliente, celular_cliente, correo_cliente, ciudad, direccion)
-       VALUES ($1, $2, 95.00, 0.00, 95.00, 'Pendiente', 'Cliente Auditoria', '71234567', 'cli_aud@test.bo', 'Sucre', 'Calle Calvo 100')
+      `INSERT INTO pedidos
+       (usuario_id, codigo_rastreo, subtotal, costo_envio, total, estado,
+        nombre_cliente, celular_cliente, correo_cliente, ciudad, direccion)
+       VALUES ($1, $2, 95.00, 0.00, 95.00, 'Pendiente', 'Cliente Auditoria',
+               '71234567', 'cli_aud@test.bo', 'Sucre', 'Calle Calvo 100')
        RETURNING id`,
       [clienteId, codigoRastreoTest]
     );

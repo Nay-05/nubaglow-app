@@ -6,6 +6,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { posService } from '../services/pos.service';
+import { posPdfService } from '../services/posPdf.service';
 
 export async function registrarVentaPos(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -25,11 +26,44 @@ export async function historialVentas(req: Request, res: Response, next: NextFun
   try {
     const usuarioId = req.usuario!.id;
     const rolUsuario = req.usuario!.rol;
-    const ventas = await posService.historialVentas(usuarioId, rolUsuario);
+    const fecha = req.query.fecha as string | undefined;
+    const ventas = await posService.historialVentas(
+      usuarioId,
+      rolUsuario,
+      fecha
+    );
     res.status(200).json({
       exito: true,
       datos: { ventas }
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function descargarComprobantePosPdf(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const ventaId = Number(req.params.id);
+    const usuario = req.usuario!;
+    const venta = await posService.obtenerVentaDetalle(
+      ventaId,
+      usuario.id,
+      usuario.rol
+    );
+    const comprobante = await posPdfService.generar(venta);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${comprobante.nombreArchivo}"`
+    );
+    res.setHeader('Content-Length', String(comprobante.buffer.length));
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).end(comprobante.buffer);
   } catch (error) {
     next(error);
   }

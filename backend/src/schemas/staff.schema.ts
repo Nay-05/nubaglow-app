@@ -14,6 +14,18 @@ export const crearVentaPosItemSchema = z.object({
   cantidad: z.coerce.number().int().min(1, 'La cantidad minima a vender es 1')
 });
 
+export const consultaFechaPosSchema = z.object({
+  fecha: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato YYYY-MM-DD')
+    .refine((fecha) => {
+      const valor = new Date(`${fecha}T00:00:00Z`);
+      return !Number.isNaN(valor.getTime()) &&
+        valor.toISOString().startsWith(fecha);
+    }, 'La fecha no es válida')
+    .optional()
+});
+
 export const crearVentaPosSchema = z.object({
   items: z.array(crearVentaPosItemSchema).min(1, 'La venta POS debe incluir al menos un producto'),
   metodo_pago: z.enum(['Efectivo', 'QR Simple'], {

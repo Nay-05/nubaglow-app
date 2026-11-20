@@ -1644,7 +1644,9 @@
                   "});",
                   "pm.test(\"Respuesta es JSON valido\", function () {",
                   "    pm.response.to.be.json;",
-                  "});"
+                  "});",
+                  "const venta = pm.response.json().datos.venta;",
+                  "pm.environment.set(\"venta_pos_id\", venta.id);"
                 ],
                 "type": "text/javascript"
               }
@@ -1666,7 +1668,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"variante_id\": 1,\n      \"cantidad\": 1\n    }\n  ],\n  \"metodo_pago\": \"Efectivo\",\n  \"monto_recibido\": 100,\n  \"cliente_nombre\": \"Carlos Mendoza\",\n  \"cliente_nit_ci\": \"5689123\",\n  \"cliente_email\": \"carlos.mendoza@email.com\"\n}",
+              "raw": "{\n  \"items\": [\n    {\n      \"variante_id\": 1,\n      \"cantidad\": 1\n    }\n  ],\n  \"metodo_pago\": \"Efectivo\",\n  \"monto_recibido\": 100,\n  \"cliente_nombre\": \"Carlos Mendoza\",\n  \"cliente_nit_ci\": \"5689123\",\n  \"cliente_correo\": \"carlos.mendoza@email.com\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1804,6 +1806,49 @@
                 "api",
                 "pos",
                 "cierre-caja"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Descargar comprobante PDF de venta POS (Vendedor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Content-Type es PDF\", function () {",
+                  "    pm.response.to.have.header(\"Content-Type\", \"application/pdf\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_vendedor}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/pos/ventas/{{venta_pos_id}}/comprobante-pdf",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "pos",
+                "ventas",
+                "{{venta_pos_id}}",
+                "comprobante-pdf"
               ]
             }
           },
