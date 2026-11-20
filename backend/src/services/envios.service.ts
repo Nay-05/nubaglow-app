@@ -13,6 +13,8 @@
 import { consultar, conTransaccion } from '../db';
 import { AppError } from '../middlewares/errores';
 import { RolUsuario } from '../types';
+import { urlAplicacion } from '../config/paypal';
+import { notificacionesService } from './notificaciones.service';
 
 export type EstadoEnvio = 'Pendiente' | 'En preparación' | 'Empacado' | 'En tránsito' | 'Entregado';
 
@@ -172,7 +174,9 @@ export class EnviosService {
 
     if (!siguienteEsperado || siguienteEsperado !== nuevoEstado) {
       throw new AppError(
-        `Transicion no permitida. El estado actual es '${estadoActual}'. El unico cambio valido permitido es hacia '${siguienteEsperado || 'Ninguno (estado final)'}'`,
+        `Transicion no permitida. El estado actual es '${estadoActual}'. ` +
+          'El unico cambio valido permitido es hacia ' +
+          `'${siguienteEsperado || 'Ninguno (estado final)'}'`,
         400
       );
     }
@@ -210,9 +214,12 @@ export class EnviosService {
       'Entregado': 'Paquete entregado exitosamente al cliente en la direccion de destino.'
     };
 
-    const descFinal = descripcionPersonalizada?.trim() || descripcionesPorDefecto[nuevoEstado] || `Estado actualizado a ${nuevoEstado}`;
+    const descFinal =
+      descripcionPersonalizada?.trim() ||
+      descripcionesPorDefecto[nuevoEstado] ||
+      `Estado actualizado a ${nuevoEstado}`;
 
-    return await conTransaccion(async (cliente) => {
+    const resultado = await conTransaccion(async (cliente) => {
       // 1. Actualizar tabla envios y registrar al responsable de la etapa
       let camposResponsable = '';
       if (nuevoEstado === 'En preparación') camposResponsable = ', preparado_por = $3';
@@ -319,6 +326,57 @@ export class EnviosService {
         descripcion: descFinal
       };
     });
+
+    // Correo al cliente fuera de la transaccion: un fallo nunca revierte el
+    // cambio de estado y queda registrado por notificacionesService.
+    try {
+      const contacto = await consultar(
+        `SELECT p.correo_cliente AS "correoCliente",
+                p.nombre_cliente AS "nombreCliente"
+         FROM pedidos p
+         WHERE p.id = $1`,
+        [envio.pedido_id]
+      );
+      const fila = contacto.rows[0];
+
+      if (fila && fila.correoCliente) {
+        const enlace =
+          `${urlAplicacion()}/pedido/` +
+          encodeURIComponent(envio.codigo_rastreo);
+        const fecha = new Intl.DateTimeFormat('es-BO', {
+          dateStyle: 'medium',
+          timeStyle: 'short'
+        }).format(new Date());
+
+        await notificacionesService.enviarCorreo({
+          pedidoId: envio.pedido_id,
+          destinatario: fila.correoCliente,
+          asunto:
+            `NubaGlow: tu pedido ${envio.codigo_rastreo} ` +
+            `está en ${nuevoEstado}`,
+          cuerpo: [
+            `Hola ${fila.nombreCliente},`,
+            '',
+            `Tu pedido ${envio.codigo_rastreo} cambió de estado.`,
+            `Estado anterior: ${estadoActual}`,
+            `Nuevo estado: ${nuevoEstado}`,
+            descFinal,
+            `Fecha y hora: ${fecha}`,
+            '',
+            `Revisa el seguimiento en: ${enlace}`,
+            '',
+            'NubaGlow'
+          ].join('\n')
+        });
+      }
+    } catch (error) {
+      console.error(
+        'No se pudo notificar el cambio de estado del envío:',
+        error
+      );
+    }
+
+    return resultado;
   }
 
   /**

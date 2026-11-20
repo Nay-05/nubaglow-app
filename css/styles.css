@@ -5840,3 +5840,23 @@ body.mini-carrito-abierto {
   flex: 0 1 auto;
   max-width: 100%;
 }
+
+/* --------------------------------------------------------------------------
+   15. Pedidos y rastreo unificado
+   -------------------------------------------------------------------------- */
+.pedidos-pagina {
+  gap: var(--space-5);
+}
+
+.pedidos-historial {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pedidos-historial-titulo {
+  font-size: 24px;
+}
+
+.pedidos-pagina .buscador {
+  align-items: flex-end;
+}

@@ -11,6 +11,7 @@ import {
   notificacionesService
 } from '../services/notificaciones.service';
 import { pedidosService } from '../services/pedidos.service';
+import { enviosService } from '../services/envios.service';
 
 process.env.NODE_ENV = 'test';
 
@@ -275,6 +276,35 @@ async function ejecutarPruebas() {
         !telegramCapturado?.cuerpo.includes(pedidoParaAdjunto.correoCliente),
       'Telegram incluye codigo, total, metodo y ciudad sin datos personales'
     );
+
+    const envioId = pedidoParaAdjunto.envio?.id;
+    asegurar(Boolean(envioId), 'El pedido de prueba tiene un envío asociado');
+
+    if (envioId) {
+      await enviosService.cambiarEstado(
+        envioId,
+        'En preparación',
+        'Prueba de notificación por cambio de estado',
+        usuarioId!,
+        'admin'
+      );
+
+      const notificacionCambio = await consultar(
+        `SELECT estado, asunto
+         FROM notificaciones
+         WHERE pedido_id = $1 AND canal = 'correo'
+         ORDER BY id DESC
+         LIMIT 1`,
+        [pedidoParaAdjunto.id]
+      );
+      const filaCambio = notificacionCambio.rows[0];
+      asegurar(
+        Boolean(filaCambio) &&
+          filaCambio.estado === 'omitida' &&
+          String(filaCambio.asunto).includes('En preparación'),
+        'El cambio de envío registra el correo al cliente'
+      );
+    }
 
     (notificacionesService as any).notificarPedido = async () => {
       throw new Error('Falla simulada de notificacion');
