@@ -51,6 +51,8 @@ const cargadoresVistas = {
   dashboard: () =>
     import('./vistas/staff/dashboard.js').then((m) => m.vistaDashboard),
   pos: () => import('./vistas/staff/pos.js').then((m) => m.vistaPos),
+  pagosStaff: () =>
+    import('./vistas/staff/pagos.js').then((m) => m.vistaPagosStaff),
   operaciones: () =>
     import('./vistas/staff/operaciones.js').then((m) => m.vistaOperaciones),
   productos: () =>
@@ -164,6 +166,11 @@ router
     titulo: 'Punto de venta',
     diseno: 'staff',
     acceso: accesoModulo('/staff/pos')
+  })
+  .registrar('/staff/pagos', cargadoresVistas.pagosStaff, {
+    titulo: 'Verificación de pagos',
+    diseno: 'staff',
+    acceso: accesoModulo('/staff/pagos')
   })
   .registrar('/staff/operaciones', cargadoresVistas.operaciones, {
     titulo: 'Operaciones',

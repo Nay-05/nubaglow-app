@@ -15,14 +15,21 @@ import {
 } from '../controllers/pagos.controller';
 import { validar } from '../middlewares/validar';
 import { verificarToken, requerirRol } from '../middlewares/autenticacion';
-import { rechazarPagoSchema } from '../schemas/staff.schema';
+import {
+  consultaPagosSchema,
+  rechazarPagoSchema
+} from '../schemas/staff.schema';
 import { idParamSchema } from '../schemas/comun.schema';
 
 const router = Router();
 
 router.use(verificarToken, requerirRol('vendedor', 'admin'));
 
-router.get('/', listarPagosEnVerificacion);
+router.get(
+  '/',
+  validar({ query: consultaPagosSchema }),
+  listarPagosEnVerificacion
+);
 router.post('/vencidos/cancelar', requerirRol('admin'), cancelarPagosVencidos);
 router.get('/:id', validar({ params: idParamSchema }), obtenerPago);
 router.patch('/:id/aprobar', validar({ params: idParamSchema }), aprobarPago);

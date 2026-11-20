@@ -23,8 +23,11 @@ export interface PagoVerificacion {
   moneda: string;
   estado: string;
   referenciaExterna: string | null;
+  referenciaDeclarada: string | null;
   comprobanteUrl: string | null;
   fechaVencimiento: string | null;
+  fechaDeposito: string | null;
+  montoPagado: number | null;
   creadoEn: string;
   nombreCliente: string;
   ciudad: string;
@@ -42,7 +45,9 @@ export class PagosService {
   /**
    * Lista los pagos que esperan verificacion manual.
    */
-  async listarEnVerificacion(): Promise<PagoVerificacion[]> {
+  async listarEnVerificacion(
+    estado: string = 'En verificación'
+  ): Promise<PagoVerificacion[]> {
     const res = await consultar(
       `SELECT
         pg.id,
@@ -53,6 +58,27 @@ export class PagosService {
         pg.moneda,
         pg.estado,
         pg.referencia_externa AS "referenciaExterna",
+        (
+          SELECT cp.referencia
+          FROM comprobantes_pago cp
+          WHERE cp.pago_id = pg.id
+          ORDER BY cp.creado_en DESC
+          LIMIT 1
+        ) AS "referenciaDeclarada",
+        (
+          SELECT cp.monto_pagado
+          FROM comprobantes_pago cp
+          WHERE cp.pago_id = pg.id
+          ORDER BY cp.creado_en DESC
+          LIMIT 1
+        ) AS "montoPagado",
+        (
+          SELECT cp.fecha_deposito
+          FROM comprobantes_pago cp
+          WHERE cp.pago_id = pg.id
+          ORDER BY cp.creado_en DESC
+          LIMIT 1
+        ) AS "fechaDeposito",
         pg.comprobante_url AS "comprobanteUrl",
         pg.fecha_vencimiento AS "fechaVencimiento",
         pg.creado_en AS "creadoEn",
@@ -75,14 +101,16 @@ export class PagosService {
         ) AS comprobantes
       FROM pagos pg
       INNER JOIN pedidos p ON p.id = pg.pedido_id
-      WHERE pg.estado = 'En verificación'
+      WHERE pg.estado = $1
       ORDER BY pg.creado_en ASC`,
-      []
+      [estado]
     );
 
     return res.rows.map((pago) => ({
       ...pago,
       monto: Number(pago.monto),
+      montoPagado:
+        pago.montoPagado === null ? null : Number(pago.montoPagado),
       totalPedido: Number(pago.totalPedido)
     }));
   }
@@ -183,7 +211,9 @@ export class PagosService {
         hashDuplicado,
         advertenciaMonto:
           montoPagado !== null && !montoCoincide
-            ? `El monto declarado (${montoPagado.toFixed(2)} Bs.) no coincide con el total del pedido (${totalPedido.toFixed(2)} Bs.)`
+            ? `El monto declarado (${montoPagado.toFixed(2)} Bs.) ` +
+              `no coincide con el total del pedido ` +
+              `(${totalPedido.toFixed(2)} Bs.)`
             : null,
         advertenciaHash: hashDuplicado
           ? 'El mismo archivo (SHA-256) ya fue subido en otro pedido'

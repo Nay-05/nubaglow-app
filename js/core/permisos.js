@@ -23,6 +23,13 @@ export const MODULOS_STAFF = [
     roles: ['vendedor', 'admin']
   },
   {
+    ruta: '/staff/pagos',
+    etiqueta: 'Pagos',
+    descripcion: 'Verificación de comprobantes y pagos',
+    icono: 'pago',
+    roles: ['vendedor', 'admin']
+  },
+  {
     ruta: '/staff/operaciones',
     etiqueta: 'Operaciones',
     descripcion: 'Inventario, despachos y envíos',

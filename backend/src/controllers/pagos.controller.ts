@@ -35,12 +35,13 @@ export async function obtenerDatosCobroCliente(
 }
 
 export async function listarPagosEnVerificacion(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const pagos = await pagosService.listarEnVerificacion();
+    const estado = String(req.query.estado || 'En verificación');
+    const pagos = await pagosService.listarEnVerificacion(estado);
     res.status(200).json({
       exito: true,
       datos: { pagos }

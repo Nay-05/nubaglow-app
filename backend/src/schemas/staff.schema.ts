@@ -51,6 +51,16 @@ export const consultaReportesSchema = z.object({
 // ----------------------------------------------------------------------------
 // 4. VERIFICACION DE PAGOS
 // ----------------------------------------------------------------------------
+export const estadosPagoFiltro = [
+  'En verificación',
+  'Aprobado',
+  'Rechazado'
+] as const;
+
+export const consultaPagosSchema = z.object({
+  estado: z.enum(estadosPagoFiltro).optional()
+});
+
 export const rechazarPagoSchema = z.object({
   motivo: z
     .string({ required_error: 'El motivo de rechazo es obligatorio' })
@@ -111,6 +121,7 @@ export const cancelarPedidoSchema = z.object({
 });
 
 export type ConsultaReportesInput = z.infer<typeof consultaReportesSchema>;
+export type ConsultaPagosInput = z.infer<typeof consultaPagosSchema>;
 export type RechazarPagoInput = z.infer<typeof rechazarPagoSchema>;
 export type CancelarPedidoInput = z.infer<typeof cancelarPedidoSchema>;
 export type CrearUsuarioStaffInput = z.infer<typeof crearUsuarioStaffSchema>;
