@@ -39,19 +39,33 @@ export const cotizarPedidoSchema = z.object({
     .min(1, 'El carrito está vacío. Agrega al menos un artículo antes de cotizar.')
 });
 
+function normalizarCelularBoliviano(valor: unknown): string {
+  const digitos = String(valor ?? '').replace(/\D/g, '');
+
+  if (digitos.startsWith('591') && digitos.length === 11) {
+    return digitos.slice(3);
+  }
+
+  return digitos;
+}
+
+const celularBolivianoSchema = z.preprocess(
+  (valor) => normalizarCelularBoliviano(valor),
+  z
+    .string()
+    .regex(
+      /^[67]\d{7}$/,
+      'Ingresa un celular boliviano válido, por ejemplo 72860307'
+    )
+);
+
 export const crearPedidoSchema = z.object({
   nombre_cliente: z
     .string({ required_error: 'El nombre completo del cliente es obligatorio' })
     .trim()
     .min(3, 'El nombre debe tener al menos 3 caracteres')
     .max(150, 'El nombre no puede exceder 150 caracteres'),
-  celular_cliente: z
-    .string({ required_error: 'El numero de celular es obligatorio' })
-    .trim()
-    .regex(
-      /^(?:(?:\+?591)?\s*)?[67]\d{7}$/,
-      'El numero de celular debe ser un numero valido de Bolivia (8 digitos iniciando con 6 o 7)'
-    ),
+  celular_cliente: celularBolivianoSchema,
   correo_cliente: z
     .string({ required_error: 'El correo electronico es obligatorio' })
     .trim()

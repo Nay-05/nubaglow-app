@@ -23,11 +23,34 @@ const RUTA_INICIO = '/';
 const RUTA_LOGIN = '/login?redirigir=/checkout';
 const RUTA_CARRITO = '/carrito';
 
-function normalizarItemsParaCotizar(items) {
-  return items.map((item) => ({
+const MENSAJE_CELULAR =
+  'Ingresa un celular boliviano válido, por ejemplo 72860307';
+
+function normalizarItemParaCotizar(item) {
+  return {
     variante_id: item.varianteId,
     cantidad: item.cantidad
-  }));
+  };
+}
+
+function normalizarItemsParaCotizar(items) {
+  return items.map(normalizarItemParaCotizar);
+}
+
+function normalizarCelular(valor) {
+  const digitos = String(valor ?? '').replace(/\D/g, '');
+
+  if (digitos.startsWith('591') && digitos.length === 11) {
+    return digitos.slice(3);
+  }
+
+  return digitos;
+}
+
+function unirLista(items) {
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} y ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
 }
 
 function describirLineasNoDisponibles(items) {
@@ -238,7 +261,8 @@ export const vistaCheckout = {
 
     // Formulario de datos del cliente
     const formulario = el('form', {
-      clase: 'checkout-formulario checkout-grid'
+      clase: 'checkout-formulario checkout-grid',
+      atributos: { novalidate: '' }
     });
 
     // Campo: nombre completo
@@ -439,19 +463,28 @@ export const vistaCheckout = {
       )
     );
 
+    const errorMetodo = el('small', {
+      clase: 'campo-error',
+      atributos: { id: 'error-metodo-pago', 'aria-live': 'polite' }
+    });
+    seccionPago.appendChild(errorMetodo);
+
     const resumenPedido = crearResumenCheckout(carrito, cotizacion);
     const botonConfirmar = el(
       'button',
       {
         clase: 'btn btn-primary checkout-boton-confirmar',
         type: 'submit',
-        disabled: true,
         'aria-label': 'Confirmar pedido'
       },
       el('span', { texto: 'Confirmar pedido' })
     );
+    const faltantes = el('p', {
+      clase: 'checkout-faltantes',
+      atributos: { role: 'status', 'aria-live': 'polite' }
+    });
 
-    resumenPedido.append(mensajes, botonConfirmar);
+    resumenPedido.append(mensajes, botonConfirmar, faltantes);
 
     const columnaPrincipal = el(
       'div',
@@ -471,29 +504,6 @@ export const vistaCheckout = {
       return String(campo?.value || '').trim();
     }
 
-    const validadores = {
-      nombre: (valor) =>
-        valor.length >= 3
-          ? ''
-          : 'El nombre debe tener al menos 3 caracteres',
-      celular: (valor) =>
-        /^[67][0-9]{7}$/.test(valor)
-          ? ''
-          : 'El celular debe tener 8 dígitos y comenzar con 6 o 7',
-      correo: (valor) =>
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)
-          ? ''
-          : 'El correo no tiene un formato válido',
-      ciudad: (valor) =>
-        valor.length >= 2
-          ? ''
-          : 'La ciudad debe tener al menos 2 caracteres',
-      direccion: (valor) =>
-        valor.length >= 5
-          ? ''
-          : 'La dirección debe tener al menos 5 caracteres'
-    };
-
     const erroresPorCampo = {
       nombre: errorNombre,
       celular: errorCelular,
@@ -502,94 +512,169 @@ export const vistaCheckout = {
       direccion: errorDireccion
     };
 
-    formularioElemento.addEventListener('input', (evento) => {
-      const target = evento.target;
-      const validador = validadores[target.name];
-      if (!validador) return;
+    const campos = {
+      nombre: entradaNombre,
+      celular: entradaCelular,
+      correo: entradaCorreo,
+      ciudad: entradaCiudad,
+      direccion: entradaDireccion
+    };
 
-      const valor = target.value.trim();
-      target.value = valor;
-      const mensaje = validador(valor);
-      target.setCustomValidity(mensaje);
+    const etiquetasFaltantes = {
+      nombre: 'nombre completo',
+      celular: 'celular válido',
+      correo: 'correo válido',
+      ciudad: 'ciudad',
+      direccion: 'dirección',
+      metodoPago: 'método de pago'
+    };
 
-      const error = erroresPorCampo[target.name];
-      if (error) error.textContent = mensaje;
-    });
-
-    // Habilitar/deshabilitar boton al rellenar campos y seleccionar metodo de pago
-    let camposLlenos = false;
-
-    function actualizarEstadoBoton() {
-      const nombre = valorCampo('nombre');
+    function leerDatosFormulario() {
       const celular = valorCampo('celular');
-      const correo = valorCampo('correo');
-      const ciudad = valorCampo('ciudad');
-      const direccion = valorCampo('direccion');
-
-      const hayErrores = formularioElemento.checkValidity() === false;
-      const nombreOk = nombre.length >= 3;
-      const celularOk = /^[67][0-9]{7}$/.test(celular);
-      const correoOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
-      const ciudadOk = ciudad.length >= 2;
-      const direccionOk = direccion.length >= 5;
-      const datosOk =
-        nombreOk && celularOk && correoOk && ciudadOk && direccionOk;
-
-      const metodoSeleccionado = Boolean(
-        formularioElemento.querySelector(
-          'input[name="metodo_pago"]:checked'
-        )
+      const metodo = formularioElemento.querySelector(
+        'input[name="metodo_pago"]:checked'
       );
 
-      camposLlenos = datosOk && metodoSeleccionado;
-      botonConfirmar.disabled = hayErrores || !camposLlenos;
+      return {
+        nombre: valorCampo('nombre'),
+        celular,
+        celularNormalizado: normalizarCelular(celular),
+        correo: valorCampo('correo'),
+        ciudad: valorCampo('ciudad'),
+        direccion: valorCampo('direccion'),
+        metodoPago: metodo ? metodo.value : ''
+      };
     }
 
-    // Validar que todos los campos obligatorios esten llenos cuando algun radio este selecionado
-    formularioElemento.addEventListener('change', (evento) => {
-      if (evento.target.name === 'metodo_pago') {
-        actualizarEstadoBoton();
-      }
-    });
+    function calcularErrores(datos) {
+      return {
+        nombre:
+          datos.nombre.length >= 3
+            ? ''
+            : 'El nombre debe tener al menos 3 caracteres',
+        celular: /^[67]\d{7}$/.test(datos.celularNormalizado)
+          ? ''
+          : MENSAJE_CELULAR,
+        correo: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.correo)
+          ? ''
+          : 'El correo no tiene un formato válido',
+        ciudad:
+          datos.ciudad.length >= 2
+            ? ''
+            : 'La ciudad debe tener al menos 2 caracteres',
+        direccion:
+          datos.direccion.length >= 5
+            ? ''
+            : 'La dirección debe tener al menos 5 caracteres',
+        metodoPago: datos.metodoPago ? '' : 'Selecciona un método de pago.'
+      };
+    }
 
-    // Escuchar cambios en los campos para habilitar el boton
-    formularioElemento.addEventListener('input', actualizarEstadoBoton);
+    function validarFormulario({ mostrarErrores = true } = {}) {
+      const datos = leerDatosFormulario();
+      const errores = calcularErrores(datos);
+      const nombresFaltantes = Object.keys(etiquetasFaltantes).filter(
+        (nombre) => errores[nombre]
+      );
+
+      for (const nombre of Object.keys(campos)) {
+        const campo = campos[nombre];
+        const mensaje = errores[nombre];
+        const error = erroresPorCampo[nombre];
+
+        campo.setCustomValidity(mensaje);
+        if (error) error.textContent = mostrarErrores ? mensaje : '';
+        if (mensaje) campo.setAttribute('aria-invalid', 'true');
+        else campo.removeAttribute('aria-invalid');
+      }
+
+      errorMetodo.textContent = mostrarErrores ? errores.metodoPago : '';
+      faltantes.textContent = nombresFaltantes.length
+        ? `Falta: ${unirLista(
+            nombresFaltantes.map((nombre) => etiquetasFaltantes[nombre])
+          )}`
+        : '';
+      faltantes.classList.toggle(
+        'checkout-faltantes--visible',
+        nombresFaltantes.length > 0
+      );
+
+      const primerNombre = Object.keys(campos).find(
+        (nombre) => errores[nombre]
+      );
+      const primerCampo = primerNombre
+        ? campos[primerNombre]
+        : errores.metodoPago
+          ? formularioElemento.querySelector('input[name="metodo_pago"]')
+          : null;
+
+      return {
+        valido: nombresFaltantes.length === 0,
+        datos,
+        primerCampo
+      };
+    }
+
+    function reevaluarFormulario() {
+      validarFormulario({ mostrarErrores: true });
+    }
+
+    for (const evento of ['input', 'change', 'blur']) {
+      formularioElemento.addEventListener(evento, reevaluarFormulario, true);
+    }
+
+    formularioElemento.addEventListener(
+      'animationstart',
+      (evento) => {
+        if (evento.animationName === 'nubaglowAutofillStart') {
+          reevaluarFormulario();
+        }
+      },
+      true
+    );
+
+    validarFormulario({ mostrarErrores: false });
+    window.setTimeout(() => {
+      validarFormulario({ mostrarErrores: false });
+    }, 700);
 
     // Manejo del submit del formulario
     formularioElemento.addEventListener('submit', async (evento) => {
       evento.preventDefault();
 
+      const validacion = validarFormulario({ mostrarErrores: true });
+
+      if (!validacion.valido) {
+        if (validacion.primerCampo) validacion.primerCampo.focus();
+        return;
+      }
+
       const boton = formularioElemento.querySelector('button[type="submit"]');
       if (!boton) return;
 
-      // Bloquear boton para evitar pedidos dobles
+      // Bloquear boton solo durante el envio para evitar pedidos dobles
       boton.disabled = true;
       boton.setAttribute('aria-busy', 'true');
       boton.textContent = 'Procesando...';
 
       try {
-        const nombre = valorCampo('nombre');
-        const celular = valorCampo('celular');
-        const correo = valorCampo('correo');
-        const ciudad = valorCampo('ciudad');
-        const direccion = valorCampo('direccion');
-        const metodoPagoElemento =
-          formularioElemento.elements.namedItem('metodo_pago');
-        const metodoPago = metodoPagoElemento
-          ? metodoPagoElemento.value
-          : '';
+        const datos = validacion.datos;
 
         // Enviar al servidor para crear el pedido
-        const respuesta = await api.crear('/pedidos', {
-          nombre_cliente: nombre,
-          celular_cliente: celular,
-          correo_cliente: correo,
-          ciudad,
-          direccion,
-          metodo_pago: metodoPago,
-          // Los items se tomarán del carrito en el backend
-          notas: ''
-        }, { sinRenovacion: true });
+        const respuesta = await api.crear(
+          '/pedidos',
+          {
+            nombre_cliente: datos.nombre,
+            celular_cliente: datos.celularNormalizado,
+            correo_cliente: datos.correo,
+            ciudad: datos.ciudad,
+            direccion: datos.direccion,
+            metodo_pago: datos.metodoPago,
+            // Los items se tomarán del carrito en el backend
+            notas: ''
+          },
+          { sinRenovacion: true }
+        );
 
         // Navegar a la pagina de rastreo del pedido
         const pedidoId = respuesta?.datos?.pedido?.id;
@@ -625,9 +710,6 @@ export const vistaCheckout = {
         boton.textContent = 'Confirmar pedido';
       }
     });
-
-    // Inicializar estado del boton
-    actualizarEstadoBoton();
 
     return seccion;
   }

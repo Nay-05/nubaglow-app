@@ -19,6 +19,7 @@
 import jwt from 'jsonwebtoken';
 import app from '../index';
 import { consultar, conTransaccion, cerrarPool } from '../db';
+import { crearPedidoSchema } from '../schemas/compra.schema';
 import {
   eliminarHistorialDePedidosDePrueba,
   eliminarOInactivarProductoDePrueba,
@@ -667,6 +668,48 @@ async function ejecutarPruebas() {
     await consultar('UPDATE variantes SET activo = TRUE, stock = 10 WHERE id = $1', [
       varianteNormalId
     ]);
+
+    // ------------------------------------------------------------------------
+    // 9. NORMALIZACION DEL CELULAR BOLIVIANO EN EL SERVIDOR
+    // ------------------------------------------------------------------------
+    console.log('\n--- 9. Normalizacion del celular boliviano ---');
+    const pedidoBase = {
+      nombre_cliente: 'Camila Morales',
+      correo_cliente: 'cliente@nuba.bo',
+      ciudad: 'Sucre',
+      direccion: 'Calle Calvo #340',
+      metodo_pago: 'contra_entrega' as const
+    };
+
+    const formatosCelular: Array<[string, string]> = [
+      ['72860307', '72860307'],
+      ['+59172860307', '72860307'],
+      ['59172860307', '72860307'],
+      ['+591 728-603-07', '72860307']
+    ];
+
+    for (const [formato, esperado] of formatosCelular) {
+      const resultado = crearPedidoSchema.safeParse({
+        ...pedidoBase,
+        celular_cliente: formato
+      });
+      asegurar(
+        resultado.success && resultado.data.celular_cliente === esperado,
+        `El servidor normaliza el celular '${formato}' a '${esperado}'`
+      );
+    }
+
+    const celularInvalido = crearPedidoSchema.safeParse({
+      ...pedidoBase,
+      celular_cliente: '12345'
+    });
+    asegurar(
+      !celularInvalido.success &&
+        celularInvalido.error.issues.some((issue) =>
+          issue.message.includes('Ingresa un celular boliviano válido')
+        ),
+      'El servidor rechaza un celular invalido con mensaje claro'
+    );
 
     console.log(`\n============================================================`);
     console.log(`Resultado final de la suite Bloque C: ${exitos} aprobadas, ${fallos} fallidas.`);
