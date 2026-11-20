@@ -72,6 +72,18 @@ export async function iniciarSesionCliente(email, password) {
   return usuarioActual;
 }
 
+
+export async function registrarCliente(datos) {
+  const respuesta = await api.crear(
+    '/auth/register',
+    datos,
+    { sinRenovacion: true }
+  );
+  usuarioActual = respuesta.datos.usuario;
+  notificar();
+  return usuarioActual;
+}
+
 export async function iniciarSesionStaff(email, password) {
   const respuesta = await api.crear(
     '/auth/staff-login',

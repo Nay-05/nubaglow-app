@@ -147,6 +147,12 @@ router
   })
   .registrar('/login', cargadoresVistas.login, {
     titulo: 'Iniciar sesión',
+    diseno: 'auth',
+    acceso: accesoLoginCliente
+  })
+  .registrar('/registro', cargadoresVistas.login, {
+    titulo: 'Crear cuenta',
+    diseno: 'auth',
     acceso: accesoLoginCliente
   });
 

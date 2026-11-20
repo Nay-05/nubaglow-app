@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(150) NOT NULL,
     email VARCHAR(255) NOT NULL,
+    celular VARCHAR(20),
     password_hash VARCHAR(255) NOT NULL,
     rol VARCHAR(20) NOT NULL DEFAULT 'cliente',
     activo BOOLEAN NOT NULL DEFAULT TRUE,

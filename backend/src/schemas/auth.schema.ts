@@ -9,6 +9,28 @@
 
 import { z } from 'zod';
 
+function normalizarCelularBoliviano(valor: unknown): string {
+  const digitos = String(valor ?? '').replace(/\D/g, '');
+  if (digitos.startsWith('591') && digitos.length === 11) {
+    return digitos.slice(3);
+  }
+  return digitos;
+}
+
+const celularOpcionalSchema = z.preprocess(
+  (valor) => {
+    const normalizado = normalizarCelularBoliviano(valor);
+    return normalizado === '' ? undefined : normalizado;
+  },
+  z
+    .string()
+    .regex(
+      /^[67]\d{7}$/,
+      'Ingresa un celular boliviano válido, por ejemplo 72860307'
+    )
+    .optional()
+);
+
 export const registroSchema = z.object({
   nombre: z
     .string({ required_error: 'El nombre completo es obligatorio' })
@@ -21,6 +43,7 @@ export const registroSchema = z.object({
     .toLowerCase()
     .email('El formato del correo electronico no es valido')
     .max(255, 'El correo no puede exceder 255 caracteres'),
+  celular: celularOpcionalSchema,
   password: z
     .string({ required_error: 'La contrasena es obligatoria' })
     .min(8, 'La contrasena debe tener al menos 8 caracteres')

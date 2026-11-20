@@ -93,10 +93,16 @@ export class AuthService {
 
     // 3. Insertar usuario forzando estrictamente rol = 'cliente'
     const res = await consultar(
-      `INSERT INTO usuarios (nombre, email, password_hash, rol, activo)
-       VALUES ($1, $2, $3, 'cliente', TRUE)
-       RETURNING id, nombre, email, rol, activo`,
-      [datos.nombre.trim(), emailNormalizado, passwordHash]
+      `INSERT INTO usuarios
+       (nombre, email, password_hash, rol, activo, celular)
+       VALUES ($1, $2, $3, 'cliente', TRUE, $4)
+       RETURNING id, nombre, email, rol, activo, celular`,
+      [
+        datos.nombre.trim(),
+        emailNormalizado,
+        passwordHash,
+        datos.celular ?? null
+      ]
     );
 
     const nuevoUsuario: UsuarioAutenticado = res.rows[0];

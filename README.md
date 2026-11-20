@@ -216,7 +216,7 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 
 | Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
 |---|---|---|---|---|
-| `POST` | `/api/auth/register` | `público` | Registro público. Fuerza siempre `rol = 'cliente'` | `POST /api/auth/register`<br>`{"nombre": "Carla Mendez", "email": "carla@ejemplo.com", "password": "Password123!"}` |
+| `POST` | `/api/auth/register` | `público` | Registro público. Fuerza siempre `rol = 'cliente'`; `celular` es opcional y debe ser un móvil boliviano válido | `POST /api/auth/register`<br>`{"nombre": "Carla Mendez", "email": "carla@ejemplo.com", "celular": "72860307", "password": "Password123!"}` |
 | `POST` | `/api/auth/login` | `público` | Login de clientes. Rechaza personal de staff con mensaje genérico anti-enumeración | `POST /api/auth/login`<br>`{"email": "cliente@nubaglow.bo", "password": "Password123!"}` |
 | `POST` | `/api/auth/staff-login` | `público` | Login de personal interno (vendedor, operaciones, admin). Rechaza clientes y audita `LOGIN_STAFF` | `POST /api/auth/staff-login`<br>`{"email": "vendedor@nubaglow.bo", "password": "Password123!"}` |
 | `POST` | `/api/auth/refresh` | `público` | Renueva Access Token usando la cookie HttpOnly `refresh_token` | `POST /api/auth/refresh` |
