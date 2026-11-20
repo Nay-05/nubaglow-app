@@ -22,6 +22,7 @@ import { obtenerDatosCobro } from '../config/cobro';
 import { calcularCostoEnvio } from './cotizaciones.service';
 import { generarQrSimulado } from './qr.service';
 import { pagosService } from './pagos.service';
+import { notificacionesService } from './notificaciones.service';
 
 export interface ItemPedidoResumen {
   id: number;
@@ -315,7 +316,21 @@ export class PedidosService {
       return { id: pedidoId, codigoRastreo };
     });
 
-    return this.obtenerDetalle(pedidoCreado.id, usuarioId, 'cliente');
+    const pedidoCompleto = await this.obtenerDetalle(
+      pedidoCreado.id,
+      usuarioId,
+      'cliente'
+    );
+
+    // Las notificaciones se disparan fuera de la transaccion ya confirmada.
+    // El servicio nunca lanza excepciones; un fallo no revierte la compra.
+    try {
+      await notificacionesService.notificarPedido(pedidoCompleto);
+    } catch (error) {
+      console.error('Fallo inesperado al notificar el pedido:', error);
+    }
+
+    return pedidoCompleto;
   }
 
   /**

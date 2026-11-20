@@ -457,7 +457,9 @@ CREATE TABLE IF NOT EXISTS notificaciones (
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     enviado_en TIMESTAMPTZ,
     CONSTRAINT chk_notificaciones_canal CHECK (canal IN ('correo', 'telegram', 'whatsapp')),
-    CONSTRAINT chk_notificaciones_estado CHECK (estado IN ('Pendiente', 'Enviado', 'Fallido'))
+    CONSTRAINT chk_notificaciones_estado CHECK (
+        estado IN ('Pendiente', 'Enviado', 'Fallido', 'enviada', 'fallida', 'omitida')
+    )
 );
 
 CREATE INDEX IF NOT EXISTS idx_notificaciones_pedido ON notificaciones(pedido_id);
@@ -547,3 +549,11 @@ ALTER TABLE movimientos_inventario
 CREATE UNIQUE INDEX IF NOT EXISTS uq_mov_reposicion_cancelacion
     ON movimientos_inventario(pedido_id, variante_id, tipo)
     WHERE tipo = 'reposicion_cancelacion';
+
+-- 6. Notificaciones: estados de envio reales y omitidas por falta de configuracion.
+ALTER TABLE notificaciones DROP CONSTRAINT IF EXISTS chk_notificaciones_estado;
+ALTER TABLE notificaciones
+    ADD CONSTRAINT chk_notificaciones_estado
+    CHECK (
+        estado IN ('Pendiente', 'Enviado', 'Fallido', 'enviada', 'fallida', 'omitida')
+    );

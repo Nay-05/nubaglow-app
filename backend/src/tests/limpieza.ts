@@ -10,6 +10,9 @@
 
 import { consultar } from '../db';
 
+// Las suites que crean pedidos usan el transporte de notificaciones simulado.
+process.env.NODE_ENV = 'test';
+
 /** Borra el historial de pedidos de prueba respetando el orden de las FK. */
 export async function eliminarHistorialDePedidosDePrueba(
   pedidoIds: number[]
