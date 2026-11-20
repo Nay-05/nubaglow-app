@@ -124,10 +124,19 @@ export function crearLayoutStaff({ usuario, ruta, router }) {
     el(
       'div',
       { clase: 'staff-encabezado-texto' },
-      el('h1', { clase: 'staff-titulo', texto: moduloActual?.etiqueta || 'Portal interno' }),
+      el('h1', {
+        clase: 'staff-titulo',
+        texto: moduloActual?.etiqueta || 'Portal interno'
+      }),
+      el('p', {
+        clase: 'staff-subtitulo',
+        texto: moduloActual?.descripcion || 'Panel de gestión interna'
+      }),
       el('span', {
         clase: 'staff-rol',
-        texto: `Sesión: ${usuario?.nombre || 'Sin nombre'} (${ETIQUETA_ROL[rol] || rol})`
+        texto:
+          `Sesión: ${usuario?.nombre || 'Sin nombre'} ` +
+          `(${ETIQUETA_ROL[rol] || rol})`
       })
     )
   );

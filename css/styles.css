@@ -5484,3 +5484,324 @@ body.mini-carrito-abierto {
     display: none;
   }
 }
+
+/* --------------------------------------------------------------------------
+   14. Rediseño del portal interno: layout, tablas y filtros
+   -------------------------------------------------------------------------- */
+.sidebar-staff {
+  background-color: var(--color-charcoal);
+  border-right: 1px solid var(--color-silver);
+}
+
+.sidebar-enlace.activo {
+  background-color: var(--color-wine-plum);
+  color: var(--color-white);
+}
+
+.sidebar-enlace:hover {
+  background-color: var(--color-primary-soft);
+  color: var(--color-white);
+}
+
+.sidebar-enlace-descripcion {
+  color: var(--color-on-primary-subtle);
+}
+
+.staff-encabezado {
+  background-color: var(--color-ivory);
+  border-bottom: 1px solid var(--color-silver);
+}
+
+.staff-titulo {
+  font-family: var(--font-heading);
+}
+
+.staff-subtitulo {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.staff-tabla-contenedor {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+}
+
+.staff-tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-silver);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.staff-tabla thead {
+  background-color: var(--color-sand-dune);
+}
+
+.staff-tabla th {
+  padding: 12px 16px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-silver);
+  white-space: nowrap;
+}
+
+.staff-tabla td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-silver);
+  vertical-align: middle;
+}
+
+.staff-tabla tbody tr:hover {
+  background-color: color-mix(in srgb, var(--color-sand-dune) 38%, transparent);
+}
+
+.staff-tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.staff-tabla .staff-numero,
+.staff-tabla th.staff-numero {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.staff-tabla .staff-col-codigo {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-wine-plum);
+  letter-spacing: 0.02em;
+}
+
+.staff-tabla .staff-col-acciones {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.staff-fila-activa {
+  background-color: color-mix(in srgb, var(--color-almond-silk) 45%, transparent);
+}
+
+.staff-sku {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--color-wine-plum);
+  background-color: var(--color-sand-dune);
+  border: 1px solid var(--color-silver);
+  border-radius: 4px;
+}
+
+.staff-tabla .estado-badge,
+.stock-bajo,
+.stock-ok {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.stock-bajo {
+  background-color: var(--color-error-soft);
+  color: var(--color-error);
+}
+
+.stock-ok {
+  background-color: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.staff-barra-filtros,
+.pagos-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-silver);
+  border-radius: 10px;
+}
+
+.staff-barra-filtros .entrada,
+.pagos-barra .entrada {
+  width: auto;
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+.staff-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.staff-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-wine-plum);
+}
+
+.ops-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  padding: 0;
+  background-color: transparent;
+  border-bottom: 1px solid var(--color-silver);
+  border-radius: 0;
+}
+
+.ops-tab {
+  height: 42px;
+  padding: 0 2px;
+  background-color: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.ops-tab.activo {
+  background-color: transparent;
+  border-bottom-color: var(--color-wine-plum);
+  color: var(--color-wine-plum);
+  font-weight: 700;
+}
+
+.ops-tab:hover {
+  color: var(--color-wine-plum);
+}
+
+.ops-form {
+  border-color: var(--color-silver);
+}
+
+.ops-form .entrada,
+.staff-barra-filtros .entrada {
+  height: 40px;
+  border-radius: 8px;
+}
+
+.ops-form .entrada-area {
+  height: auto;
+}
+
+.ops-form .btn-primary {
+  align-self: start;
+}
+
+.ops-despacho {
+  border-color: var(--color-silver);
+}
+
+.ops-despacho-codigo {
+  font-family: var(--font-heading);
+  color: var(--color-wine-plum);
+}
+
+@media (max-width: 768px) {
+  .staff-tabla-contenedor {
+    overflow-x: visible;
+  }
+
+  .staff-tabla,
+  .staff-tabla thead,
+  .staff-tabla tbody,
+  .staff-tabla tr,
+  .staff-tabla td {
+    display: block;
+    width: 100%;
+  }
+
+  .staff-tabla thead {
+    display: none;
+  }
+
+  .staff-tabla tr {
+    margin-bottom: 12px;
+    padding: 14px;
+    background-color: var(--color-white);
+    border: 1px solid var(--color-silver);
+    border-radius: 10px;
+  }
+
+  .staff-tabla tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .staff-tabla td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 6px 0;
+    border-bottom: 0;
+    text-align: right;
+  }
+
+  .staff-tabla td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-subtle);
+    text-align: left;
+  }
+
+  .staff-tabla td > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .staff-tabla .staff-col-acciones {
+    padding-top: 10px;
+  }
+
+  .staff-barra-filtros,
+  .pagos-barra {
+    align-items: stretch;
+  }
+
+  .staff-barra-filtros .entrada,
+  .pagos-barra .entrada {
+    width: 100%;
+    flex-basis: 100%;
+  }
+}
+
+.ops-panel[hidden] {
+  display: none;
+}
+
+.staff-tabla th {
+  background-color: var(--color-sand-dune);
+}
+
+.staff-tabla .staff-col-codigo {
+  white-space: nowrap;
+}

@@ -10,6 +10,10 @@ import { el, icono } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { formatearBs, formatearFecha } from '../../core/formato.js';
 import { alerta, boton, estadoVacio } from '../comunes.js';
+import {
+  crearCeldaStaff,
+  crearTablaStaff
+} from './tablaResponsiva.js';
 
 const ETIQUETAS_METODO = {
   qr_simple: 'QR simple',
@@ -56,15 +60,6 @@ function horaAhora() {
   const horas = String(ahora.getHours()).padStart(2, '0');
   const minutos = String(ahora.getMinutes()).padStart(2, '0');
   return `${horas}:${minutos}`;
-}
-
-function celda(etiqueta, contenido, claseExtra = '') {
-  return el(
-    'div',
-    { clase: `ops-celda${claseExtra ? ` ${claseExtra}` : ''}` },
-    el('span', { clase: 'ops-celda-etiqueta', texto: etiqueta }),
-    contenido
-  );
 }
 
 function crearFormularioAjuste(inventario, alRegistrar, alNotificar) {
@@ -204,21 +199,43 @@ function crearFormularioAjuste(inventario, alRegistrar, alNotificar) {
   return formulario;
 }
 
+const COLUMNAS_INVENTARIO = [
+  { etiqueta: 'Producto' },
+  { etiqueta: 'Variante' },
+  { etiqueta: 'SKU' },
+  { etiqueta: 'Stock', clase: 'staff-numero' },
+  { etiqueta: 'Reorden', clase: 'staff-numero' },
+  { etiqueta: 'Estado' }
+];
+
 function crearFilaInventario(item) {
   return el(
-    'article',
-    { clase: 'ops-fila' },
-    celda(
+    'tr',
+    {},
+    crearCeldaStaff(
       'Producto',
       el('strong', { texto: item.productoNombre })
     ),
-    celda('Variante', el('span', { texto: item.nombreVariante })),
-    celda('SKU', el('span', { texto: item.sku })),
-    celda('Stock', el('strong', { texto: String(item.stock) })),
-    celda('Reorden', el('span', { texto: String(item.puntoReorden) })),
-    el(
-      'div',
-      { clase: 'ops-celda ops-celda--acciones' },
+    crearCeldaStaff(
+      'Variante',
+      el('span', { texto: item.nombreVariante })
+    ),
+    crearCeldaStaff(
+      'SKU',
+      el('span', { clase: 'staff-sku', texto: item.sku })
+    ),
+    crearCeldaStaff(
+      'Stock',
+      el('strong', { texto: String(item.stock) }),
+      'staff-numero'
+    ),
+    crearCeldaStaff(
+      'Reorden',
+      el('span', { texto: String(item.puntoReorden) }),
+      'staff-numero'
+    ),
+    crearCeldaStaff(
+      'Estado',
       item.alertaStockBajo
         ? crearBadge('Stock bajo', 'stock-bajo')
         : crearBadge('Stock normal', 'stock-ok')
@@ -226,22 +243,24 @@ function crearFilaInventario(item) {
   );
 }
 
-function crearCabeceraInventario() {
-  return el(
-    'div',
-    { clase: 'ops-tabla-cabecera', atributos: { 'aria-hidden': 'true' } },
-    el('span', { texto: 'Producto' }),
-    el('span', { texto: 'Variante' }),
-    el('span', { texto: 'SKU' }),
-    el('span', { texto: 'Stock' }),
-    el('span', { texto: 'Reorden' }),
-    el('span', { texto: 'Estado' })
+function pagoListoParaPreparar(envio) {
+  return (
+    envio.metodoPago === 'contra_entrega' ||
+    envio.estadoPago === 'Aprobado'
   );
 }
 
 function siguienteAccion(envio, puedePreparar, puedeDespachar) {
-  if (envio.estadoEnvio === 'Pendiente' && puedePreparar) {
-    return { tipo: 'estado', estado: 'En preparación', texto: 'Preparar pedido' };
+  if (
+    envio.estadoEnvio === 'Pendiente' &&
+    puedePreparar &&
+    pagoListoParaPreparar(envio)
+  ) {
+    return {
+      tipo: 'estado',
+      estado: 'En preparación',
+      texto: 'Preparar pedido'
+    };
   }
   if (envio.estadoEnvio === 'En preparación' && puedePreparar) {
     return { tipo: 'estado', estado: 'Empacado', texto: 'Marcar empacado' };
@@ -392,6 +411,9 @@ function crearTarjetaDespacho(
       el('div', {}, el('dt', { texto: 'Ciudad' }), el('dd', {
         texto: envio.ciudad
       })),
+      el('div', {}, el('dt', { texto: 'Dirección' }), el('dd', {
+        texto: envio.direccion || 'No registrada'
+      })),
       el('div', {}, el('dt', { texto: 'Total' }), el('dd', {
         texto: formatearBs(envio.total)
       })),
@@ -451,13 +473,19 @@ function crearTarjetaDespacho(
       );
     }
   } else {
-    tarjeta.appendChild(
-      el('p', {
-        clase: 'pago-aviso',
-        texto:
-          'Este envío no tiene una acción disponible para tu rol en este momento.'
-      })
-    );
+    let texto = 'Este envío no tiene una acción disponible para tu rol.';
+
+    if (
+      envio.estadoEnvio === 'Pendiente' &&
+      !pagoListoParaPreparar(envio)
+    ) {
+      texto =
+        envio.estadoPago === 'Rechazado'
+          ? 'El pago fue rechazado; el pedido no puede prepararse.'
+          : 'El pago aún no fue aprobado; no se puede preparar.';
+    }
+
+    tarjeta.appendChild(el('p', { clase: 'pago-aviso', texto }));
   }
 
   return tarjeta;
@@ -472,6 +500,8 @@ export const vistaOperaciones = {
 
     let inventario = [];
     let despachos = [];
+    let busquedaInventario = '';
+    let soloStockBajo = false;
     let cargandoInventario = true;
     let cargandoDespachos = true;
     let errorInventario = '';
@@ -597,6 +627,33 @@ export const vistaOperaciones = {
         })
       );
 
+      const buscar = el('input', {
+        clase: 'entrada',
+        type: 'search',
+        placeholder: 'Buscar por producto, variante o SKU',
+        value: busquedaInventario,
+        atributos: { 'aria-label': 'Buscar en inventario' }
+      });
+      const filtroStock = el('input', {
+        type: 'checkbox',
+        checked: soloStockBajo,
+        atributos: { 'aria-label': 'Mostrar solo stock bajo' }
+      });
+
+      panelInventario.appendChild(
+        el(
+          'div',
+          { clase: 'staff-barra-filtros' },
+          buscar,
+          el(
+            'label',
+            { clase: 'staff-check' },
+            filtroStock,
+            el('span', { texto: 'Solo stock bajo' })
+          )
+        )
+      );
+
       panelInventario.appendChild(
         crearFormularioAjuste(
           inventario,
@@ -605,21 +662,52 @@ export const vistaOperaciones = {
         )
       );
 
-      if (inventario.length === 0) {
-        panelInventario.appendChild(
-          estadoVacio('No hay variantes de inventario registradas.')
+      const tablaInventario = el('div', { clase: 'staff-tabla-zona' });
+      panelInventario.appendChild(tablaInventario);
+
+      function aplicarFiltroInventario() {
+        const termino = busquedaInventario.trim().toLowerCase();
+        const filtrados = inventario.filter((item) => {
+          const texto =
+            `${item.productoNombre} ${item.nombreVariante} ${item.sku}`
+              .toLowerCase();
+          const coincide = !termino || texto.includes(termino);
+          const stockOk = !soloStockBajo || item.alertaStockBajo;
+          return coincide && stockOk;
+        });
+
+        if (inventario.length === 0) {
+          tablaInventario.replaceChildren(
+            estadoVacio('No hay variantes de inventario registradas.')
+          );
+          return;
+        }
+
+        if (filtrados.length === 0) {
+          tablaInventario.replaceChildren(
+            estadoVacio('No hay variantes que coincidan con el filtro.')
+          );
+          return;
+        }
+
+        tablaInventario.replaceChildren(
+          crearTablaStaff(
+            COLUMNAS_INVENTARIO,
+            filtrados.map((item) => crearFilaInventario(item))
+          )
         );
-        return;
       }
 
-      panelInventario.appendChild(
-        el(
-          'div',
-          { clase: 'ops-tabla' },
-          crearCabeceraInventario(),
-          ...inventario.map((item) => crearFilaInventario(item))
-        )
-      );
+      buscar.addEventListener('input', () => {
+        busquedaInventario = buscar.value;
+        aplicarFiltroInventario();
+      });
+      filtroStock.addEventListener('change', () => {
+        soloStockBajo = filtroStock.checked;
+        aplicarFiltroInventario();
+      });
+
+      aplicarFiltroInventario();
     }
 
     async function cargarInventario() {

@@ -10,6 +10,10 @@ import { el, icono } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { formatearBs, formatearFecha } from '../../core/formato.js';
 import { alerta, boton, estadoVacio } from '../comunes.js';
+import {
+  crearCeldaStaff,
+  crearTablaStaff
+} from './tablaResponsiva.js';
 
 const ESTADOS = ['En verificación', 'Aprobado', 'Rechazado'];
 
@@ -39,14 +43,16 @@ function crearBadge(estado) {
   });
 }
 
-function celda(etiqueta, contenido, claseExtra = '') {
-  return el(
-    'div',
-    { clase: `pago-celda${claseExtra ? ` ${claseExtra}` : ''}` },
-    el('span', { clase: 'pago-celda-etiqueta', texto: etiqueta }),
-    contenido
-  );
-}
+const COLUMNAS_PAGOS = [
+  { etiqueta: 'Pedido', clase: 'staff-col-codigo' },
+  { etiqueta: 'Cliente' },
+  { etiqueta: 'Método' },
+  { etiqueta: 'Monto del pedido', clase: 'staff-numero' },
+  { etiqueta: 'Monto declarado', clase: 'staff-numero' },
+  { etiqueta: 'Fecha' },
+  { etiqueta: 'Estado' },
+  { etiqueta: 'Acciones', clase: 'staff-col-acciones' }
+];
 
 function crearFilaPago(pago, alRevisar, activo) {
   const montoDeclarado =
@@ -62,37 +68,31 @@ function crearFilaPago(pago, alRevisar, activo) {
   revisar.addEventListener('click', () => alRevisar(pago.id));
 
   return el(
-    'article',
-    { clase: `pago-fila${activo ? ' pago-fila--activa' : ''}` },
-    celda('Pedido', el('strong', { texto: pago.codigoRastreo })),
-    celda('Cliente', el('span', { texto: pago.nombreCliente })),
-    celda('Método', el('span', { texto: etiquetaMetodo(pago.metodo) })),
-    celda(
-      'Monto del pedido',
-      el('span', { texto: formatearBs(pago.totalPedido) })
+    'tr',
+    { clase: activo ? 'staff-fila-activa' : '' },
+    crearCeldaStaff(
+      'Pedido',
+      el('strong', { texto: pago.codigoRastreo }),
+      'staff-col-codigo'
     ),
-    celda('Monto declarado', el('span', { texto: montoDeclarado })),
-    celda('Fecha', el('span', { texto: formatearFecha(fecha) })),
-    el(
-      'div',
-      { clase: 'pago-celda pago-celda--acciones' },
-      crearBadge(pago.estado),
-      revisar
-    )
-  );
-}
-
-function crearCabeceraTabla() {
-  return el(
-    'div',
-    { clase: 'pago-tabla-cabecera', atributos: { 'aria-hidden': 'true' } },
-    el('span', { texto: 'Pedido' }),
-    el('span', { texto: 'Cliente' }),
-    el('span', { texto: 'Método' }),
-    el('span', { texto: 'Monto del pedido' }),
-    el('span', { texto: 'Monto declarado' }),
-    el('span', { texto: 'Fecha' }),
-    el('span', { texto: 'Acciones' })
+    crearCeldaStaff('Cliente', el('span', { texto: pago.nombreCliente })),
+    crearCeldaStaff(
+      'Método',
+      el('span', { texto: etiquetaMetodo(pago.metodo) })
+    ),
+    crearCeldaStaff(
+      'Monto del pedido',
+      el('span', { texto: formatearBs(pago.totalPedido) }),
+      'staff-numero'
+    ),
+    crearCeldaStaff(
+      'Monto declarado',
+      el('span', { texto: montoDeclarado }),
+      'staff-numero'
+    ),
+    crearCeldaStaff('Fecha', el('span', { texto: formatearFecha(fecha) })),
+    crearCeldaStaff('Estado', crearBadge(pago.estado)),
+    crearCeldaStaff('Acciones', revisar, 'staff-col-acciones')
   );
 }
 
@@ -449,12 +449,14 @@ export const vistaPagosStaff = {
         }
 
         lista.replaceChildren(
-          crearCabeceraTabla(),
-          ...pagos.map((pago) =>
-            crearFilaPago(
-              pago,
-              cargarDetalle,
-              Number(pago.id) === Number(detalleId)
+          crearTablaStaff(
+            COLUMNAS_PAGOS,
+            pagos.map((pago) =>
+              crearFilaPago(
+                pago,
+                cargarDetalle,
+                Number(pago.id) === Number(detalleId)
+              )
             )
           )
         );
