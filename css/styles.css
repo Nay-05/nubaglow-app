@@ -5805,3 +5805,34 @@ body.mini-carrito-abierto {
 .staff-tabla .staff-col-codigo {
   white-space: nowrap;
 }
+
+.operaciones-staff,
+.ops-panel,
+.staff-barra-filtros,
+.ops-form,
+.ops-form-campos {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.staff-barra-filtros {
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.ops-form {
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.staff-barra-filtros .entrada {
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.staff-check {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
