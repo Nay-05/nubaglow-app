@@ -42,12 +42,12 @@ async function ejecutarPruebas(): Promise<void> {
   const modoOriginal = process.env.PAYPAL_MODO;
   const tipoCambioOriginal = process.env.PAYPAL_TIPO_CAMBIO_BOB_USD;
   const nodeEnvOriginal = process.env.NODE_ENV;
-  const frontendOriginal = process.env.FRONTEND_URL;
+  const appUrlOriginal = process.env.APP_URL;
 
   process.env.PAYPAL_MODO = 'simulado';
   process.env.PAYPAL_TIPO_CAMBIO_BOB_USD = String(TIPO_CAMBIO);
   process.env.NODE_ENV = 'test';
-  process.env.FRONTEND_URL = 'http://localhost:3000';
+  process.env.APP_URL = 'http://localhost:3000';
 
   const server = app.listen(0);
   const address = server.address() as any;
@@ -231,7 +231,9 @@ async function ejecutarPruebas(): Promise<void> {
     );
     asegurar(
       typeof ordenA?.urlAprobacion === 'string' &&
-        ordenA.urlAprobacion.startsWith('http://localhost:3000/'),
+        ordenA.urlAprobacion.startsWith(
+          'http://localhost:3000/pago/paypal/simulado'
+        ),
       'La orden devuelve una urlAprobacion de retorno'
     );
     asegurar(
@@ -524,7 +526,7 @@ async function ejecutarPruebas(): Promise<void> {
     restaurarVariable('PAYPAL_MODO', modoOriginal);
     restaurarVariable('PAYPAL_TIPO_CAMBIO_BOB_USD', tipoCambioOriginal);
     restaurarVariable('NODE_ENV', nodeEnvOriginal);
-    restaurarVariable('FRONTEND_URL', frontendOriginal);
+    restaurarVariable('APP_URL', appUrlOriginal);
 
     await limpiarDatos(server, pedidoIds, productoId, userIds);
     await cerrarPool();
@@ -568,3 +570,4 @@ ejecutarPruebas().catch((error) => {
   console.error('Error critico en la prueba PayPal:', error);
   process.exit(1);
 });
+

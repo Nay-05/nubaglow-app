@@ -36,6 +36,14 @@ const cargadoresVistas = {
     import('./vistas/publicas/login.js').then((m) => m.vistaLogin),
   checkout: () =>
     import('./vistas/publicas/checkout.js').then((m) => m.vistaCheckout),
+  pagoPaypalRetorno: () =>
+    import('./vistas/publicas/pagoPaypalRetorno.js').then(
+      (m) => m.vistaPagoPaypalRetorno
+    ),
+  pagoPaypalSimulado: () =>
+    import('./vistas/publicas/pagoPaypalSimulado.js').then(
+      (m) => m.vistaPagoPaypalSimulado
+    ),
   noEncontrada: () =>
     import('./vistas/publicas/noEncontrado.js').then((m) => m.vistaNoEncontrada),
   loginStaff: () =>
@@ -90,6 +98,18 @@ function accesoPedidoCliente(usuario, { params } = {}) {
   return usuario.rol === 'cliente' ? null : rutaInicioPorRol(usuario.rol);
 }
 
+function accesoPagoPaypal(usuario, { consulta, ruta } = {}) {
+  if (!usuario) {
+    const query =
+      consulta && typeof consulta.toString === 'function'
+        ? consulta.toString()
+        : '';
+    const destino = query ? `${ruta}?${query}` : ruta;
+    return `/login?redirigir=${encodeURIComponent(destino)}`;
+  }
+  return usuario.rol === 'cliente' ? null : rutaInicioPorRol(usuario.rol);
+}
+
 // Rutas publicas
 router
   .registrar('/', cargadoresVistas.inicio, { titulo: 'Inicio' })
@@ -110,6 +130,14 @@ router
   })
   .registrar('/checkout', cargadoresVistas.checkout, {
     titulo: 'Finalizar compra'
+  })
+  .registrar('/pago/paypal/retorno', cargadoresVistas.pagoPaypalRetorno, {
+    titulo: 'Pago con PayPal',
+    acceso: accesoPagoPaypal
+  })
+  .registrar('/pago/paypal/simulado', cargadoresVistas.pagoPaypalSimulado, {
+    titulo: 'Simulación de PayPal',
+    acceso: accesoPagoPaypal
   })
   .registrar('/cuenta', cargadoresVistas.cuenta, {
     titulo: 'Mi cuenta',

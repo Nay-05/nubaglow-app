@@ -16,6 +16,7 @@ import { AppError } from '../middlewares/errores';
 import {
   baseUrlPaypal,
   esPaypalSimulado,
+  urlSimuladaPaypal,
   urlsRetornoPaypal,
   verificarConfigSandbox
 } from '../config/paypal';
@@ -67,10 +68,13 @@ export class PaypalSimulado implements PasarelaPaypal {
       capturaId: null
     });
 
-    const { returnUrl } = urlsRetornoPaypal(pedido.id);
     return {
       ordenId,
-      urlAprobacion: `${returnUrl}&orden=${encodeURIComponent(ordenId)}&simulado=1`
+      urlAprobacion: urlSimuladaPaypal(
+        pedido.id,
+        pedido.codigoRastreo,
+        ordenId
+      )
     };
   }
 
@@ -185,7 +189,10 @@ export class PaypalSandbox implements PasarelaPaypal {
 
   async crearOrden(pedido: PedidoPaypal, montoUsd: number): Promise<OrdenPaypalCreada> {
     const token = await this.obtenerToken();
-    const { returnUrl, cancelUrl } = urlsRetornoPaypal(pedido.id);
+    const { returnUrl, cancelUrl } = urlsRetornoPaypal(
+      pedido.id,
+      pedido.codigoRastreo
+    );
 
     const respuesta = await fetch(`${this.baseUrl}/v2/checkout/orders`, {
       method: 'POST',

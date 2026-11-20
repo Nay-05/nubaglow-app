@@ -13,7 +13,11 @@
 
 import { el, icono } from '../../core/dom.js';
 import { api } from '../../core/api.js';
-import { formatearBs, formatearFecha } from '../../core/formato.js';
+import {
+  formatearBs,
+  formatearFecha,
+  formatearUsd
+} from '../../core/formato.js';
 import {
   encabezadoPagina,
   alerta,
@@ -607,7 +611,102 @@ function crearFormularioComprobante(pedido, pago, alRecargar) {
   return formulario;
 }
 
-function crearPanelPago(pedido, datosCobro) {
+function crearAccionPaypal(pedido, pago, configuracion) {
+  const tipoCambio =
+    Number(pago.tipoCambioBobUsd) ||
+    Number(configuracion?.tipoCambioBobUsd) ||
+    null;
+  const montoUsd =
+    pago.montoUsd !== null && pago.montoUsd !== undefined
+      ? Number(pago.montoUsd)
+      : tipoCambio
+        ? Math.round((Number(pago.monto) / tipoCambio) * 100) / 100
+        : null;
+
+  const mensajes = el('div', { clase: 'pago-form-mensajes' });
+  const etiqueta = el('span', { texto: 'Pagar con PayPal' });
+  const boton = el(
+    'button',
+    {
+      clase: 'btn btn-primary',
+      atributos: { type: 'button' }
+    },
+    icono('tarjeta', 16),
+    etiqueta
+  );
+
+  boton.addEventListener('click', async () => {
+    boton.disabled = true;
+    etiqueta.textContent = 'Redirigiendo...';
+    mensajes.replaceChildren();
+
+    try {
+      const respuesta = await api.crear('/pagos/paypal/crear', {
+        pedido_id: pedido.id
+      });
+      const url = respuesta?.datos?.orden?.urlAprobacion;
+
+      if (typeof url !== 'string' || !url) {
+        throw new Error('PayPal no devolvió una URL de aprobación.');
+      }
+
+      window.location.assign(url);
+    } catch (error) {
+      mensajes.replaceChildren(
+        alerta(
+          error instanceof Error && error.message
+            ? error.message
+            : 'No se pudo iniciar el pago con PayPal.'
+        )
+      );
+      boton.disabled = false;
+      etiqueta.textContent = 'Pagar con PayPal';
+    }
+  });
+
+  const filas = [
+    ['Total en bolivianos', formatearBs(pago.monto)],
+    [
+      'Monto a cobrar en PayPal',
+      montoUsd === null
+        ? 'Se calcula al crear la orden'
+        : formatearUsd(montoUsd)
+    ],
+    [
+      'Tipo de cambio usado',
+      tipoCambio === null
+        ? 'No disponible'
+        : `${formatearBs(tipoCambio)} por USD`
+    ]
+  ];
+
+  return el(
+    'div',
+    { clase: 'pago-paypal' },
+    el(
+      'div',
+      { clase: 'pago-paypal-montos' },
+      ...filas.map(([etiquetaFila, valor]) =>
+        el(
+          'div',
+          { clase: 'pago-paypal-linea' },
+          el('span', { texto: etiquetaFila }),
+          el('strong', { texto: valor })
+        )
+      )
+    ),
+    el('p', {
+      clase: 'pago-aviso',
+      texto: configuracion?.simulado
+        ? 'Modo simulación académica: serás redirigido a una página interna de PayPal simulada.'
+        : 'Serás redirigido a PayPal para completar el pago de forma segura.'
+    }),
+    mensajes,
+    boton
+  );
+}
+
+function crearPanelPago(pedido, datosCobro, configuracion) {
   const pago = pedido.pago;
   const metodo = pago?.metodo || '';
   const panel = el('section', {
@@ -739,27 +838,16 @@ function crearPanelPago(pedido, datosCobro) {
       })
     );
   } else if (metodo === 'paypal') {
-    panel.appendChild(
-      el('p', {
-        clase: 'texto-suave',
-        texto: 'El pago con PayPal estará disponible en el siguiente paso.'
-      })
-    );
-    panel.appendChild(
-      el(
-        'div',
-        { clase: 'pago-deshabilitado' },
-        el(
-          'button',
-          {
-            clase: 'btn btn-secondary',
-            disabled: true,
-            atributos: { type: 'button', 'aria-disabled': 'true' }
-          },
-          el('span', { texto: 'Disponible próximamente' })
-        )
-      )
-    );
+    if (pago.estado === 'Pendiente') {
+      panel.appendChild(crearAccionPaypal(pedido, pago, configuracion));
+    } else if (pago.estado === 'Aprobado') {
+      panel.appendChild(
+        el('p', {
+          clase: 'pago-aviso',
+          texto: 'El pago con PayPal ya fue aprobado.'
+        })
+      );
+    }
   }
 
   if (pago.fechaVencimiento && pago.estado !== 'Aprobado') {
@@ -893,7 +981,7 @@ async function cargarConfiguracion() {
 }
 
 export const vistaPedidoDetalle = {
-  async render({ params, usuario }) {
+  async render({ params, usuario, consulta }) {
     const codigo = String(params?.codigo || '').trim().toUpperCase();
     const seccion = el('section', { clase: 'pagina pedido-detalle' });
     const contenido = el('div', { clase: 'pedido-contenido' });
@@ -946,6 +1034,16 @@ export const vistaPedidoDetalle = {
         bloques.push(alerta(mensajeExito, 'exito'));
       }
 
+      if (consulta?.get('paypal') === 'cancelado') {
+        bloques.push(
+          alerta(
+            'Pago con PayPal cancelado. El pago sigue Pendiente; ' +
+              'puedes reintentar cuando quieras.',
+            'info'
+          )
+        );
+      }
+
       const pago = pedido.pago;
       const metodo = pago?.metodo;
       const aceptaComprobante =
@@ -957,7 +1055,7 @@ export const vistaPedidoDetalle = {
 
       const paneles = [
         crearResumenItems(pedido),
-        crearPanelPago(pedido, datosCobro)
+        crearPanelPago(pedido, datosCobro, configuracion)
       ];
 
       if (aceptaComprobante) {

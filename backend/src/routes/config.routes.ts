@@ -6,7 +6,11 @@
  */
 
 import { Router } from 'express';
-import { esPaypalSimulado, modoPaypal } from '../config/paypal';
+import {
+  esPaypalSimulado,
+  modoPaypal,
+  tipoCambioBobUsd
+} from '../config/paypal';
 
 const router = Router();
 
@@ -25,7 +29,8 @@ router.get('/', (req, res) => {
       whatsappNumero: whatsappNumero.replace(/[^\d]/g, ''),
       mensajePaypal: simulado
         ? 'PayPal (simulación académica)'
-        : 'PayPal (modo sandbox)'
+        : 'PayPal (modo sandbox)',
+      tipoCambioBobUsd: tipoCambioBobUsd()
     }
   });
 });

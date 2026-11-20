@@ -15,6 +15,12 @@ export function formatearBs(valor) {
   return `Bs. ${formatoMoneda.format(numero)}`;
 }
 
+export function formatearUsd(valor) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return 'USD 0,00';
+  return `USD ${formatoMoneda.format(numero)}`;
+}
+
 const formatoFecha = new Intl.DateTimeFormat('es-BO', {
   dateStyle: 'medium',
   timeStyle: 'short'

@@ -60,23 +60,48 @@ export function convertirBobAUsd(montoBob: number): number {
   return montoUsd;
 }
 
-export function urlFrontend(): string {
-  return (
-    process.env.FRONTEND_URL?.trim() ||
-    process.env.CLIENT_URL?.trim() ||
-    'http://localhost:3000'
-  ).replace(/\/+$/, '');
+/**
+ * URL publica de la tienda. PayPal solo recibe URLs construidas por el
+ * servidor con esta variable; nunca se usan datos enviados por el cliente.
+ */
+export function urlAplicacion(): string {
+  return (process.env.APP_URL?.trim() || 'http://localhost:4000').replace(
+    /\/+$/,
+    ''
+  );
 }
 
-export function urlsRetornoPaypal(pedidoId: number): {
+export function urlsRetornoPaypal(
+  pedidoId: number,
+  codigoRastreo: string
+): {
   returnUrl: string;
   cancelUrl: string;
 } {
-  const base = urlFrontend();
+  const base = urlAplicacion();
+  const codigo = encodeURIComponent(codigoRastreo);
+
   return {
-    returnUrl: `${base}/pedidos?paypal=retorno&pedido=${pedidoId}`,
-    cancelUrl: `${base}/pedidos?paypal=cancelado&pedido=${pedidoId}`
+    returnUrl:
+      `${base}/pago/paypal/retorno?pedido=${pedidoId}` +
+      `&codigo=${codigo}`,
+    cancelUrl: `${base}/pedido/${codigo}?paypal=cancelado`
   };
+}
+
+export function urlSimuladaPaypal(
+  pedidoId: number,
+  codigoRastreo: string,
+  ordenId: string
+): string {
+  const base = urlAplicacion();
+  const codigo = encodeURIComponent(codigoRastreo);
+  const orden = encodeURIComponent(ordenId);
+
+  return (
+    `${base}/pago/paypal/simulado?pedido=${pedidoId}` +
+    `&codigo=${codigo}&orden=${orden}`
+  );
 }
 
 /**
