@@ -11,7 +11,8 @@ import {
   listarMisPedidos,
   obtenerDetallePedido,
   obtenerDetallePedidoPorCodigo,
-  registrarComprobantePago
+  registrarComprobantePago,
+  descargarComprobantePdf
 } from '../controllers/pedidos.controller';
 import { validar } from '../middlewares/validar';
 import { verificarToken, requerirRol } from '../middlewares/autenticacion';
@@ -56,6 +57,15 @@ router.get(
   requerirRol('cliente'),
   validar({ params: codigoRastreoParamSchema }),
   obtenerDetallePedidoPorCodigo
+);
+
+// Comprobante PDF: dueno del pedido, vendedor o admin
+router.get(
+  '/:codigo/comprobante-pdf',
+  verificarToken,
+  requerirRol('cliente', 'vendedor', 'admin'),
+  validar({ params: codigoRastreoParamSchema }),
+  descargarComprobantePdf
 );
 
 // Obtener detalle de pedido por ID (validando param id)

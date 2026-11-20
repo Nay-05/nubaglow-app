@@ -9,6 +9,7 @@ import { pedidosService } from '../services/pedidos.service';
 import { cotizacionesService } from '../services/cotizaciones.service';
 import { cancelarPedido } from '../services/cancelaciones.service';
 import { comprobantesService } from '../services/comprobantes.service';
+import { comprobantePdfService } from '../services/comprobantePdf.service';
 import { obtenerDatosCobro } from '../config/cobro';
 
 export async function cotizarPedido(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -108,6 +109,37 @@ export async function obtenerDetallePedidoPorCodigo(
       exito: true,
       datos: { pedido }
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function descargarComprobantePdf(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const codigoRastreo = String(req.params.codigo || '')
+      .trim()
+      .toUpperCase();
+    const usuarioId = req.usuario!.id;
+    const rolUsuario = req.usuario!.rol;
+    const pedido = await pedidosService.obtenerDetallePorCodigo(
+      codigoRastreo,
+      usuarioId,
+      rolUsuario
+    );
+    const comprobante = await comprobantePdfService.generar(pedido);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${comprobante.nombreArchivo}"`
+    );
+    res.setHeader('Content-Length', String(comprobante.buffer.length));
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).end(comprobante.buffer);
   } catch (error) {
     next(error);
   }

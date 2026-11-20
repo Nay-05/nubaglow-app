@@ -182,11 +182,29 @@ function crearBadgesEstado(pedido) {
   return el('div', { clase: 'pedido-badges' }, ...badges);
 }
 
+function crearBotonComprobantePdf(pedido) {
+  const codigo = encodeURIComponent(String(pedido.codigoRastreo || ''));
+  return el(
+    'a',
+    {
+      clase: 'btn btn-primary',
+      href: `/api/pedidos/${codigo}/comprobante-pdf`,
+      atributos: {
+        download: '',
+        'aria-label': 'Descargar comprobante PDF'
+      }
+    },
+    icono('descargar', 16),
+    el('span', { texto: 'Descargar comprobante' })
+  );
+}
+
 function crearCabeceraPedido(pedido, configuracion) {
   const numeroWhatsApp = configuracion?.whatsappNumero;
   const acciones = el(
     'div',
     { clase: 'pedido-acciones pedido-cabecera-acciones' },
+    crearBotonComprobantePdf(pedido),
     crearBotonWhatsApp(pedido, numeroWhatsApp),
     enlaceInterno(RUTA_CUENTA, 'Volver a mi cuenta', {
       clase: 'btn btn-secondary'

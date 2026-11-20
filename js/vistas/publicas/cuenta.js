@@ -6,7 +6,7 @@
  * cerrar sesion. El historial de pedidos se completa en la Fase 7.
  */
 
-import { el } from '../../core/dom.js';
+import { el, icono } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { formatearBs, formatearFecha } from '../../core/formato.js';
 import { obtenerUsuario, cerrarSesion } from '../../core/sesion.js';
@@ -80,9 +80,26 @@ function crearTarjetaPedido(pedido) {
         clase: 'cuenta-pedido-total',
         texto: formatearBs(pedido.total)
       }),
-      enlaceInterno(ruta, 'Ver detalle', {
-        clase: 'btn btn-outline btn-pequeno'
-      })
+      el(
+        'div',
+        { clase: 'cuenta-pedido-botones' },
+        el(
+          'a',
+          {
+            clase: 'btn btn-outline btn-pequeno',
+            href: `/api/pedidos/${encodeURIComponent(codigo)}/comprobante-pdf`,
+            atributos: {
+              download: '',
+              'aria-label': 'Descargar comprobante PDF'
+            }
+          },
+          icono('descargar', 14),
+          el('span', { texto: 'Descargar comprobante' })
+        ),
+        enlaceInterno(ruta, 'Ver detalle', {
+          clase: 'btn btn-outline btn-pequeno'
+        })
+      )
     )
   );
 }
