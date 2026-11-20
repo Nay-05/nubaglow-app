@@ -5,8 +5,7 @@
  * Vista completa del carrito. Comparte el modulo core/carrito.js con el
  * mini-carrito lateral: cliente autenticado usa la API y visitante usa el
  * respaldo local, por lo que ambos puntos de entrada muestran lo mismo.
- * No se simula checkout ni costos de envio: el total final lo calcula el
- * servidor al crear el pedido en la Fase 6.
+ * El total final lo calcula el servidor al crear el pedido.
  */
 
 import { el, icono } from '../../core/dom.js';
@@ -29,12 +28,15 @@ import {
   tabla
 } from '../comunes.js';
 
-const MENSAJE_PAGO = 'El pago se habilita en la siguiente etapa.';
-const RUTA_LOGIN_CARRITO = '/login?redirigir=/carrito';
+const RUTA_CHECKOUT = '/checkout';
+const RUTA_LOGIN_CHECKOUT = '/login?redirigir=/checkout';
 
 function textoAvisoFusion(resumen) {
   if (resumen.error) {
-    return 'Iniciaste sesión, pero no pudimos unir el carrito de tu visita. Tus artículos siguen guardados en este navegador.';
+    return (
+      'Iniciaste sesión, pero no pudimos unir el carrito de tu visita. ' +
+      'Tus artículos siguen guardados en este navegador.'
+    );
   }
 
   const partes = [];
@@ -64,7 +66,10 @@ function textoAvisoFusion(resumen) {
   }
 
   if (resumen.vaciado === false) {
-    partes.push('No pudimos vaciar el respaldo temporal del navegador; revísalo antes de continuar.');
+    partes.push(
+      'No pudimos vaciar el respaldo temporal del navegador; ' +
+        'revísalo antes de continuar.'
+    );
   }
 
   return partes.length > 0
@@ -303,11 +308,11 @@ export const vistaCarrito = {
 
       continuar.addEventListener('click', () => {
         if (!usuario || usuario.rol !== 'cliente') {
-          navegar(RUTA_LOGIN_CARRITO);
+          navegar(RUTA_LOGIN_CHECKOUT);
           return;
         }
 
-        mostrarMensaje(MENSAJE_PAGO, 'info');
+        navegar(RUTA_CHECKOUT);
       });
 
       contenido.appendChild(

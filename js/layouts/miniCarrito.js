@@ -23,7 +23,8 @@ import { imagenProducto } from '../vistas/comunes.js';
 
 const SIMBOLO_CONTROLADOR = Symbol.for('nubaglow.miniCarrito.controlador');
 const TOTAL_SUGERENCIAS = 4;
-const AVISO_PAGO = 'El pago se habilita en la siguiente etapa.';
+const RUTA_CHECKOUT = '/checkout';
+const RUTA_LOGIN_CHECKOUT = '/login?redirigir=/checkout';
 
 function crearMiniCarrito({ usuario, router }) {
   let estado = null;
@@ -105,7 +106,9 @@ function crearMiniCarrito({ usuario, router }) {
   function elementosEnfocables() {
     return Array.from(
       panel.querySelectorAll(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        'a[href], button:not([disabled]), input:not([disabled]), ' +
+          'select:not([disabled]), textarea:not([disabled]), ' +
+          '[tabindex]:not([tabindex="-1"])'
       )
     ).filter((elemento) => {
       if (elemento.hidden || elemento.getAttribute('aria-hidden') === 'true') return false;
@@ -135,7 +138,10 @@ function crearMiniCarrito({ usuario, router }) {
     const primero = enfocables[0];
     const ultimo = enfocables[enfocables.length - 1];
 
-    if (evento.shiftKey && (document.activeElement === primero || document.activeElement === panel)) {
+    const enPrimero =
+      document.activeElement === primero || document.activeElement === panel;
+
+    if (evento.shiftKey && enPrimero) {
       evento.preventDefault();
       ultimo.focus();
     } else if (!evento.shiftKey && document.activeElement === ultimo) {
@@ -347,7 +353,9 @@ function crearMiniCarrito({ usuario, router }) {
         : 'Variante agotada. Quítala del carrito para continuar.';
     } else if (stock === 'excede') {
       aviso.hidden = false;
-      aviso.textContent = `Solo quedan ${stockDisponible} unidades. Ajusta la cantidad para continuar.`;
+      aviso.textContent =
+        `Solo quedan ${stockDisponible} unidades. ` +
+        'Ajusta la cantidad para continuar.';
     }
 
     const restar = el(
@@ -483,11 +491,6 @@ function crearMiniCarrito({ usuario, router }) {
     );
 
     const bloqueado = estado.items.some((item) => estadoStock(item) !== 'ok');
-    const avisoPago = el('p', {
-      clase: 'mini-carrito-nota',
-      atributos: { role: 'status' }
-    });
-    avisoPago.hidden = true;
 
     const continuar = el(
       'button',
@@ -500,19 +503,17 @@ function crearMiniCarrito({ usuario, router }) {
     );
 
     continuar.addEventListener('click', () => {
-      if (!usuario || usuario.rol !== 'cliente') {
-        cerrar();
-        const destino = '/login?redirigir=/carrito';
-        if (router && typeof router.navegar === 'function') {
-          router.navegar(destino);
-        } else {
-          window.location.assign(destino);
-        }
-        return;
-      }
+      const destino =
+        !usuario || usuario.rol !== 'cliente'
+          ? RUTA_LOGIN_CHECKOUT
+          : RUTA_CHECKOUT;
 
-      avisoPago.hidden = false;
-      avisoPago.textContent = AVISO_PAGO;
+      cerrar();
+      if (router && typeof router.navegar === 'function') {
+        router.navegar(destino);
+      } else {
+        window.location.assign(destino);
+      }
     });
 
     pie.replaceChildren(
@@ -528,8 +529,7 @@ function crearMiniCarrito({ usuario, router }) {
           ? 'Corrige las cantidades marcadas para continuar.'
           : 'Revisa los artículos antes de continuar.'
       }),
-      el('div', { clase: 'mini-carrito-acciones' }, verCarrito, continuar),
-      avisoPago
+      el('div', { clase: 'mini-carrito-acciones' }, verCarrito, continuar)
     );
     pie.hidden = false;
 
