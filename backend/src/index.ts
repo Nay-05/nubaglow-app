@@ -25,13 +25,18 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '..', '.env') });
 
 const app: Application = express();
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 const PUERTO = Number(process.env.PORT) || 4000;
 const rutaFrontend = path.resolve(__dirname, '..', '..');
 
 // Lista blanca de origenes CORS configurable por variable de entorno
 const origenesConfigurados = [
+  process.env.APP_URL,
   process.env.FRONTEND_URL,
   process.env.CLIENT_URL,
+  'https://nubaglow-app.onrender.com',
   `http://localhost:${PUERTO}`,
   `http://127.0.0.1:${PUERTO}`,
   'http://localhost:4000',

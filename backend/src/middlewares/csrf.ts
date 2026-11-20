@@ -25,7 +25,7 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
   // Verificar si la peticion transporta cookies de sesion
   const tieneCookiesSesion = Boolean(req.cookies?.access_token || req.cookies?.refresh_token);
 
-  // Si no usa cookies (por ejemplo, usa Authorization: Bearer en API cliente o scripts), no es vulnerable a CSRF clasico
+  // Sin cookies no hay CSRF clasico: API clientes usan Authorization Bearer.
   if (!tieneCookiesSesion) {
     return next();
   }
@@ -49,8 +49,10 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
 
   // Lista base sin duplicados; localhost y 127.0.0.1 solo en entornos de desarrollo/test (no production)
   const origenesBase = [
+    process.env.APP_URL,
     process.env.FRONTEND_URL,
     process.env.CLIENT_URL,
+    'https://nubaglow-app.onrender.com',
     ...(esProduccion
       ? []
       : [

@@ -22,7 +22,8 @@
     "test:seguridad": "ts-node src/tests/seguridad.test.ts",
     "test:frontend": "ts-node src/tests/frontend.test.ts",
     "test:asistente": "ts-node src/tests/asistente.test.ts",
-    "db:imagenes": "ts-node src/db/vincular_imagenes.ts"
+    "db:imagenes": "ts-node src/db/vincular_imagenes.ts",
+    "demo:preparar": "ts-node src/db/preparar_demo.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

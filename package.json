@@ -27,7 +27,8 @@
     "test:todos": "npm run test:todos:1 && npm run test:todos:2 && npm run test:todos:3 && npm run test:todos:4",
     "backend:install": "npm --prefix backend install",
     "test:asistente": "npm --prefix backend run test:asistente",
-    "db:imagenes": "npm --prefix backend run db:imagenes"
+    "db:imagenes": "npm --prefix backend run db:imagenes",
+    "demo:preparar": "npm --prefix backend run demo:preparar"
   },
   "keywords": [
     "nubaglow",

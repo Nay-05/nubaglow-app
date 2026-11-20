@@ -9,13 +9,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service';
 
-const esProduccion = process.env.NODE_ENV === 'production';
+function esProduccion(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
 
 function fijarCookiesAutenticacion(res: Response, accessToken: string, refreshToken?: string): void {
   // Cookie de acceso (15 minutos) con HttpOnly, Secure en produccion y SameSite: strict
   res.cookie('access_token', accessToken, {
     httpOnly: true,
-    secure: esProduccion,
+    secure: esProduccion(),
     sameSite: 'strict',
     maxAge: 15 * 60 * 1000
   });
@@ -24,7 +26,7 @@ function fijarCookiesAutenticacion(res: Response, accessToken: string, refreshTo
   if (refreshToken) {
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
-      secure: esProduccion,
+      secure: esProduccion(),
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
@@ -34,12 +36,12 @@ function fijarCookiesAutenticacion(res: Response, accessToken: string, refreshTo
 function limpiarCookiesAutenticacion(res: Response): void {
   res.clearCookie('access_token', {
     httpOnly: true,
-    secure: esProduccion,
+    secure: esProduccion(),
     sameSite: 'strict'
   });
   res.clearCookie('refresh_token', {
     httpOnly: true,
-    secure: esProduccion,
+    secure: esProduccion(),
     sameSite: 'strict'
   });
 }

@@ -1,382 +1,617 @@
-# NubaGlow App - Backend API REST
+# NubaGlow — E-commerce y gestión interna
 
-Sistema e-commerce y plataforma de gestión interna de **Nuba Beauty** (Sucre, Bolivia). Desarrollado para la materia de Ingeniería de Software (Grupo 11).
+NubaGlow es la tienda digital de **Nuba Beauty**, un emprendimiento de cosméticos y
+skincare de Sucre, Bolivia. El sistema combina una tienda pública con carrito,
+checkout, pagos, rastreo, reseñas y asistente IA, junto con un portal interno
+separado para administración, ventas POS, almacén y logística.
 
-Arquitectura por capas estricta:
-`Rutas (routes/) -> Controladores (controllers/) -> Servicios (services/) -> Base de Datos (db/)`
-
----
-
-## 1. Requisitos Previos
-
-- **Node.js** (v18 o superior recomendado)
-- **PostgreSQL** (v14 o superior, local o instancia remota en Supabase)
-- **npm** (v9 o superior)
+Proyecto académico de Ingeniería de Software — Grupo 11.
 
 ---
 
-## 2. Instalación y Configuración
+## 1. Arquitectura
 
-### 2.1. Clonar e Instalar Dependencias
+El backend usa una arquitectura estricta por capas:
+
+`routes/ -> controllers/ -> services/ -> db/`
+
+- **Routes:** define rutas, middlewares de autenticación, RBAC y validación Zod.
+- **Controllers:** traduce HTTP a llamadas de servicio y respuestas JSON.
+- **Services:** contiene reglas de negocio, transacciones y auditoría.
+- **DB:** centraliza PostgreSQL/Supabase mediante consultas parametrizadas.
+- **Frontend:** HTML5, CSS3 y JavaScript vanilla modular, sin frameworks.
+
+### Stack
+
+| Capa | Tecnología |
+|---|---|
+| Backend | Node.js, Express, TypeScript |
+| Base de datos | PostgreSQL en Supabase |
+| Autenticación | JWT, cookies HttpOnly, bcrypt coste 12, RBAC |
+| Seguridad | Helmet, CORS, rate limiting, CSRF, Zod |
+| Pagos | PayPal sandbox server-side, QR y depósito simulados |
+| Documentos | PDFKit para comprobantes y actas |
+| Notificaciones | Nodemailer, Telegram Bot API y WhatsApp `wa.me` |
+| IA | Gemini server-side con fallback local por reglas |
+| Deploy | Render + Supabase |
+
+---
+
+## 2. Roles y flujo operativo
+
+| Rol | Responsabilidad |
+|---|---|
+| `cliente` | Compra web, carrito, pedidos, rastreo y reseñas verificadas |
+| `vendedor` | POS presencial, recibos y verificación de pagos |
+| `almacen` | Inventario, Kardex y preparación/empaque de pedidos |
+| `logistica` | Despacho, tránsito y cierre de entrega con comprobante |
+| `admin` | Control total, productos, usuarios, reportes y auditoría |
+
+Estados de pago: `Pendiente`, `En verificación`, `Aprobado`, `Rechazado`.
+
+Estados de envío: `Pendiente`, `En preparación`, `Empacado`, `En tránsito`,
+`Entregado`.
+
+Todas las reglas de permisos se validan en el servidor con `verificarToken` y
+`requerirRol(...)`. El sidebar solo mejora la experiencia; no sustituye al RBAC.
+
+---
+
+## 3. Instalación local
+
+Requisitos: Node.js 18+, npm 9+ y PostgreSQL 14+ o una instancia de Supabase.
 
 ```bash
-# Instalar dependencias en el proyecto raiz y en el backend
+# 1. Dependencias
 npm install
 npm run backend:install
-```
 
-### 2.2. Variables de Entorno
-
-Copia el archivo `.env.example` a `.env` en la raíz del proyecto y completa tus credenciales:
-
-```bash
+# 2. Variables de entorno
 cp .env.example .env
-```
+# Completar DATABASE_URL, secretos JWT y credenciales opcionales.
 
-Contenido de `.env`:
-
-```env
-# Puerto del servidor backend
-PORT=3000
-NODE_ENV=development
-
-# Conexion a base de datos PostgreSQL (con soporte SSL para Supabase)
-DATABASE_URL=postgresql://usuario:password@host:5432/postgres?sslmode=require
-
-# Claves secretas para firma de tokens JWT (deben ser unicas y seguras)
-JWT_SECRET=tu_clave_secreta_jwt_debe_tener_minimo_32_caracteres_aleatorios
-JWT_REFRESH_SECRET=tu_clave_secreta_refresh_debe_tener_minimo_32_caracteres
-
-# Origen permitido para CORS (Frontend)
-CLIENT_URL=http://localhost:5173
-
-# Reglas de negocio de envio (las define el negocio)
-ENVIO_COSTO=15
-ENVIO_GRATIS_DESDE=200
-
-# Tamano maximo por comprobante de pago en MB (se guarda en la BD)
-COMPROBANTE_MAX_MB=2
-
-# PayPal: simulado por defecto. Para sandbox completar credenciales ficticias.
-PAYPAL_MODO=simulado
-PAYPAL_CLIENT_ID=tu_client_id_de_sandbox_aqui
-PAYPAL_CLIENT_SECRET=tu_client_secret_de_sandbox_aqui
-PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
-# Bs. por 1 USD. DEFINIR POR EL NEGOCIO (ejemplo academico).
-
-# Asistente IA: la clave solo se usa en el backend.
-GEMINI_API_KEY=tu_api_key_de_gemini_aqui
-GEMINI_MODEL=gemini-2.5-flash
-PAYPAL_TIPO_CAMBIO_BOB_USD=6.96
-```
-
-### 2.3. Reglas de negocio configurables del envio
-
-El costo de envio y el umbral de envio gratis **no son requisitos fijos del sistema**: los define el negocio. Se configuran exclusivamente por entorno:
-
-- `ENVIO_COSTO`: costo fijo en Bolivianos (Bs.) cuando el subtotal no alcanza el umbral. Ejemplo: `15`.
-- `ENVIO_GRATIS_DESDE`: subtotal minimo en Bs. desde el cual el envio es gratuito. Ejemplo: `200`.
-
-La logica vive en `backend/src/config/envio.ts` y se aplica tanto en la cotizacion (`POST /api/pedidos/cotizar`) como al crear el pedido, por lo que modificar estas variables cambia el monto cotizado sin tocar codigo. Si la variable falta o no es un numero valido, se usa el valor de ejemplo como respaldo.
-
-### 2.4. PayPal: modo simulado y sandbox
-
-PayPal no opera con bolivianos. El servidor toma el total del pedido en Bs., lo convierte a USD con `PAYPAL_TIPO_CAMBIO_BOB_USD` (Bs. por 1 USD, valor de ejemplo `6.96` que debe definir el negocio) y guarda en `pagos` el monto original, el tipo de cambio y el monto USD.
-
-- **Modo simulado (por defecto):** `PAYPAL_MODO=simulado`. No se hacen llamadas externas. `POST /api/pagos/paypal/crear` genera una orden en memoria, `POST /api/pagos/paypal/simulado/aprobar` simula la aprobacion del comprador y `POST /api/pagos/paypal/capturar` la captura. El endpoint simulado responde `404` si `PAYPAL_MODO` no es `simulado` o si `NODE_ENV=production`.
-- **Modo sandbox:** cambiar a `PAYPAL_MODO=sandbox` y completar `PAYPAL_CLIENT_ID` y `PAYPAL_CLIENT_SECRET` de una app sandbox de PayPal. Opcionalmente ajustar `PAYPAL_BASE_URL` (por defecto `https://api-m.sandbox.paypal.com`). El backend usa OAuth2 y PayPal Orders v2: crea la orden con `intent=CAPTURE`, redirige con el enlace `payer-action` y captura en `/v2/checkout/orders/{id}/capture`. Si faltan credenciales responde `503`; nunca cae automaticamente a simulacion.
-- **Seguridad:** el cliente nunca envia montos ni estados de aprobacion. El pago solo pasa a `Aprobado` tras verificar en el servidor que la orden pertenece al pedido, que esta aprobada, que la moneda es USD y que el monto capturado coincide con el calculado. La URL de retorno no aprueba nada y la captura es idempotente.
-- **Pruebas:** `npm run test:paypal` cubre el flujo simulado, la idempotencia, los rechazos por monto/moneda/orden ajena, los permisos y el bloqueo del endpoint simulado en sandbox y produccion.
-
-### 2.5. Notificaciones reales y omitidas
-
-Al confirmar un pedido web, el backend dispara las notificaciones **despues** de confirmar la transaccion:
-
-- **Correo real:** se envia al cliente con resumen del pedido, codigo de
-  rastreo, instrucciones segun el metodo de pago y el comprobante PDF adjunto.
-  Requiere `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `SMTP_FROM`.
-- **Telegram real:** se envia una alerta al chat del negocio con codigo, total,
-  metodo de pago y ciudad, sin datos personales completos. Requiere
-  `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`.
-
-Cada intento queda en la tabla `notificaciones` con estado `enviada`, `fallida`
-u `omitida`. Si falta configuracion, la notificacion se registra como `omitida`
-y la compra continua normalmente. Un fallo de correo o Telegram nunca revierte
-el pedido ni devuelve error al cliente.
-
-Las pruebas usan transporte simulado y no envian mensajes reales.
-
-### 2.6. WhatsApp del pedido
-
-El boton de WhatsApp en `/pedido/:codigo` usa el numero publico de
-`/api/config`, alimentado por `WHATSAPP_NUMERO` en formato internacional, por
-ejemplo `59170000000` (ficticio en `.env.example`). Si la variable no existe,
-el boton no se muestra.
-
-Se usa el enlace `wa.me` porque la API oficial de WhatsApp Business exige una
-cuenta de Meta Business, verificacion y credenciales de plataforma. Para el
-alcance academico del proyecto, `wa.me` permite abrir una conversacion con el
-resumen prellenado sin depender de esa infraestructura.
-
----
-
-## 3. Base de Datos: Migraciones y Semilla
-
-La base de datos relacional persistente implementa 18 tablas con restricciones de integridad referencial estricta (`ON DELETE RESTRICT`), reglas `CHECK`, índices optimizados y disparadores de auditoría inmutable.
-
-```bash
-# 1. Ejecutar migracion estructurada (idempotente)
+# 3. Base de datos
 npm run db:migrate
-
-# 2. Poblar catalogo base (30+ productos con variantes y usuarios de cada rol)
 npm run db:seed
-
-# 3. Vincular las fotos reales de assets/images/ con el catalogo
 npm run db:imagenes
+
+# 4. Preparar la demo oral (idempotente, no borra historiales)
+npm run demo:preparar
+
+# 5. Desarrollo
+npm run dev
 ```
 
-> **Nota de seguridad:** Al correr `npm run db:seed`, las contraseñas generadas dinámicamente para las cuentas de demostración se imprimen en consola y se guardan temporalmente en `seed_passwords.txt` (archivo ignorado por `.gitignore`). Nunca se exponen contraseñas en código o documentación.
+La aplicación queda disponible en `http://localhost:4000`. En desarrollo el
+servidor sirve la API, los archivos estáticos y el fallback SPA.
+
+### Variables de entorno
+
+Los valores siguientes son ficticios y sirven como ejemplo. Nunca se commitea el
+archivo `.env` real.
+
+| Variable | Ejemplo | Uso |
+|---|---|---|
+| `PORT` | `4000` | Puerto del servidor |
+| `NODE_ENV` | `production` | Entorno de ejecución |
+| `APP_URL` | `https://nubaglow-app.onrender.com` | URL pública del sistema |
+| `FRONTEND_URL` | `https://nubaglow-app.onrender.com` | Origen permitido por CORS |
+| `CLIENT_URL` | `http://localhost:3000` | Origen alternativo de desarrollo |
+| `DATABASE_URL` | `postgresql://usuario:clave@host:5432/postgres` | PostgreSQL/Supabase |
+| `JWT_SECRET` | `clave_ficticia_larga` | Firma del access token |
+| `JWT_REFRESH_SECRET` | `otra_clave_ficticia_larga` | Firma del refresh token |
+| `JWT_EXPIRES_IN` | `15m` | Vigencia del access token |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Vigencia del refresh token |
+| `SMTP_HOST` | `smtp.ejemplo.com` | Servidor de correo |
+| `SMTP_PORT` | `587` | Puerto SMTP |
+| `SMTP_USER` | `correo@ejemplo.com` | Usuario SMTP |
+| `SMTP_PASS` | `password_ficticio` | Clave SMTP |
+| `SMTP_FROM` | `NubaGlow <correo@ejemplo.com>` | Remitente |
+| `PAGO_VENCIMIENTO_HORAS` | `24` | Vencimiento de pagos pendientes |
+| `PAYPAL_MODO` | `simulado` | `simulado` o `sandbox` |
+| `PAYPAL_CLIENT_ID` | `client_id_ficticio` | Credencial sandbox |
+| `PAYPAL_CLIENT_SECRET` | `client_secret_ficticio` | Credencial sandbox |
+| `PAYPAL_BASE_URL` | `https://api-m.sandbox.paypal.com` | API PayPal sandbox |
+| `PAYPAL_TIPO_CAMBIO_BOB_USD` | `6.96` | Bs. por 1 USD |
+| `COMPROBANTE_MAX_MB` | `2` | Límite de comprobantes |
+| `ENVIO_COSTO` | `15` | Costo de envío en Bs. |
+| `ENVIO_GRATIS_DESDE` | `200` | Umbral de envío gratis |
+| `COBRO_BANCO` | `Banco Demo Académico` | Datos de cobro simulados |
+| `COBRO_TITULAR` | `NubaGlow Simulación` | Titular simulado |
+| `COBRO_CUENTA` | `0000000000` | Cuenta simulada |
+| `COBRO_REFERENCIA_QR` | `NB-QR-DEMO-2026` | Referencia QR simulada |
+| `WHATSAPP_NUMERO` | `59170000000` | Número público ficticio |
+| `TELEGRAM_BOT_TOKEN` | `token_ficticio` | Bot de alertas |
+| `TELEGRAM_CHAT_ID` | `chat_ficticio` | Chat de operaciones |
+| `GEMINI_API_KEY` | `clave_ficticia` | Clave del asistente IA |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Modelo Gemini |
 
 ---
 
-## 4. Ejecución del Servidor
+## 4. Base de datos
+
+El esquema implementa **21 tablas reales**: las 18 tablas mínimas solicitadas y
+tres tablas de soporte (`pago_eventos`, `comprobantes_pago` y `entregas`). El
+esquema versionado está en `backend/src/db/schema.sql`.
+
+### Diagrama entidad-relación
+
+```mermaid
+erDiagram
+    usuarios ||--o{ carritos : posee
+    usuarios ||--o{ resenas : escribe
+    usuarios ||--o{ pedidos : realiza
+    usuarios ||--o{ ventas_pos : registra
+    usuarios ||--o{ movimientos_inventario : responsable
+    usuarios ||--o{ auditoria : ejecuta
+    usuarios ||--o{ pago_eventos : registra
+    usuarios ||--o{ comprobantes_pago : sube
+    usuarios ||--o{ entregas : cierra
+
+    categorias ||--o{ productos : clasifica
+    productos ||--o{ variantes : contiene
+    productos ||--o{ imagenes_producto : muestra
+    productos ||--o{ resenas : recibe
+
+    carritos ||--o{ carrito_items : contiene
+    variantes ||--o{ carrito_items : agregado
+
+    pedidos ||--o{ pedido_items : contiene
+    variantes ||--o{ pedido_items : vendido
+    pedidos ||--o{ pagos : genera
+    pagos ||--o{ pago_eventos : historial
+    pagos ||--o{ comprobantes_pago : adjunta
+    pedidos ||--o{ envios : despacha
+    envios ||--o{ envio_eventos : historial
+    pedidos ||--o| entregas : cierra
+    envios ||--o| entregas : confirma
+    pedidos ||--o{ facturas : factura
+    pedidos ||--o{ notificaciones : notifica
+
+    ventas_pos ||--o| facturas : emite
+    variantes ||--o{ movimientos_inventario : mueve
+    pedidos ||--o{ movimientos_inventario : referencia
+
+    usuarios {
+        int id PK
+        string nombre
+        string email UK
+        string celular
+        string password_hash
+        string rol
+        boolean activo
+    }
+    categorias {
+        int id PK
+        string nombre
+        string slug UK
+        string descripcion
+    }
+    productos {
+        int id PK
+        int categoria_id FK
+        string nombre
+        string slug UK
+        string marca
+        string tipo_piel
+        boolean activo
+    }
+    variantes {
+        int id PK
+        int producto_id FK
+        string sku UK
+        numeric precio
+        int stock
+        int punto_reorden
+        boolean activo
+    }
+    imagenes_producto {
+        int id PK
+        int producto_id FK
+        string url
+        boolean es_principal
+        int orden
+    }
+    resenas {
+        int id PK
+        int producto_id FK
+        int usuario_id FK
+        int calificacion
+        string comentario
+    }
+    carritos {
+        int id PK
+        int usuario_id FK
+    }
+    carrito_items {
+        int id PK
+        int carrito_id FK
+        int variante_id FK
+        int cantidad
+    }
+    pedidos {
+        int id PK
+        int usuario_id FK
+        string codigo_rastreo UK
+        numeric total
+        string estado
+        string nombre_cliente
+        string celular_cliente
+        string correo_cliente
+        string ciudad
+        string direccion
+        timestamp cancelado_at
+    }
+    pedido_items {
+        int id PK
+        int pedido_id FK
+        int variante_id FK
+        int cantidad
+        numeric subtotal
+    }
+    pagos {
+        int id PK
+        int pedido_id FK
+        string metodo
+        numeric monto
+        string estado
+        string referencia_externa
+        timestamp fecha_vencimiento
+    }
+    pago_eventos {
+        int id PK
+        int pago_id FK
+        string estado_anterior
+        string estado_nuevo
+        int usuario_id FK
+    }
+    comprobantes_pago {
+        int id PK
+        int pago_id FK
+        string nombre_archivo
+        string url
+        string mime_type
+        int subido_por FK
+    }
+    envios {
+        int id PK
+        int pedido_id FK
+        string codigo_rastreo UK
+        string estado
+        string transportista
+        int preparado_por FK
+        int empacado_por FK
+        int despachado_por FK
+        int entregado_por FK
+    }
+    envio_eventos {
+        int id PK
+        int envio_id FK
+        string estado
+        string descripcion
+        int usuario_id FK
+    }
+    entregas {
+        int id PK
+        int pedido_id FK
+        int envio_id FK
+        string receptor
+        date fecha_entrega
+        time hora_entrega
+        string nota
+        int usuario_id FK
+    }
+    ventas_pos {
+        int id PK
+        int vendedor_id FK
+        string numero_ticket UK
+        numeric subtotal
+        numeric total
+        string metodo_pago
+        string cliente_correo
+        jsonb detalle
+    }
+    facturas {
+        int id PK
+        int pedido_id FK
+        int venta_pos_id FK
+        string numero_factura UK
+        string tipo
+        numeric monto_total
+        boolean es_simulacion
+    }
+    movimientos_inventario {
+        int id PK
+        int variante_id FK
+        string tipo
+        int cantidad
+        int stock_anterior
+        int stock_nuevo
+        string motivo
+        int usuario_id FK
+        int pedido_id FK
+    }
+    auditoria {
+        int id PK
+        int usuario_id FK
+        string accion
+        string tabla_afectada
+        int registro_id
+        jsonb detalles
+        timestamp creado_en
+    }
+    notificaciones {
+        int id PK
+        int pedido_id FK
+        string canal
+        string destinatario
+        string asunto
+        string cuerpo
+        string estado
+    }
+```
+
+Las operaciones de compra, POS, cancelación y cierre de entrega usan
+transacciones (`BEGIN` / `COMMIT` / `ROLLBACK`), bloqueo `FOR UPDATE` cuando hay
+stock involucrado y movimientos de Kardex para conservar trazabilidad.
+
+---
+
+## 5. Endpoints REST
+
+Todas las respuestas usan JSON estructurado. Las rutas `/api/staff/*` también
+validan el rol en el servidor; no dependen del sidebar.
+
+### 5.1. Salud, configuración y autenticación
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `/api/salud` | público | Estado del servidor y conexión a PostgreSQL |
+| GET | `/api/salud/protegida` | autenticado | Comprobación de sesión |
+| GET | `/api/salud/solo-admin` | admin | Comprobación de RBAC de administrador |
+| GET | `/api/config` | público | WhatsApp y modos de pago públicos |
+| POST | `/api/auth/register` | público | Registro de cliente; fuerza `rol = cliente` |
+| POST | `/api/auth/registro` | público | Alias de registro |
+| POST | `/api/auth/login` | público | Login de clientes |
+| POST | `/api/auth/staff-login` | público | Login de personal interno |
+| POST | `/api/auth/refresh` | público | Renueva el access token |
+| POST | `/api/auth/logout` | público | Cierra sesión y limpia cookies |
+| GET | `/api/auth/sesion` | público | Devuelve usuario o `null` |
+| GET | `/api/auth/session` | público | Alias de sesión |
+| GET | `/api/auth/perfil` | autenticado | Perfil del usuario |
+| GET | `/api/auth/me` | autenticado | Alias de perfil |
+
+### 5.2. Catálogo
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `/api/categorias` | público | Categorías con conteo de productos |
+| GET | `/api/categorias/:slug` | público | Detalle de categoría |
+| POST | `/api/categorias` | admin | Crea categoría |
+| PUT | `/api/categorias/:id` | admin | Edita categoría |
+| DELETE | `/api/categorias/:id` | admin | Elimina si no tiene productos |
+| GET | `/api/productos` | público | Catálogo con filtros, búsqueda y paginación |
+| GET | `/api/productos/:slug` | público | Ficha con variantes, imágenes y reseñas |
+| POST | `/api/productos` | admin | Crea producto |
+| PUT | `/api/productos/:id` | admin | Edita producto y audita estado |
+| DELETE | `/api/productos/:id` | admin | Elimina o desactiva con historial |
+| GET | `/api/productos/:productoId/variantes` | público | Variantes disponibles |
+| POST | `/api/productos/:productoId/variantes` | admin | Crea variante |
+| PUT | `/api/variantes/:id` | admin | Edita precio, stock o estado |
+| DELETE | `/api/variantes/:id` | admin | Elimina o desactiva variante |
+| GET | `/api/productos/:productoId/imagenes` | público | Galería del producto |
+| POST | `/api/productos/:productoId/imagenes` | admin | Agrega imagen por URL |
+| PUT | `/api/productos/:productoId/imagenes/:imagenId` | admin | Edita imagen |
+| DELETE | `/api/productos/:productoId/imagenes/:imagenId` | admin | Elimina imagen |
+| POST | `/api/staff/productos/:id/imagen` | admin | Sube JPG/PNG/WEBP real |
+
+### 5.3. Compra, pedidos y pagos
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `/api/carrito` | cliente | Carrito persistente |
+| POST | `/api/carrito/items` | cliente | Agrega ítem con stock validado |
+| PATCH | `/api/carrito/items/:itemId` | cliente | Cambia cantidad |
+| DELETE | `/api/carrito/items/:itemId` | cliente | Quita ítem |
+| DELETE | `/api/carrito` | cliente | Vacía carrito |
+| POST | `/api/pedidos/cotizar` | cliente | Cotiza envío y total server-side |
+| POST | `/api/pedidos` | cliente | Checkout atómico con stock y pago |
+| POST | `/api/pedidos/:id/comprobante` | cliente | Sube comprobante QR/depósito |
+| GET | `/api/comprobantes/:id` | dueño/staff autorizado | Descarga comprobante validado |
+| GET | `/api/pedidos` | autenticado | Historial propio o global |
+| GET | `/api/pedidos/mis-pedidos` | autenticado | Alias de historial |
+| GET | `/api/pedidos/codigo/:codigo` | cliente | Detalle por rastreo |
+| GET | `/api/pedidos/:codigo/comprobante-pdf` | dueño/vendedor/admin | PDF del pedido |
+| GET | `/api/pedidos/:id` | autenticado | Detalle por ID |
+| GET | `/api/pagos/datos-cobro` | cliente | Datos QR/bancarios simulados |
+| POST | `/api/pagos/paypal/crear` | cliente | Crea orden sandbox server-side |
+| POST | `/api/pagos/paypal/capturar` | cliente | Captura y valida monto/moneda |
+| POST | `/api/pagos/paypal/simulado/aprobar` | cliente | Simulación solo en desarrollo |
+| GET | `/api/envios/rastreo/:codigo` | público | Rastreo con datos anonimizados |
+| PATCH | `/api/envios/:id/estado` | almacén/logística/admin | Avanza estado de envío |
+| GET | `/api/resenas/producto/:productoId` | público | Reseñas y promedio |
+| POST | `/api/resenas` | cliente | Reseña verificada |
+
+### 5.4. POS, inventario y reportes
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| POST | `/api/pos` | vendedor/admin | Venta atómica en mostrador |
+| GET | `/api/pos/historial` | vendedor/admin | Historial filtrable por fecha |
+| GET | `/api/pos/cierre-caja` | vendedor/admin | Cierre diario de caja |
+| GET | `/api/pos/ventas/:id/comprobante-pdf` | vendedor/admin | Comprobante POS |
+| GET | `/api/inventario` | almacén/admin | Stock y alertas |
+| POST | `/api/inventario/ajustes/:varianteId` | almacén/admin | Entrada o ajuste con Kardex |
+| GET | `/api/inventario/kardex/:varianteId` | almacén/admin | Movimientos de una variante |
+| GET | `/api/inventario/despachos` | almacén/admin | Cola de preparación |
+| GET | `/api/staff/almacen/inventario` | almacén/admin | Alias de inventario |
+| POST | `/api/staff/almacen/inventario/ajustes/:varianteId` | almacén/admin | Alias de ajuste |
+| GET | `/api/staff/almacen/inventario/kardex/:varianteId` | almacén/admin | Alias de Kardex |
+| GET | `/api/staff/almacen/despachos` | almacén/admin | Alias de preparación |
+| PATCH | `/api/staff/almacen/envios/:id/estado` | almacén/admin | Preparar/empacar |
+| GET | `/api/staff/logistica/despachos` | logística/admin | Cola de despacho |
+| PATCH | `/api/staff/logistica/envios/:id/estado` | logística/admin | Tránsito/entrega |
+| POST | `/api/staff/logistica/envios/:id/entrega` | logística/admin | Acta de entrega |
+| GET | `/api/reportes/web-vs-pos` | admin | Comparativo web vs POS |
+| GET | `/api/reportes/ingresos-diarios` | admin | Ingresos por día |
+| GET | `/api/reportes/ranking` | admin | Ranking web + POS |
+| GET | `/api/reportes/auditoria/opciones` | admin | Filtros disponibles |
+| GET | `/api/reportes/auditoria` | admin | Visor paginado de auditoría |
+
+### 5.5. Administración y asistente
+
+| Método | Ruta | Rol | Descripción |
+|---|---|---|---|
+| GET | `/api/usuarios` | admin | Lista de personal interno |
+| POST | `/api/usuarios` | admin | Crea cuenta interna |
+| PUT | `/api/usuarios/:id` | admin | Cambia rol o acceso |
+| PATCH | `/api/usuarios/:id/password` | admin | Restablece contraseña |
+| GET | `/api/staff/pagos` | vendedor/admin | Cola de pagos en verificación |
+| GET | `/api/staff/pagos/:id` | vendedor/admin | Detalle de pago |
+| PATCH | `/api/staff/pagos/:id/aprobar` | vendedor/admin | Aprueba pago |
+| PATCH | `/api/staff/pagos/:id/rechazar` | vendedor/admin | Rechaza con motivo |
+| POST | `/api/staff/pagos/vencidos/cancelar` | admin | Cancela vencidos |
+| POST | `/api/staff/pedidos/:id/cancelar` | admin | Cancela y repone stock |
+| POST | `/api/asistente` | público | Asistente IA con grounding y fallback |
+
+---
+
+## 6. Qué es real y qué es simulado
+
+| Componente | Estado |
+|---|---|
+| PostgreSQL/Supabase, JWT, bcrypt, RBAC y auditoría | Real |
+| Transacciones de stock, pedidos, POS y Kardex | Real |
+| Comprobantes PDF y envío SMTP | Real si SMTP está configurado |
+| Telegram | Real si el bot y chat están configurados |
+| WhatsApp | Enlace `wa.me` con mensaje prellenado, sin API Business |
+| QR y depósito bancario | Simulación académica con verificación manual |
+| PayPal | Sandbox server-side; montos y moneda validados en backend |
+| Gemini | Real si la clave y el modelo están disponibles; fallback local |
+| Datos de cobro, cuentas y número de WhatsApp de ejemplo | Ficticios |
+| Comprobantes y facturas | Académicos, sin valor fiscal |
+
+El asistente devuelve `modoBasico: true` si Gemini no está configurado, falla la
+red o se agota la cuota. En ese caso responde con reglas locales y productos
+reales con stock. Nunca expone claves al navegador.
+
+---
+
+## 7. Preparación para Render + Supabase
+
+### Build y arranque
 
 ```bash
-# Modo desarrollo con recarga automatica (ts-node-dev)
-npm run dev
-
-# Compilar TypeScript a JavaScript de produccion
 npm run build
-
-# Iniciar en modo produccion
 npm start
 ```
 
-El servidor estará escuchando en `http://localhost:3000`.
+En Render se recomienda:
+
+- **Build command:** `npm run backend:install && npm run build`
+- **Start command:** `npm start`
+- Variables de entorno cargadas desde el panel de Render, nunca desde git.
+- Ejecutar una sola vez en la consola del servicio: `npm run db:migrate`,
+  `npm run db:seed`, `npm run db:imagenes` y `npm run demo:preparar`.
+
+El servidor compilado sirve la API, `/css`, `/js`, `/assets`, `/favicon.ico`,
+las rutas SPA y el fallback de `index.html`. Las rutas `/api/*` no caen en el
+fallback y los archivos inexistentes responden `404`, no HTML.
+
+### Verificación de producción
+
+Se verificó con `NODE_ENV=production`:
+
+- `/`, `/catalogo` y `/staff/login` devuelven HTML.
+- `/api/salud` y los endpoints de API responden JSON.
+- `/assets/images/*` responde `200` con MIME de imagen.
+- `/api/noexiste` y `/js/noexiste.js` responden `404`.
+- CORS acepta `https://nubaglow-app.onrender.com` y bloquea orígenes ajenos.
+- Helmet entrega CSP, HSTS y `X-Content-Type-Options: nosniff`.
+- Las cookies de autenticación en producción son `HttpOnly`, `Secure` y
+  `SameSite=Strict`.
+- `/staff/dashboard` sin sesión redirige a `/staff/login`.
+
+### Demo oral
+
+```bash
+npm run demo:preparar
+```
+
+El script es idempotente. Asegura que los 32 productos reales estén activos, con
+imagen principal real y al menos 10 unidades de stock. Cualquier reposición se
+registra como movimiento de Kardex y no elimina pedidos, ventas ni historiales.
 
 ---
 
-## 5. Pruebas Automatizadas
-
-El backend cuenta con suites de pruebas unitarias y de integración end-to-end con cobertura completa de flujos de negocio, transacciones atómicas y restricciones RBAC:
+## 8. Pruebas y auditoría
 
 ```bash
-# Ejecutar suite Bloque A (Base del servidor, seguridad y middlewares RBAC) - 13 pruebas
-npm run test:bloque-a
-
-# Ejecutar suite Bloque B (Autenticacion, segregacion de portales y catalogo) - 36 pruebas
-npm run test:bloque-b
-
-# Ejecutar suite Bloque C (Carrito persistente, pedidos atomicos, rastreo y resenas) - 36 pruebas
-npm run test:bloque-c
-
-# Ejecutar suite Bloque D (POS, facturacion, inventario, reportes y auditoria) - 110 pruebas
-npm run test:bloque-d
-
-# Verificar que el costo y el umbral de envio se leen de ENVIO_COSTO / ENVIO_GRATIS_DESDE
-npm run test:envio
-
-# Probar la carga del comprobante de pago QR/deposito (requiere BD)
-npm run test:comprobante
-
-# Probar PayPal en modo simulado (crear, aprobar, capturar e idempotencia)
-npm run test:paypal
-
-# Probar el asistente IA (Zod, grounding, fallback y rate limit)
-npm run test:asistente
-
-# Ejecutar todas las suites secuencialmente
 npm run test:todos
+npx tsc --noEmit
+```
+
+Suites principales:
+
+- Bloque A: 13 pruebas.
+- Bloque B: 42 pruebas.
+- Bloque C: 53 pruebas.
+- Bloque D: 110 pruebas.
+- Notificaciones: 20 pruebas.
+- Frontend: 63 pruebas.
+
+La suite `test:todos` también cubre seguridad, comprobantes, PayPal,
+notificaciones, PDF y asistente IA. El frontend se verifica con `node --check`
+sobre los módulos y con recorrido HTTP del grafo de imports.
+
+### Resultado de `npm audit`
+
+El 20 de noviembre de 2026, `npm audit` en `backend/` reportó:
+
+- **0 vulnerabilidades críticas.**
+- **1 vulnerabilidad alta** en `zod@3.24.1` por consumo de memoria con
+  colecciones sobredimensionadas (`GHSA-mrhx-c7xc-m3w5`).
+- La corrección disponible es `zod@4.6.7`, un cambio mayor. Se mantiene la
+  versión actual porque la API, los límites de body y el rate limiting reducen
+  el vector; la migración a Zod 4 queda como tarea posterior controlada.
+
+No se dejan vulnerabilidades críticas abiertas en dependencias controlables.
+
+---
+
+## 9. Estructura del proyecto
+
+```text
+backend/
+  src/
+    config/         Configuración de envío, PayPal y comprobantes
+    controllers/    Adaptadores HTTP
+    db/             Conexión, esquema, seed, imágenes y demo
+    middlewares/    Auth, RBAC, Zod, CSRF, errores y rate limiting
+    routes/         Definición de la API
+    schemas/        Validación Zod
+    services/       Reglas de negocio y transacciones
+    tests/          Suites automatizadas
+assets/
+  brand/            Logo e iconos oficiales
+  images/           Fotografías reales del catálogo
+css/                Estilos y paleta NubaGlow
+js/
+  core/             API, sesión, carrito y helpers DOM
+  layouts/          Layouts público, auth, staff y asistente
+  vistas/           Vistas públicas y del portal interno
+docs/postman/       Colección y entorno de Postman
 ```
 
 ---
 
-## 6. Documentación Exhaustiva de Endpoints de la API
+## 10. Colección Postman
 
-Todos los endpoints responden en formato JSON estructurado y siguen las convenciones REST en español.
-
-### Roles del Sistema (RBAC)
-- **`público`**: Sin autenticación requerida.
-- **`cliente`**: Usuario registrado desde la tienda virtual.
-- **`vendedor`**: Personal de mostrador en tienda física (POS).
-- **`operaciones`**: Personal de almacén, logística e inventario.
-- **`admin`**: Administrador del sistema con privilegios gerenciales completos.
+La carpeta `docs/postman/` contiene la colección y el entorno de pruebas. Las
+variables de credenciales se completan localmente y nunca se versionan. La
+colección incluye assertions para respuestas exitosas, autenticación, RBAC y
+casos negativos.
 
 ---
 
-### 6.1. Diagnóstico y Salud
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición |
-|---|---|---|---|---|
-| `GET` | `/api/salud` | `público` | Verifica estado del servidor, versión y conexión a BD | `GET http://localhost:3000/api/salud` |
-
----
-
-### 6.2. Autenticación y Sesiones
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `POST` | `/api/auth/register` | `público` | Registro público. Fuerza siempre `rol = 'cliente'`; `celular` es opcional y debe ser un móvil boliviano válido | `POST /api/auth/register`<br>`{"nombre": "Carla Mendez", "email": "carla@ejemplo.com", "celular": "72860307", "password": "Password123!"}` |
-| `POST` | `/api/auth/login` | `público` | Login de clientes. Rechaza personal de staff con mensaje genérico anti-enumeración | `POST /api/auth/login`<br>`{"email": "cliente@nubaglow.bo", "password": "Password123!"}` |
-| `POST` | `/api/auth/staff-login` | `público` | Login de personal interno (vendedor, operaciones, admin). Rechaza clientes y audita `LOGIN_STAFF` | `POST /api/auth/staff-login`<br>`{"email": "vendedor@nubaglow.bo", "password": "Password123!"}` |
-| `POST` | `/api/auth/refresh` | `público` | Renueva Access Token usando la cookie HttpOnly `refresh_token` | `POST /api/auth/refresh` |
-| `POST` | `/api/auth/logout` | `público` | Cierra sesión y revoca cookies HttpOnly | `POST /api/auth/logout` |
-| `GET` | `/api/auth/perfil` | `autenticado` | Retorna los datos del usuario en sesión | `GET /api/auth/perfil`<br>`Header: Authorization: Bearer <token>` |
-
----
-
-### 6.3. Catálogo: Categorías
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `GET` | `/api/categorias` | `público` | Listado general de categorías con conteo de productos | `GET /api/categorias` |
-| `GET` | `/api/categorias/:slug` | `público` | Detalle de categoría por slug | `GET /api/categorias/serums` |
-| `POST` | `/api/categorias` | `admin` | Crea una nueva categoría | `POST /api/categorias`<br>`{"nombre": "Mascarillas", "slug": "mascarillas", "descripcion": "Tratamientos intensivos"}` |
-| `PUT` | `/api/categorias/:id` | `admin` | Actualiza nombre o descripción de categoría | `PUT /api/categorias/1`<br>`{"nombre": "Limpiadores Faciales"}` |
-| `DELETE` | `/api/categorias/:id` | `admin` | Elimina categoría (rechazado si tiene productos por `ON DELETE RESTRICT`) | `DELETE /api/categorias/1` |
-
----
-
-### 6.4. Catálogo: Productos
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `GET` | `/api/productos` | `público` | Listado con búsqueda (`q`), filtros combinables (`categoría`, `tipo_piel`, `precio_min`, `precio_max`), orden y paginación | `GET /api/productos?categoria=serums&tipo_piel=Seca&precio_min=50&precio_max=200&orden=precio_asc&pagina=1&limite=10` |
-| `GET` | `/api/productos/:slug` | `público` | Detalle completo de producto por slug con variantes, imágenes y promedio de reseñas | `GET /api/productos/serum-acido-hialuronico-multi-molecular-b5` |
-| `POST` | `/api/productos` | `admin` | Crea producto maestro con validación Zod | `POST /api/productos`<br>`{"categoria_id": 1, "nombre": "Gel Limpiador Suave", "slug": "gel-limpiador-suave", "marca": "NubaGlow", "tipo_piel": "Sensible", "descripcion": "...", "ingredientes": "...", "modo_uso": "..."}` |
-| `PUT` | `/api/productos/:id` | `admin` | Actualiza información del producto | `PUT /api/productos/1`<br>`{"nombre": "Serum Acido Hialuronico Pro Edition"}` |
-| `DELETE` | `/api/productos/:id` | `admin` | Elimina producto | `DELETE /api/productos/1` |
-
----
-
-### 6.5. Catálogo: Variantes
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `GET` | `/api/productos/:productoId/variantes` | `público` | Lista variantes de un producto con stock y precio | `GET /api/productos/1/variantes` |
-| `POST` | `/api/productos/:productoId/variantes` | `admin` | Crea variante con SKU único | `POST /api/productos/1/variantes`<br>`{"sku": "NB-SERUM-100ML", "nombre": "Presentacion 100ml", "precio": 140.00, "stock": 20, "punto_reorden": 5}` |
-| `PUT` | `/api/variantes/:id` | `admin` | Modifica precio, stock o estado. Audita `CAMBIO_PRECIO`, `CAMBIO_ESTADO_VARIANTE` y registra el ajuste de stock en el Kardex | `PUT /api/variantes/1`<br>`{"precio": 150.00, "stock": 25}` |
-| `DELETE` | `/api/variantes/:id` | `admin` | Elimina variante si no tiene historial de ventas | `DELETE /api/variantes/1` |
-
-### 6.5.1. Catálogo: Imágenes de producto
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `GET` | `/api/productos/:productoId/imagenes` | `público` | Lista las imágenes y marca la principal | `GET /api/productos/1/imagenes` |
-| `POST` | `/api/productos/:productoId/imagenes` | `admin` | Agrega una imagen. Garantiza una sola principal. Audita `CREAR_IMAGEN_PRODUCTO` | `POST /api/productos/1/imagenes`<br>`{"url": "/assets/brand/icono1.png", "es_principal": true, "orden": 0}` |
-| `PUT` | `/api/productos/:productoId/imagenes/:imagenId` | `admin` | Edita URL, orden o imagen principal. Audita `ACTUALIZAR_IMAGEN_PRODUCTO` | `PUT /api/productos/1/imagenes/3`<br>`{"orden": 1, "es_principal": false}` |
-| `DELETE` | `/api/productos/:productoId/imagenes/:imagenId` | `admin` | Elimina una imagen y promueve otra como principal. Audita `ELIMINAR_IMAGEN_PRODUCTO` | `DELETE /api/productos/1/imagenes/3` |
-| `POST` | `/api/staff/productos/:id/imagen` | `admin` | Sube un archivo JPG, PNG o WEBP de hasta 3 MB, valida magic bytes, lo guarda en `assets/images/` con nombre basado en el slug y lo registra como principal o adicional | `POST /api/staff/productos/1/imagen`<br>`Content-Type: image/webp`<br>`(cuerpo binario)` |
-
----
-
-### 6.6. Compra: Carrito Persistente
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `GET` | `/api/carrito` | `cliente` | Consulta el carrito activo del cliente con subtotales calculados | `GET /api/carrito` |
-| `POST` | `/api/carrito/items` | `cliente` | Agrega ítem validando stock disponible en BD | `POST /api/carrito/items`<br>`{"variante_id": 1, "cantidad": 2}` |
-| `PATCH` | `/api/carrito/items/:itemId` | `cliente` | Modifica cantidad del ítem sin exceder stock | `PATCH /api/carrito/items/5`<br>`{"cantidad": 3}` |
-| `DELETE` | `/api/carrito/items/:itemId` | `cliente` | Quita un artículo del carrito | `DELETE /api/carrito/items/5` |
-| `DELETE` | `/api/carrito` | `cliente` | Vacía el carrito por completo | `DELETE /api/carrito` |
-
----
-
-### 6.7. Compra: Pedidos y Checkout
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `POST` | `/api/pedidos/cotizar` | `cliente` | Cotiza subtotal, costo de envío y total desde la BD (ignora precios del cliente). El envío usa `ENVIO_COSTO` y `ENVIO_GRATIS_DESDE`. | `POST /api/pedidos/cotizar`<br>`{"ciudad": "Sucre", "items": [{"variante_id": 1, "cantidad": 2}]}` |
-| `POST` | `/api/pedidos` | `cliente` | Checkout atómico en 1 sola transacción (`SELECT ... FOR UPDATE`, descuenta stock, Kardex, genera `NB-2026-XXXX`, pago, envío inicial 'Pendiente', vacía carrito) | `POST /api/pedidos`<br>`{"nombre_completo": "Mariana Gomez", "celular": "71234567", "correo": "mariana@ejemplo.com", "ciudad": "Sucre", "direccion": "Calle Nicolas Ortiz 45", "metodo_pago": "qr_simple", "notas": "Entregar en porteria"}` |
-| `POST` | `/api/pedidos/:id/comprobante` | `cliente` | Sube el comprobante de pago para QR simple o depósito (JPEG, PNG, WebP o PDF, máx. `COMPROBANTE_MAX_MB`, 2 MB por defecto). Exige referencia, fecha no futura y monto pagado. Pasa el pago a `En verificación` y audita. | `POST /api/pedidos/12/comprobante`<br>`{"nombre_archivo": "comprobante.png", "mime_type": "image/png", "referencia": "OP-123456", "fecha_deposito": "2026-11-19", "monto_pagado": 95, "contenido_base64": "iVBORw0KG..."}` |
-| `GET` | `/api/comprobantes/:id` | Dueño / vendedor / admin | Devuelve el comprobante inline con MIME validado y `X-Content-Type-Options: nosniff`. Almacén y logística reciben `403`. | `GET /api/comprobantes/5` |
-| `POST` | `/api/pagos/paypal/crear` | `cliente` | Crea la orden PayPal para un pedido con método `paypal` y pago `Pendiente`. Convierte Bs. a USD y devuelve `urlAprobacion`. | `POST /api/pagos/paypal/crear`<br>`{"pedido_id": 12}` |
-| `POST` | `/api/pagos/paypal/capturar` | `cliente` | Captura una sola vez la orden aprobada, valida monto/moneda y aprueba el pago. | `POST /api/pagos/paypal/capturar`<br>`{"pedido_id": 12, "orden_id": "SIM-PAYPAL-ABC123"}` |
-| `POST` | `/api/pagos/paypal/simulado/aprobar` | `cliente` | Solo en modo simulado y fuera de producción (`404` en otro caso). Simula la aprobación del comprador. | `POST /api/pagos/paypal/simulado/aprobar`<br>`{"pedido_id": 12, "orden_id": "SIM-PAYPAL-ABC123"}` |
-| `GET` | `/api/pedidos` | `autenticado` | Historial de pedidos (cliente solo ve los suyos; staff ve todos) | `GET /api/pedidos` |
-| `GET` | `/api/pedidos/:id` | `autenticado` | Detalle de pedido (retorna `403` si un cliente intenta ver pedido ajeno) | `GET /api/pedidos/12` |
-
----
-
-### 6.8. Compra: Envíos y Rastreo
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `GET` | `/api/envios/rastreo/:codigo` | `público` | Consulta pública de rastreo con línea de tiempo y datos de destinatario anonimizados (`Ma**** Go****`) | `GET /api/envios/rastreo/NB-2026-0001` |
-| `PATCH` | `/api/envios/:id/estado` | `operaciones`, `admin` | Transición secuencial de estado (`Pendiente` -> `En preparación` -> `En tránsito` -> `Entregado`). Si es contra-entrega y pasa a Entregado, autoliquida pago a 'Aprobado'. Audita `CAMBIAR_ESTADO_ENVIO` | `PATCH /api/envios/1/estado`<br>`{"estado": "En preparación", "descripcion": "Paquete acondicionado en caja protectora"}` |
-
----
-
-### 6.9. Calidad: Reseñas Verificadas
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `GET` | `/api/resenas/producto/:productoId` | `público` | Lista reseñas aprobadas con promedio de calificación y total | `GET /api/resenas/producto/1` |
-| `POST` | `/api/resenas` | `cliente` | Publica reseña (1 a 5 estrellas). Solo permitido si el cliente compró el producto y el pedido fue 'Entregado'. Máximo 1 reseña por producto | `POST /api/resenas`<br>`{"producto_id": 1, "calificacion": 5, "comentario": "Excelente serum, textura ligera y resultados visibles."}` |
-
----
-
-### 6.10. Gestión Interna: Ventas POS (Mostrador)
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `POST` | `/api/pos` | `vendedor`, `admin` | Venta en mostrador en 1 transacción atómica (`FOR UPDATE`, descuenta stock, Kardex, genera factura correlativa). Precios y totales siempre calculados en el servidor. Envía el comprobante PDF al correo si se informa `cliente_correo` | `POST /api/pos`<br>`{"items": [{"variante_id": 1, "cantidad": 2}], "metodo_pago": "Efectivo", "monto_recibido": 200.00, "cliente_nombre": "Carlos Mendoza", "cliente_nit_ci": "5689123", "cliente_correo": "carlos@email.com"}` |
-| `GET` | `/api/pos/historial` | `vendedor`, `admin` | Historial de ventas segregado por vendedor. Acepta `?fecha=YYYY-MM-DD` y agrupa por fecha local de Bolivia | `GET /api/pos/historial?fecha=2026-11-20` |
-| `GET` | `/api/pos/cierre-caja` | `vendedor`, `admin` | Arqueo diario de caja (total ventas, desglose en Efectivo y QR Simple). Acepta `?fecha=YYYY-MM-DD` | `GET /api/pos/cierre-caja?fecha=2026-11-20` |
-| `GET` | `/api/pos/ventas/:id/comprobante-pdf` | `vendedor`, `admin` | Descarga el comprobante PDF de una venta POS. El vendedor solo accede a sus propias ventas; el admin accede a cualquiera | `GET /api/pos/ventas/15/comprobante-pdf` |
-
----
-
-### 6.11. Gestión Interna: Inventario y Kardex
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `GET` | `/api/inventario` | `operaciones`, `admin` | Stock consolidado por variante con indicador `alertaStockBajo` (`stock <= punto_reorden`) | `GET /api/inventario` |
-| `POST` | `/api/inventario/ajustes/:varianteId` | `operaciones`, `admin` | Ingreso o ajuste manual de stock con motivo y responsable obligatorios. Audita `AJUSTE_STOCK` e impide stock negativo | `POST /api/inventario/ajustes/1`<br>`{"tipo": "entrada", "cantidad": 15, "motivo": "Ingreso por reposicion de lote"}` |
-| `GET` | `/api/inventario/kardex/:varianteId` | `operaciones`, `admin` | Historial cronológico de movimientos de inventario (`venta_web`, `venta_pos`, `entrada`, `ajuste`) | `GET /api/inventario/kardex/1` |
-| `GET` | `/api/inventario/despachos` | `operaciones`, `admin` | Cola operativa de pedidos web pendientes de despacho | `GET /api/inventario/despachos` |
-
----
-
-### 6.12. Gestión Interna: Reportes Gerenciales
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición |
-|---|---|---|---|---|
-| `GET` | `/api/reportes/web-vs-pos` | `admin` | Comparativa de rendimiento entre ventas web y ventas mostrador POS (ingresos y porcentajes) | `GET /api/reportes/web-vs-pos` |
-| `GET` | `/api/reportes/ingresos-diarios` | `admin` | Ingresos por día con rango opcional en fecha local de Bolivia | `GET /api/reportes/ingresos-diarios?desde=2026-01-01&hasta=2026-12-31` |
-| `GET` | `/api/reportes/ranking` | `admin` | Top de productos vendidos combinando web y POS, ordenado por unidades e ingresos | `GET /api/reportes/ranking?limite=10` |
-
----
-
-### 6.13. Asistente IA Público
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `POST` | `/api/asistente` | `público` | Consulta el catálogo real con stock, responde con Gemini o con el motor local de reglas y devuelve `respuesta`, `slugsRecomendados`, `productos` y `modoBasico` | `POST /api/asistente`<br>`{"mensaje": "Busco un hidratante para piel seca por menos de 150 Bs", "historial": []}` |
-
-El endpoint aplica Zod, rate limiting por IP/sesión y grounding obligatorio en PostgreSQL. Si `GEMINI_API_KEY` falta, Gemini falla o se agota la cuota, responde `200` con `modoBasico: true`.
-
----
-
-### 6.14. Gestión Interna: Usuarios de Staff y Auditoría
-
-| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
-|---|---|---|---|---|
-| `GET` | `/api/usuarios` | `admin` | Lista usuarios de staff (excluye clientes) | `GET /api/usuarios` |
-| `POST` | `/api/usuarios` | `admin` | Crea cuenta de staff con bcrypt (coste 12). Audita `CREAR_USUARIO` | `POST /api/usuarios`<br>`{"nombre": "Laura Vendedora", "email": "laura@nubaglow.bo", "password": "Password123!", "rol": "vendedor"}` |
-| `PUT` | `/api/usuarios/:id` | `admin` | Modifica rol o estado activo/inactivo. Protegido contra auto-desactivación del admin y contra desactivar al último admin activo. Audita `EDITAR_USUARIO` | `PUT /api/usuarios/2`<br>`{"activo": false}` |
-| `PATCH` | `/api/usuarios/:id/password` | `admin` | Restablece contraseña de staff. Audita `RESTABLECER_PASSWORD` | `PATCH /api/usuarios/2/password`<br>`{"nueva_password": "NuevaPassword123!"}` |
-
----
-
-## 7. Colección Postman
-
-En la carpeta `docs/postman/` se proporcionan los archivos oficiales para pruebas de API:
-
-- `docs/postman/NubaGlow.postman_collection.json`: Colección completa con todos los módulos, assertions automáticos en cada petición y carpeta de casos negativos (401, 403, 404).
-- `docs/postman/NubaGlow.postman_environment.json`: Entorno con variables configurables:
-  - `base_url`: `http://localhost:3000`
-  - `token_admin`, `token_vendedor`, `token_operaciones`, `token_cliente`
-  - `password_admin`, `password_vendedor`, `password_operaciones`, `password_cliente`
-
-> **Importante:** Ninguna contraseña está hardcodeada en la colección. Las variables de credenciales deben ser completadas localmente en Postman al ejecutar las pruebas.
+Proyecto académico — NubaGlow / Nuba Beauty, Sucre, Bolivia.
