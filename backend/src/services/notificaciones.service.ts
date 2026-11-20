@@ -10,15 +10,24 @@
 
 import nodemailer from 'nodemailer';
 import { consultar } from '../db';
+import { urlAplicacion } from '../config/paypal';
+import { comprobantePdfService } from './comprobantePdf.service';
 
 export type EstadoNotificacion = 'enviada' | 'fallida' | 'omitida';
 export type CanalNotificacion = 'correo' | 'telegram';
+
+export interface AdjuntoCorreo {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}
 
 export interface DatosCorreo {
   pedidoId?: number | null;
   destinatario: string;
   asunto: string;
   cuerpo: string;
+  adjuntos?: AdjuntoCorreo[];
 }
 
 export interface DatosTelegram {
@@ -83,6 +92,97 @@ function mensajeError(error: unknown): string {
   return String(error || 'Error desconocido');
 }
 
+const ETIQUETAS_METODO: Record<string, string> = {
+  qr_simple: 'QR simple',
+  qr: 'QR simple',
+  deposito_bancario: 'Depósito bancario',
+  paypal: 'PayPal',
+  contra_entrega: 'Contra entrega'
+};
+
+function formatearBsNotificacion(valor: number): string {
+  const numero = Number(valor);
+  return `Bs. ${new Intl.NumberFormat('es-BO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(Number.isFinite(numero) ? numero : 0)}`;
+}
+
+function instruccionesPago(metodo: string): string {
+  if (metodo === 'qr_simple' || metodo === 'qr') {
+    return (
+      'Escanea el QR desde la página del pedido y sube el ' +
+      'comprobante de pago.'
+    );
+  }
+  if (metodo === 'deposito_bancario') {
+    return (
+      'Realiza el depósito bancario y sube el comprobante desde ' +
+      'la página del pedido.'
+    );
+  }
+  if (metodo === 'paypal') {
+    return (
+      'Completa el pago con PayPal desde el botón Pagar con PayPal ' +
+      'en la página del pedido.'
+    );
+  }
+  if (metodo === 'contra_entrega') {
+    return 'El pago se realiza en efectivo al recibir el pedido en Sucre.';
+  }
+  return 'Revisa las instrucciones de pago en la página del pedido.';
+}
+
+function crearCuerpoCorreo(pedido: any): string {
+  const metodo = pedido.pago?.metodo || '';
+  const etiqueta = ETIQUETAS_METODO[metodo] || 'Sin pago registrado';
+  const items = Array.isArray(pedido.items) ? pedido.items : [];
+  const lineasItems = items.map((item: any) =>
+    `- ${item.productoNombre} · ${item.varianteNombre}: ` +
+    `${item.cantidad} x ${formatearBsNotificacion(item.precioUnitario)} ` +
+    `= ${formatearBsNotificacion(item.subtotal)}`
+  );
+  const rutaPedido =
+    `${urlAplicacion()}/pedido/` +
+    encodeURIComponent(String(pedido.codigoRastreo));
+
+  return [
+    `Hola ${pedido.nombreCliente},`,
+    '',
+    'Gracias por comprar en NubaGlow. Tu pedido fue confirmado.',
+    `Código de rastreo: ${pedido.codigoRastreo}`,
+    '',
+    'Resumen del pedido:',
+    ...lineasItems,
+    '',
+    `Subtotal: ${formatearBsNotificacion(pedido.subtotal)}`,
+    `Envío: ${formatearBsNotificacion(pedido.costoEnvio)}`,
+    `Total: ${formatearBsNotificacion(pedido.total)}`,
+    '',
+    `Método de pago: ${etiqueta}`,
+    `Estado del pago: ${pedido.pago?.estado || 'Sin pago registrado'}`,
+    '',
+    `Instrucciones: ${instruccionesPago(metodo)}`,
+    `Puedes revisar tu pedido en: ${rutaPedido}`,
+    '',
+    'Adjuntamos tu comprobante en PDF.',
+    'NubaGlow · Sucre, Bolivia'
+  ].join('\n');
+}
+
+function crearCuerpoTelegram(pedido: any): string {
+  const metodo = pedido.pago?.metodo || '';
+  const etiqueta = ETIQUETAS_METODO[metodo] || 'Sin pago registrado';
+
+  return [
+    `NubaGlow: nuevo pedido ${pedido.codigoRastreo}`,
+    `Total: ${formatearBsNotificacion(pedido.total)}`,
+    `Método de pago: ${etiqueta}`,
+    `Ciudad: ${pedido.ciudad}`,
+    `Estado del pago: ${pedido.pago?.estado || 'Sin pago registrado'}`
+  ].join('\n');
+}
+
 async function registrarNotificacion(registro: {
   pedidoId?: number | null;
   canal: CanalNotificacion;
@@ -137,7 +237,12 @@ export function crearEnviadorCorreo(): EnviadorCorreo | null {
       from: config.from,
       to: datos.destinatario,
       subject: datos.asunto,
-      text: datos.cuerpo
+      text: datos.cuerpo,
+      attachments: (datos.adjuntos || []).map((adjunto) => ({
+        filename: adjunto.filename,
+        content: adjunto.content,
+        contentType: adjunto.contentType
+      }))
     });
   };
 }
@@ -292,27 +397,41 @@ export class NotificacionesService {
   }
 
   async notificarPedido(pedido: any): Promise<ResultadoNotificacionPedido> {
-    const asunto = `Pedido ${pedido.codigoRastreo} confirmado`;
-    const cuerpo = [
-      `Nuevo pedido ${pedido.codigoRastreo}`,
-      `Cliente: ${pedido.nombreCliente}`,
-      `Correo: ${pedido.correoCliente}`,
-      `Celular: ${pedido.celularCliente}`,
-      `Ciudad: ${pedido.ciudad}`,
-      `Direccion: ${pedido.direccion}`,
-      `Total: Bs. ${Number(pedido.total).toFixed(2)}`,
-      `Metodo de pago: ${pedido.pago?.metodo || 'sin pago'}`,
-      `Estado del pago: ${pedido.pago?.estado || 'sin pago'}`
-    ].join('\n');
+    const asunto = `NubaGlow: pedido ${pedido.codigoRastreo} confirmado`;
+    const cuerpoCorreo = crearCuerpoCorreo(pedido);
+    const cuerpoTelegram = crearCuerpoTelegram(pedido);
+
+    let adjuntos: AdjuntoCorreo[] = [];
+
+    try {
+      const comprobante = await comprobantePdfService.generar(pedido);
+      adjuntos = [
+        {
+          filename: comprobante.nombreArchivo,
+          content: comprobante.buffer,
+          contentType: 'application/pdf'
+        }
+      ];
+    } catch (error) {
+      console.error(
+        'No se pudo generar el comprobante PDF adjunto:',
+        mensajeError(error)
+      );
+    }
 
     const [correo, telegram] = await Promise.all([
       this.enviarCorreo({
         pedidoId: pedido.id,
         destinatario: pedido.correoCliente,
         asunto,
-        cuerpo
+        cuerpo: cuerpoCorreo,
+        adjuntos
       }),
-      this.enviarTelegram({ pedidoId: pedido.id, asunto, cuerpo })
+      this.enviarTelegram({
+        pedidoId: pedido.id,
+        asunto,
+        cuerpo: cuerpoTelegram
+      })
     ]);
 
     return { correo, telegram };

@@ -84,6 +84,36 @@ PayPal no opera con bolivianos. El servidor toma el total del pedido en Bs., lo 
 - **Seguridad:** el cliente nunca envia montos ni estados de aprobacion. El pago solo pasa a `Aprobado` tras verificar en el servidor que la orden pertenece al pedido, que esta aprobada, que la moneda es USD y que el monto capturado coincide con el calculado. La URL de retorno no aprueba nada y la captura es idempotente.
 - **Pruebas:** `npm run test:paypal` cubre el flujo simulado, la idempotencia, los rechazos por monto/moneda/orden ajena, los permisos y el bloqueo del endpoint simulado en sandbox y produccion.
 
+### 2.5. Notificaciones reales y omitidas
+
+Al confirmar un pedido web, el backend dispara las notificaciones **despues** de confirmar la transaccion:
+
+- **Correo real:** se envia al cliente con resumen del pedido, codigo de
+  rastreo, instrucciones segun el metodo de pago y el comprobante PDF adjunto.
+  Requiere `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `SMTP_FROM`.
+- **Telegram real:** se envia una alerta al chat del negocio con codigo, total,
+  metodo de pago y ciudad, sin datos personales completos. Requiere
+  `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`.
+
+Cada intento queda en la tabla `notificaciones` con estado `enviada`, `fallida`
+u `omitida`. Si falta configuracion, la notificacion se registra como `omitida`
+y la compra continua normalmente. Un fallo de correo o Telegram nunca revierte
+el pedido ni devuelve error al cliente.
+
+Las pruebas usan transporte simulado y no envian mensajes reales.
+
+### 2.6. WhatsApp del pedido
+
+El boton de WhatsApp en `/pedido/:codigo` usa el numero publico de
+`/api/config`, alimentado por `WHATSAPP_NUMERO` en formato internacional, por
+ejemplo `59170000000` (ficticio en `.env.example`). Si la variable no existe,
+el boton no se muestra.
+
+Se usa el enlace `wa.me` porque la API oficial de WhatsApp Business exige una
+cuenta de Meta Business, verificacion y credenciales de plataforma. Para el
+alcance academico del proyecto, `wa.me` permite abrir una conversacion con el
+resumen prellenado sin depender de esa infraestructura.
+
 ---
 
 ## 3. Base de Datos: Migraciones y Semilla

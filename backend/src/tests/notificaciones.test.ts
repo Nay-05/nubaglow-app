@@ -43,6 +43,7 @@ async function ejecutarPruebas() {
   let usuarioId: number | undefined;
   let productoId: number | undefined;
   let varianteId: number | undefined;
+  let pedidoParaAdjunto: any = null;
   const pedidoIds: number[] = [];
 
   try {
@@ -224,6 +225,7 @@ async function ejecutarPruebas() {
 
     try {
       const pedido = await pedidosService.crearPedido(usuarioId!, pedidoBase);
+      pedidoParaAdjunto = pedido;
       pedidoIds.push(pedido.id);
       asegurar(
         notificacionesDisparadas === 1 && Boolean(pedido.codigoRastreo),
@@ -232,6 +234,47 @@ async function ejecutarPruebas() {
     } finally {
       (notificacionesService as any).notificarPedido = notificarOriginal;
     }
+
+    const correosCapturados: any[] = [];
+    let telegramCapturado: any = null;
+    const servicioCaptura = new NotificacionesService(
+      () => async (datos) => {
+        correosCapturados.push(datos);
+      },
+      () => async (datos) => {
+        telegramCapturado = datos;
+      }
+    );
+
+    await servicioCaptura.notificarPedido(pedidoParaAdjunto);
+    const correoCapturado = correosCapturados[0];
+    const adjunto = correoCapturado?.adjuntos?.[0];
+    asegurar(
+      adjunto?.contentType === 'application/pdf' &&
+        adjunto.content.subarray(0, 4).toString('ascii') === '%PDF',
+      'El correo de confirmacion adjunta el comprobante PDF'
+    );
+    asegurar(
+      Boolean(correoCapturado?.cuerpo.includes('NubaGlow')) &&
+        Boolean(
+          correoCapturado?.cuerpo.includes(
+            pedidoParaAdjunto.codigoRastreo
+          )
+        ) &&
+        Boolean(correoCapturado?.cuerpo.includes('Instrucciones:')),
+      'El correo incluye resumen, codigo de rastreo e instrucciones'
+    );
+    asegurar(
+      Boolean(telegramCapturado?.cuerpo.includes('NubaGlow')) &&
+        Boolean(
+          telegramCapturado?.cuerpo.includes(
+            pedidoParaAdjunto.codigoRastreo
+          )
+        ) &&
+        Boolean(telegramCapturado?.cuerpo.includes('Ciudad:')) &&
+        !telegramCapturado?.cuerpo.includes(pedidoParaAdjunto.correoCliente),
+      'Telegram incluye codigo, total, metodo y ciudad sin datos personales'
+    );
 
     (notificacionesService as any).notificarPedido = async () => {
       throw new Error('Falla simulada de notificacion');
