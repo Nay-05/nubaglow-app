@@ -16,7 +16,10 @@ import { consultar, conTransaccion } from '../db';
 import { AppError } from '../middlewares/errores';
 import { RolUsuario } from '../types';
 import { CrearVentaPosInput } from '../schemas/staff.schema';
-import { notificacionesService } from './notificaciones.service';
+import {
+  crearCorreoReciboPos,
+  notificacionesService
+} from './notificaciones.service';
 import { posPdfService } from './posPdf.service';
 
 export interface VentaPosResumen {

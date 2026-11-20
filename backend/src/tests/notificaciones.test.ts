@@ -8,6 +8,9 @@
 import { consultar, cerrarPool } from '../db';
 import {
   NotificacionesService,
+  crearCorreoCambioEnvio,
+  crearCorreoConfirmacionPedido,
+  crearCorreoReciboPos,
   notificacionesService
 } from '../services/notificaciones.service';
 import { pedidosService } from '../services/pedidos.service';
@@ -275,6 +278,87 @@ async function ejecutarPruebas() {
         Boolean(telegramCapturado?.cuerpo.includes('Ciudad:')) &&
         !telegramCapturado?.cuerpo.includes(pedidoParaAdjunto.correoCliente),
       'Telegram incluye codigo, total, metodo y ciudad sin datos personales'
+    );
+
+    const htmlConfirmacion = String(correoCapturado?.html || '');
+    asegurar(
+      htmlConfirmacion.includes('NubaGlow — Sucre, Bolivia') &&
+        htmlConfirmacion.includes('#6d2e46') &&
+        htmlConfirmacion.includes('#faf8f5') &&
+        htmlConfirmacion.includes('#cebebe') &&
+        htmlConfirmacion.includes(pedidoParaAdjunto.codigoRastreo),
+      'El correo de confirmacion usa el diseno HTML editorial'
+    );
+    asegurar(
+      Boolean(telegramCapturado?.cuerpo.includes('<b>')) &&
+        Boolean(telegramCapturado?.cuerpo.includes('<code>')) &&
+        Boolean(telegramCapturado?.cuerpo.includes('<i>')),
+      'Telegram usa etiquetas HTML seguras'
+    );
+
+    const correoMalicioso = crearCorreoConfirmacionPedido({
+      nombreCliente: '<script>alert(1)</script>',
+      codigoRastreo: 'NB-2026-9999',
+      subtotal: 100,
+      costoEnvio: 15,
+      total: 115,
+      pago: { metodo: 'qr_simple', estado: 'Pendiente' },
+      items: [
+        {
+          productoNombre: '<img src=x onerror=alert(1)>',
+          varianteNombre: '<b>tono</b>',
+          cantidad: 1,
+          precioUnitario: 100,
+          subtotal: 100
+        }
+      ]
+    });
+    asegurar(
+      correoMalicioso.html.includes('&lt;script&gt;') &&
+        correoMalicioso.html.includes('&lt;img src=x') &&
+        !correoMalicioso.html.includes('<script>alert(1)</script>'),
+      'El HTML del correo escapa los datos dinamicos del usuario'
+    );
+
+    const correoEnvio = crearCorreoCambioEnvio({
+      nombreCliente: 'Cliente Envio',
+      codigoRastreo: 'NB-2026-8888',
+      estadoAnterior: 'Empacado',
+      nuevoEstado: 'En tr?nsito',
+      descripcion: 'El paquete sali? de almac?n.',
+      fecha: '20/11/2026 10:00',
+      enlace: 'http://localhost:4000/pedido/NB-2026-8888'
+    });
+    asegurar(
+      correoEnvio.html.includes('En tr?nsito') &&
+        correoEnvio.html.includes('Ver seguimiento'),
+      'El correo de cambio de envio conserva el diseno editorial'
+    );
+
+    const correoPos = crearCorreoReciboPos({
+      clienteNombre: 'Cliente POS',
+      numeroTicket: 'TICK-2026-9999',
+      total: 50,
+      subtotal: 50,
+      montoRecibido: 100,
+      cambio: 50,
+      metodoPago: 'Efectivo',
+      factura: { numeroFactura: 'FAC-POS-9999' },
+      items: [
+        {
+          productoNombre: 'Producto POS',
+          varianteNombre: '?nica',
+          cantidad: 1,
+          precioUnitario: 50,
+          subtotal: 50
+        }
+      ]
+    });
+    asegurar(
+      correoPos.html.includes('Ticket POS') &&
+        correoPos.html.includes('TICK-2026-9999') &&
+        correoPos.html.includes('FAC-POS-9999'),
+      'El recibo POS usa el mismo diseno HTML editorial'
     );
 
     const envioId = pedidoParaAdjunto.envio?.id;

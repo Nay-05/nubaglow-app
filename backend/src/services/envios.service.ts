@@ -14,7 +14,10 @@ import { consultar, conTransaccion } from '../db';
 import { AppError } from '../middlewares/errores';
 import { RolUsuario } from '../types';
 import { urlAplicacion } from '../config/paypal';
-import { notificacionesService } from './notificaciones.service';
+import {
+  crearCorreoCambioEnvio,
+  notificacionesService
+} from './notificaciones.service';
 
 export type EstadoEnvio = 'Pendiente' | 'En preparación' | 'Empacado' | 'En tránsito' | 'Entregado';
 

@@ -27,6 +27,7 @@ export interface DatosCorreo {
   destinatario: string;
   asunto: string;
   cuerpo: string;
+  html?: string;
   adjuntos?: AdjuntoCorreo[];
 }
 
@@ -133,6 +134,426 @@ function instruccionesPago(metodo: string): string {
   return 'Revisa las instrucciones de pago en la página del pedido.';
 }
 
+export interface CorreoGenerado {
+  texto: string;
+  html: string;
+}
+
+interface ItemCorreo {
+  productoNombre: string;
+  varianteNombre?: string;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number;
+}
+
+interface TotalCorreo {
+  etiqueta: string;
+  valor: number;
+  destacado?: boolean;
+}
+
+interface DetalleCorreo {
+  etiqueta: string;
+  valor: string;
+}
+
+interface DatosEditorial {
+  nombre: string;
+  titulo: string;
+  subtitulo: string;
+  codigoEtiqueta?: string;
+  codigo?: string;
+  items?: ItemCorreo[];
+  totales?: TotalCorreo[];
+  detalles?: DetalleCorreo[];
+  pago?: { metodo: string; estado: string };
+  instrucciones?: string;
+  nota?: string;
+  urlAccion?: string;
+  etiquetaAccion?: string;
+}
+
+export function escaparHtml(valor: unknown): string {
+  return String(valor ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const ESTILOS_CORREO = `
+  body { margin: 0; padding: 0; background: #f3ece5; color: #2b2124; }
+  .email-bg { background: #f3ece5; }
+  .email-wrap { padding: 24px 12px; }
+  .email-card {
+    width: 100%; max-width: 620px; margin: 0 auto; background: #faf8f5;
+    border: 1px solid #cebebe; border-radius: 14px; overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .email-header { background: #6d2e46; padding: 26px 28px; }
+  .email-brand {
+    margin: 0; color: #faf8f5; font-family: Georgia, 'Times New Roman', serif;
+    font-size: 24px; font-weight: 400; letter-spacing: 0.02em;
+  }
+  .email-tagline {
+    margin: 6px 0 0; color: #ece2d0; font-size: 12px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .email-content { padding: 28px; }
+  .email-title {
+    margin: 0 0 6px; color: #6d2e46; font-family: Georgia, 'Times New Roman', serif;
+    font-size: 28px; font-weight: 400;
+  }
+  .email-subtitle { margin: 0 0 22px; color: #6b5b60; font-size: 14px; }
+  .tracking-box {
+    padding: 16px; margin: 0 0 22px; background: #ece2d0;
+    border: 1px solid #cebebe; border-radius: 10px;
+  }
+  .email-label {
+    margin: 0 0 4px; color: #6b5b60; font-size: 11px;
+    font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .tracking-code {
+    margin: 0; color: #6d2e46; font-family: Consolas, Menlo, monospace;
+    font-size: 19px; font-weight: 700; letter-spacing: 0.04em;
+  }
+  .email-section { margin: 24px 0 10px; color: #6d2e46; font-size: 16px; }
+  .items { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .items th {
+    padding: 8px 6px; color: #6b5b60; background: #ece2d0;
+    font-size: 10px; letter-spacing: 0.08em; text-align: left;
+    text-transform: uppercase;
+  }
+  .items td { padding: 10px 6px; border-bottom: 1px solid #cebebe; }
+  .items .num { text-align: right; white-space: nowrap; }
+  .muted { color: #6b5b60; font-size: 11px; }
+  .totals { width: 100%; margin-top: 10px; border-collapse: collapse; }
+  .totals td { padding: 6px 6px; font-size: 13px; }
+  .totals .num { text-align: right; white-space: nowrap; }
+  .totals .total-row td {
+    padding-top: 12px; color: #6d2e46; font-size: 17px; font-weight: 700;
+  }
+  .details { width: 100%; margin-top: 12px; border-collapse: collapse; }
+  .details td { padding: 6px; border-bottom: 1px solid #ece2d0; font-size: 13px; }
+  .details td:first-child { color: #6b5b60; width: 42%; }
+  .badges { margin: 18px 0; }
+  .badge {
+    display: inline-block; padding: 5px 10px; margin: 0 6px 6px 0;
+    color: #6d2e46; background: #ece2d0; border: 1px solid #cebebe;
+    border-radius: 999px; font-size: 11px; font-weight: 700;
+  }
+  .badge-status { background: #faf8f5; }
+  .notice {
+    padding: 14px 16px; margin: 18px 0; color: #2b2124;
+    background: #f4eee6; border-left: 3px solid #6d2e46;
+    border-radius: 0 8px 8px 0; font-size: 13px; line-height: 1.6;
+  }
+  .email-button {
+    display: inline-block; padding: 12px 20px; margin-top: 8px;
+    color: #faf8f5; background: #6d2e46; border-radius: 8px;
+    font-size: 14px; font-weight: 700; text-decoration: none;
+  }
+  .email-footer {
+    padding: 20px 28px; color: #6b5b60; background: #f4eee6;
+    border-top: 1px solid #cebebe; font-size: 11px; line-height: 1.6;
+  }
+  @media only screen and (max-width: 600px) {
+    .email-content { padding: 20px !important; }
+    .email-header, .email-footer { padding-left: 20px !important; padding-right: 20px !important; }
+    .email-title { font-size: 24px !important; }
+  }
+`;
+
+function crearHtmlEditorial(datos: DatosEditorial): string {
+  const items = datos.items || [];
+  const totales = datos.totales || [];
+  const detalles = datos.detalles || [];
+
+  const filasItems = items
+    .map(
+      (item) =>
+        '<tr>' +
+        '<td>' +
+        `${escaparHtml(item.productoNombre)}` +
+        (item.varianteNombre
+          ? `<br><span class="muted">${escaparHtml(item.varianteNombre)}</span>`
+          : '') +
+        '</td>' +
+        `<td class="num">${escaparHtml(item.cantidad)}</td>` +
+        `<td class="num">${escaparHtml(
+          formatearBsNotificacion(item.precioUnitario)
+        )}</td>` +
+        `<td class="num">${escaparHtml(
+          formatearBsNotificacion(item.subtotal)
+        )}</td>` +
+        '</tr>'
+    )
+    .join('');
+
+  const filasTotales = totales
+    .map(
+      (total) =>
+        `<tr class="${total.destacado ? 'total-row' : ''}">` +
+        `<td>${escaparHtml(total.etiqueta)}</td>` +
+        `<td class="num">${escaparHtml(
+          formatearBsNotificacion(total.valor)
+        )}</td>` +
+        '</tr>'
+    )
+    .join('');
+
+  const filasDetalles = detalles
+    .map(
+      (detalle) =>
+        '<tr>' +
+        `<td>${escaparHtml(detalle.etiqueta)}</td>` +
+        `<td>${escaparHtml(detalle.valor)}</td>` +
+        '</tr>'
+    )
+    .join('');
+
+  const tablaItems = items.length
+    ? '<h2 class="email-section">Detalle de artículos</h2>' +
+      '<table role="presentation" class="items" cellpadding="0" cellspacing="0">' +
+      '<thead><tr>' +
+      '<th>Producto</th><th class="num">Cant.</th>' +
+      '<th class="num">P. unit.</th><th class="num">Subtotal</th>' +
+      '</tr></thead>' +
+      `<tbody>${filasItems}</tbody>` +
+      '</table>'
+    : '';
+
+  const tablaTotales = totales.length
+    ? '<table role="presentation" class="totals" cellpadding="0" cellspacing="0">' +
+      `<tbody>${filasTotales}</tbody>` +
+      '</table>'
+    : '';
+
+  const tablaDetalles = detalles.length
+    ? '<table role="presentation" class="details" cellpadding="0" cellspacing="0">' +
+      `<tbody>${filasDetalles}</tbody>` +
+      '</table>'
+    : '';
+
+  const badges = datos.pago
+    ? '<div class="badges">' +
+      `<span class="badge">Método: ${escaparHtml(datos.pago.metodo)}</span>` +
+      `<span class="badge badge-status">Estado: ${escaparHtml(
+        datos.pago.estado
+      )}</span>` +
+      '</div>'
+    : '';
+
+  const instrucciones = datos.instrucciones
+    ? `<div class="notice">${escaparHtml(datos.instrucciones)}</div>`
+    : '';
+
+  const nota = datos.nota
+    ? `<p class="muted">${escaparHtml(datos.nota)}</p>`
+    : '';
+
+  const boton =
+    datos.urlAccion && datos.etiquetaAccion
+      ? `<a class="email-button" href="${escaparHtml(datos.urlAccion)}">` +
+        `${escaparHtml(datos.etiquetaAccion)}</a>`
+      : '';
+
+  const tracking =
+    datos.codigo
+      ? '<div class="tracking-box">' +
+        `<p class="email-label">${escaparHtml(
+          datos.codigoEtiqueta || 'Código de rastreo'
+        )}</p>` +
+        `<p class="tracking-code">${escaparHtml(datos.codigo)}</p>` +
+        '</div>'
+      : '';
+
+  return [
+    '<!DOCTYPE html>',
+    '<html lang="es">',
+    '<head>',
+    '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    '<title>NubaGlow</title>',
+    `<style>${ESTILOS_CORREO}</style>`,
+    '</head>',
+    '<body>',
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-bg">',
+    '<tr><td align="center" class="email-wrap">',
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-card">',
+    '<tr><td class="email-header">',
+    '<h1 class="email-brand">NubaGlow — Sucre, Bolivia</h1>',
+    '<p class="email-tagline">Skincare y maquillaje</p>',
+    '</td></tr>',
+    '<tr><td class="email-content">',
+    `<h2 class="email-title">${escaparHtml(datos.titulo)}</h2>`,
+    `<p class="email-subtitle">${escaparHtml(datos.subtitulo)}</p>`,
+    `<p class="email-subtitle">Hola ${escaparHtml(datos.nombre)},</p>`,
+    tracking,
+    badges,
+    tablaItems,
+    tablaTotales,
+    tablaDetalles,
+    instrucciones,
+    boton,
+    nota,
+    '</td></tr>',
+    '<tr><td class="email-footer">',
+    'NubaGlow · Sucre, Bolivia<br>',
+    'Comprobante académico de simulación — Sin valor fiscal.',
+    '</td></tr>',
+    '</table>',
+    '</td></tr>',
+    '</table>',
+    '</body>',
+    '</html>'
+  ].join('\n');
+}
+
+export function crearCorreoConfirmacionPedido(pedido: any): CorreoGenerado {
+  const texto = crearCuerpoCorreo(pedido);
+  const metodo = pedido.pago?.metodo || '';
+  const etiqueta = ETIQUETAS_METODO[metodo] || 'Sin pago registrado';
+  const items = (Array.isArray(pedido.items) ? pedido.items : []).map(
+    (item: any) => ({
+      productoNombre: String(item.productoNombre || 'Producto'),
+      varianteNombre: String(item.varianteNombre || ''),
+      cantidad: Number(item.cantidad) || 0,
+      precioUnitario: Number(item.precioUnitario) || 0,
+      subtotal: Number(item.subtotal) || 0
+    })
+  );
+  const rutaPedido =
+    `${urlAplicacion()}/pedido/` +
+    encodeURIComponent(String(pedido.codigoRastreo));
+  const html = crearHtmlEditorial({
+    nombre: String(pedido.nombreCliente || 'cliente'),
+    titulo: 'Pedido confirmado',
+    subtitulo: 'Gracias por tu compra. Ya estamos preparando tu pedido.',
+    codigo: String(pedido.codigoRastreo || ''),
+    items,
+    totales: [
+      { etiqueta: 'Subtotal', valor: Number(pedido.subtotal) || 0 },
+      { etiqueta: 'Envío', valor: Number(pedido.costoEnvio) || 0 },
+      {
+        etiqueta: 'Total',
+        valor: Number(pedido.total) || 0,
+        destacado: true
+      }
+    ],
+    pago: {
+      metodo: etiqueta,
+      estado: String(pedido.pago?.estado || 'Sin pago registrado')
+    },
+    instrucciones: instruccionesPago(metodo),
+    nota: 'Adjuntamos tu comprobante PDF. Conserva este correo.',
+    urlAccion: rutaPedido,
+    etiquetaAccion: 'Ver mi pedido'
+  });
+  return { texto, html };
+}
+
+export interface DatosCambioEnvioCorreo {
+  nombreCliente: string;
+  codigoRastreo: string;
+  estadoAnterior: string;
+  nuevoEstado: string;
+  descripcion: string;
+  fecha: string;
+  enlace: string;
+}
+
+export function crearCorreoCambioEnvio(
+  datos: DatosCambioEnvioCorreo
+): CorreoGenerado {
+  const nombre = String(datos.nombreCliente || 'cliente');
+  const texto = [
+    `Hola ${nombre},`,
+    '',
+    `Tu pedido ${datos.codigoRastreo} cambió de estado.`,
+    `Estado anterior: ${datos.estadoAnterior}`,
+    `Nuevo estado: ${datos.nuevoEstado}`,
+    datos.descripcion,
+    `Fecha y hora: ${datos.fecha}`,
+    '',
+    `Revisa el seguimiento en: ${datos.enlace}`,
+    '',
+    'NubaGlow'
+  ].join('\n');
+  const html = crearHtmlEditorial({
+    nombre,
+    titulo: `Tu pedido está en ${datos.nuevoEstado}`,
+    subtitulo: 'Actualización del envío',
+    codigo: datos.codigoRastreo,
+    detalles: [
+      { etiqueta: 'Estado anterior', valor: datos.estadoAnterior },
+      { etiqueta: 'Nuevo estado', valor: datos.nuevoEstado },
+      { etiqueta: 'Fecha y hora', valor: datos.fecha }
+    ],
+    nota: datos.descripcion,
+    instrucciones:
+      'Puedes revisar la línea de tiempo completa en la página del pedido.',
+    urlAccion: datos.enlace,
+    etiquetaAccion: 'Ver seguimiento'
+  });
+  return { texto, html };
+}
+
+export function crearCorreoReciboPos(venta: any): CorreoGenerado {
+  const items = (Array.isArray(venta.items) ? venta.items : []).map(
+    (item: any) => ({
+      productoNombre: String(item.productoNombre || 'Producto'),
+      varianteNombre: String(item.varianteNombre || ''),
+      cantidad: Number(item.cantidad) || 0,
+      precioUnitario: Number(item.precioUnitario) || 0,
+      subtotal: Number(item.subtotal) || 0
+    })
+  );
+  const total = Number(venta.total) || 0;
+  const texto = [
+    `Hola ${venta.clienteNombre || 'cliente'},`,
+    '',
+    'Gracias por tu compra en NubaGlow.',
+    `Ticket: ${venta.numeroTicket}`,
+    `Factura: ${venta.factura?.numeroFactura || 'Sin factura'}`,
+    `Total: ${formatearBsNotificacion(total)}`,
+    `Método de pago: ${venta.metodoPago}`,
+    '',
+    'Adjuntamos tu comprobante en PDF.',
+    'Comprobante académico de simulación — Sin valor fiscal.'
+  ].join('\n');
+  const html = crearHtmlEditorial({
+    nombre: String(venta.clienteNombre || 'cliente'),
+    titulo: 'Comprobante de venta',
+    subtitulo: 'Gracias por tu compra en mostrador.',
+    codigoEtiqueta: 'Ticket POS',
+    codigo: String(venta.numeroTicket || ''),
+    items,
+    totales: [
+      { etiqueta: 'Subtotal', valor: Number(venta.subtotal) || 0 },
+      { etiqueta: 'Recibido', valor: Number(venta.montoRecibido) || 0 },
+      { etiqueta: 'Cambio', valor: Number(venta.cambio) || 0 },
+      { etiqueta: 'Total', valor: total, destacado: true }
+    ],
+    detalles: [
+      {
+        etiqueta: 'Factura',
+        valor: String(venta.factura?.numeroFactura || 'Sin factura')
+      }
+    ],
+    pago: {
+      metodo: String(venta.metodoPago || 'Sin método'),
+      estado: 'Pagado'
+    },
+    nota: 'Adjuntamos tu comprobante PDF.',
+    urlAccion: urlAplicacion(),
+    etiquetaAccion: 'Visitar NubaGlow'
+  });
+  return { texto, html };
+}
+
 function crearCuerpoCorreo(pedido: any): string {
   const metodo = pedido.pago?.metodo || '';
   const etiqueta = ETIQUETAS_METODO[metodo] || 'Sin pago registrado';
@@ -175,11 +596,15 @@ function crearCuerpoTelegram(pedido: any): string {
   const etiqueta = ETIQUETAS_METODO[metodo] || 'Sin pago registrado';
 
   return [
-    `NubaGlow: nuevo pedido ${pedido.codigoRastreo}`,
-    `Total: ${formatearBsNotificacion(pedido.total)}`,
-    `Método de pago: ${etiqueta}`,
-    `Ciudad: ${pedido.ciudad}`,
-    `Estado del pago: ${pedido.pago?.estado || 'Sin pago registrado'}`
+    '<b>NubaGlow</b> — nuevo pedido',
+    `Código: <code>${escaparHtml(pedido.codigoRastreo)}</code>`,
+    `<b>Total:</b> ${escaparHtml(formatearBsNotificacion(pedido.total))}`,
+    `<b>Método de pago:</b> ${escaparHtml(etiqueta)}`,
+    `<b>Ciudad:</b> ${escaparHtml(pedido.ciudad || 'Sin ciudad')}`,
+    `<b>Estado del pago:</b> ${escaparHtml(
+      pedido.pago?.estado || 'Sin pago registrado'
+    )}`,
+    '<i>Revisa el panel interno para preparar el pedido.</i>'
   ].join('\n');
 }
 
@@ -238,6 +663,7 @@ export function crearEnviadorCorreo(): EnviadorCorreo | null {
       to: datos.destinatario,
       subject: datos.asunto,
       text: datos.cuerpo,
+      html: datos.html,
       attachments: (datos.adjuntos || []).map((adjunto) => ({
         filename: adjunto.filename,
         content: adjunto.content,
@@ -262,6 +688,7 @@ export function crearEnviadorTelegram(): EnviadorTelegram | null {
         body: JSON.stringify({
           chat_id: destinatario,
           text: datos.cuerpo,
+          parse_mode: 'HTML',
           disable_web_page_preview: true
         }),
         signal: AbortSignal.timeout(TIEMPO_ESPERA_MS)
@@ -398,7 +825,7 @@ export class NotificacionesService {
 
   async notificarPedido(pedido: any): Promise<ResultadoNotificacionPedido> {
     const asunto = `NubaGlow: pedido ${pedido.codigoRastreo} confirmado`;
-    const cuerpoCorreo = crearCuerpoCorreo(pedido);
+    const correoGenerado = crearCorreoConfirmacionPedido(pedido);
     const cuerpoTelegram = crearCuerpoTelegram(pedido);
 
     let adjuntos: AdjuntoCorreo[] = [];
@@ -424,7 +851,8 @@ export class NotificacionesService {
         pedidoId: pedido.id,
         destinatario: pedido.correoCliente,
         asunto,
-        cuerpo: cuerpoCorreo,
+        cuerpo: correoGenerado.texto,
+        html: correoGenerado.html,
         adjuntos
       }),
       this.enviarTelegram({

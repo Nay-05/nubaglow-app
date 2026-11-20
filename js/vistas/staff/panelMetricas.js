@@ -129,50 +129,24 @@ export function crearTablaRanking(ranking) {
   );
 }
 
-const ACCESOS = [
-  {
-    ruta: '/staff/productos',
-    etiqueta: 'Gestionar productos',
-    descripcion: 'Catálogo, variantes, categorías e imágenes',
-    icono: 'productos'
-  },
-  {
-    ruta: '/staff/usuarios',
-    etiqueta: 'Gestionar usuarios',
-    descripcion: 'Cuentas internas, accesos y contraseñas',
-    icono: 'usuarios'
-  },
-  {
-    ruta: '/staff/reportes',
-    etiqueta: 'Ver reportes completos',
-    descripcion: 'Métricas, ranking y auditoría filtrable',
-    icono: 'reportes'
-  }
-];
-
-export function crearAccesosAdmin() {
+export function crearAccesosAdmin(modulos = []) {
   return el(
-    'section',
-    { clase: 'admin-panel' },
-    el('h2', { clase: 'admin-panel-titulo', texto: 'Accesos rapidos' }),
-    el(
-      'div',
-      { clase: 'admin-accesos' },
-      ...ACCESOS.map((acceso) =>
+    'div',
+    { clase: 'admin-accesos' },
+    ...modulos.map((modulo) =>
+      el(
+        'a',
+        {
+          clase: 'admin-acceso',
+          href: modulo.ruta,
+          atributos: { 'data-ruta': '' }
+        },
+        el('span', { clase: 'admin-acceso-icono' }, icono(modulo.icono, 20)),
         el(
-          'a',
-          {
-            clase: 'admin-acceso',
-            href: acceso.ruta,
-            atributos: { 'data-ruta': '' }
-          },
-          el('span', { clase: 'admin-acceso-icono' }, icono(acceso.icono, 20)),
-          el(
-            'span',
-            {},
-            el('strong', { texto: acceso.etiqueta }),
-            el('span', { clase: 'texto-suave', texto: acceso.descripcion })
-          )
+          'span',
+          { clase: 'admin-acceso-texto' },
+          el('strong', { texto: modulo.etiqueta }),
+          el('span', { clase: 'texto-suave', texto: modulo.descripcion })
         )
       )
     )

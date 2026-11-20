@@ -48,6 +48,18 @@ const CLASES_ESTADO_PAGO = {
   Rechazado: 'estado-rechazado'
 };
 
+const ETIQUETAS_METODO_PAGO = {
+  qr_simple: 'QR simple',
+  qr: 'QR simple',
+  deposito_bancario: 'Depósito bancario',
+  paypal: 'PayPal',
+  contra_entrega: 'Contra entrega'
+};
+
+function etiquetaMetodoPago(metodo) {
+  return ETIQUETAS_METODO_PAGO[metodo] || metodo || 'Sin pago registrado';
+}
+
 function claseEstadoPago(estado) {
   return CLASES_ESTADO_PAGO[estado] || 'estado-pendiente';
 }
@@ -125,12 +137,35 @@ function crearBotonWhatsApp(pedido, numero) {
   const digitos = String(numero || '').replace(/[^\d]/g, '');
   if (!digitos) return null;
 
-  const lineas = [
-    `Hola NubaGlow, consulto por mi pedido ${pedido.codigoRastreo}.`,
-    `Total: ${formatearBs(pedido.total)}`,
+  const codigo = String(pedido.codigoRastreo || '');
+  const items = Array.isArray(pedido.items) ? pedido.items : [];
+  const enlace =
+    `${window.location.origin}/pedidos?codigo=` +
+    encodeURIComponent(codigo);
+  const lineas = ['*NubaGlow*', `*Pedido ${codigo}*`, ''];
+
+  if (items.length > 0) {
+    lineas.push('*Artículos:*');
+    for (const item of items) {
+      const variante = item.varianteNombre
+        ? ` (${item.varianteNombre})`
+        : '';
+      lineas.push(
+        `- ${item.cantidad} x ${item.productoNombre}${variante}: ` +
+          formatearBs(item.subtotal)
+      );
+    }
+    lineas.push('');
+  }
+
+  lineas.push(
+    `*Total: ${formatearBs(pedido.total)}*`,
+    `Método de pago: ${etiquetaMetodoPago(pedido.pago?.metodo)}`,
     `Estado del pago: ${pedido.pago?.estado || 'Sin pago registrado'}`,
-    `Entrega: ${pedido.ciudad}, ${pedido.direccion}`
-  ];
+    '',
+    `Rastrea tu pedido: ${enlace}`
+  );
+
   const texto = encodeURIComponent(lineas.join('\n'));
   const url = `https://wa.me/${digitos}?text=${texto}`;
 

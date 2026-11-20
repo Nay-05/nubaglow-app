@@ -241,7 +241,7 @@ function crearTarjetaHistorial(pedido) {
 }
 
 export const vistaPedidos = {
-  async render({ usuario }) {
+  async render({ usuario, consulta: parametros }) {
     const seccion = el(
       'section',
       { clase: 'pagina pedidos-pagina' },
@@ -277,6 +277,9 @@ export const vistaPedidos = {
         spellcheck: 'false'
       }
     });
+
+    const codigoInicial = parametros?.get('codigo')?.trim() || '';
+    if (codigoInicial) entrada.value = codigoInicial;
 
     const botonBuscar = boton('Rastrear', {
       tipo: 'submit',

@@ -6918,3 +6918,69 @@ body.mini-carrito-abierto {
     border-left: 0;
   }
 }
+
+/* --------------------------------------------------------------------------
+   19. Panel de bienvenida del administrador
+   -------------------------------------------------------------------------- */
+.admin-bienvenida {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-silver);
+  border-radius: var(--radius-lg);
+}
+
+.admin-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-smoky-rose);
+}
+
+.admin-bienvenida-titulo {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 34px;
+  line-height: 1.1;
+  color: var(--color-wine-plum);
+}
+
+.admin-bienvenida-texto {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.admin-bienvenida .admin-accesos {
+  margin-top: var(--space-3);
+}
+
+.admin-acceso-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-acceso strong {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--color-wine-plum);
+}
+
+.admin-acceso .texto-suave {
+  font-size: 12px;
+}
+
+.admin-seguridad {
+  background-color: var(--color-sand-dune);
+  border-color: var(--color-silver);
+}
+
+.admin-seguridad p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--color-text);
+}
