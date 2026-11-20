@@ -14,7 +14,7 @@
 import { el, icono, texto, vaciar } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { formatearBs } from '../../core/formato.js';
-import { alerta, boton } from '../comunes.js';
+import { alerta, boton, imagenProducto } from '../comunes.js';
 
 const MENSAJE_CARRITO_VACIO =
   'El carrito está vacío. Explora el catálogo para agregar productos.';
@@ -40,6 +40,105 @@ function detallesDeValidacion(error) {
   const detalles = error?.datos?.detalles;
   if (!Array.isArray(detalles)) return [];
   return detalles.map((detalle) => `${detalle.campo}: ${detalle.mensaje}`);
+}
+
+function crearMetodoPago({ id, valor, titulo, descripcion, iconoNombre }) {
+  const entrada = el('input', {
+    clase: 'metodo-pago-radio',
+    type: 'radio',
+    name: 'metodo_pago',
+    value: valor,
+    id,
+    required: true,
+    'aria-label': titulo
+  });
+
+  return el(
+    'label',
+    { clase: 'metodo-pago', 'for': id },
+    entrada,
+    el(
+      'span',
+      { clase: 'metodo-pago-icono', atributos: { 'aria-hidden': 'true' } },
+      icono(iconoNombre, 20)
+    ),
+    el(
+      'span',
+      { clase: 'metodo-pago-texto' },
+      el('strong', { texto: titulo }),
+      el('span', { texto: descripcion })
+    ),
+    el('span', {
+      clase: 'metodo-pago-marca',
+      atributos: { 'aria-hidden': 'true' }
+    })
+  );
+}
+
+function crearResumenCheckout(carrito, cotizacion) {
+  const items = Array.isArray(carrito?.items) ? carrito.items : [];
+  const listaItems = items.length
+    ? el(
+        'ul',
+        { clase: 'checkout-resumen-items' },
+        ...items.map((item) =>
+          el(
+            'li',
+            { clase: 'checkout-resumen-item' },
+            imagenProducto(item.imagen, item.productoNombre),
+            el(
+              'div',
+              { clase: 'checkout-resumen-item-info' },
+              el('strong', { texto: item.productoNombre }),
+              el('span', {
+                clase: 'texto-suave',
+                texto: item.varianteNombre || 'Variante única'
+              }),
+              el('span', {
+                clase: 'texto-suave',
+                texto: `${item.cantidad} unidad(es)`
+              })
+            ),
+            el('span', {
+              clase: 'checkout-resumen-item-subtotal',
+              texto: formatearBs(item.subtotal)
+            })
+          )
+        )
+      )
+    : el('p', {
+        clase: 'texto-suave',
+        texto: 'Tu carrito no tiene artículos registrados.'
+      });
+
+  return el(
+    'aside',
+    { clase: 'checkout-resumen' },
+    el('h2', { clase: 'checkout-resumen-titulo', texto: 'Resumen del pedido' }),
+    listaItems,
+    el(
+      'div',
+      { clase: 'checkout-totales' },
+      el(
+        'div',
+        { clase: 'checkout-total-linea' },
+        el('span', { texto: 'Subtotal' }),
+        el('span', { texto: formatearBs(cotizacion.subtotal) })
+      ),
+      el(
+        'div',
+        { clase: 'checkout-total-linea' },
+        el('span', { texto: 'Envío' }),
+        el('span', { texto: formatearBs(cotizacion.costoEnvio) })
+      ),
+      el(
+        'div',
+        { clase: 'checkout-total-final' },
+        el('span', { texto: 'Total' }),
+        el('span', { texto: formatearBs(cotizacion.total) })
+      )
+    )
+  );
 }
 
 function crearPantallaError({ titulo, mensaje, detalles = [], router }) {
@@ -128,254 +227,241 @@ export const vistaCheckout = {
       'section',
       { clase: 'pagina' },
       el('h1', { clase: 'titulo-pagina', texto: 'Finalizar compra' }),
-      el('p', { clase: 'subtitulo', texto: 'Revisa tus datos y elige el metodo de pago.' })
+      el('p', {
+        clase: 'subtitulo',
+        texto: 'Revisa tus datos y elige el método de pago.'
+      })
     );
 
     // Area de mensajes de error/success
     const mensajes = el('div', { clase: 'mensajes' });
 
     // Formulario de datos del cliente
-    const formulario = el('form', { clase: 'formulario-checkout' });
+    const formulario = el('form', {
+      clase: 'checkout-formulario checkout-grid'
+    });
 
     // Campo: nombre completo
+    const errorNombre = el('small', {
+      clase: 'campo-error',
+      atributos: { id: 'error-nombre', 'aria-live': 'polite' }
+    });
     const entradaNombre = el('input', {
-      clase: 'input-formulario',
+      clase: 'entrada',
       name: 'nombre',
       type: 'text',
-      placeholder: 'Juan Perez',
+      placeholder: 'Juan Pérez',
       required: true,
       'aria-label': 'Nombre completo',
-      atributos: { 'data-ruta': '' }
+      atributos: {
+        'aria-describedby': 'error-nombre',
+        autocomplete: 'name'
+      }
     });
     const campoNombre = el(
       'div',
-      { clase: 'grupo-formulario' },
-      el('label', { texto: 'Nombre completo' }),
-      entradaNombre
+      { clase: 'campo' },
+      el('label', { clase: 'campo-etiqueta', texto: 'Nombre completo' }),
+      entradaNombre,
+      errorNombre
     );
 
     // Campo: celular (8 dígitos bolivianos, iniciar con 6 o 7)
+    const errorCelular = el('small', {
+      clase: 'campo-error',
+      atributos: { id: 'error-celular', 'aria-live': 'polite' }
+    });
     const entradaCelular = el('input', {
-      clase: 'input-formulario',
+      clase: 'entrada',
       name: 'celular',
       type: 'tel',
       placeholder: '61234567',
       required: true,
       'aria-label': 'Celular',
-      atributos: { 'data-ruta': '', pattern: '^[67][0-9]{7}$', inputmode: 'numeric' }
+      atributos: {
+        'aria-describedby': 'error-celular',
+        pattern: '^[67][0-9]{7}$',
+        inputmode: 'numeric',
+        autocomplete: 'tel'
+      }
     });
     const campoCelular = el(
       'div',
-      { clase: 'grupo-formulario' },
-      el('label', { texto: 'Celular' }),
-      entradaCelular
+      { clase: 'campo' },
+      el('label', { clase: 'campo-etiqueta', texto: 'Celular' }),
+      entradaCelular,
+      errorCelular
     );
 
     // Campo: correo electrónico
+    const errorCorreo = el('small', {
+      clase: 'campo-error',
+      atributos: { id: 'error-correo', 'aria-live': 'polite' }
+    });
     const entradaCorreo = el('input', {
-      clase: 'input-formulario',
+      clase: 'entrada',
       name: 'correo',
       type: 'email',
       placeholder: 'juan@ejemplo.com',
       required: true,
-      'aria-label': 'Correo electrónico'
+      'aria-label': 'Correo electrónico',
+      atributos: {
+        'aria-describedby': 'error-correo',
+        autocomplete: 'email'
+      }
     });
     const campoCorreo = el(
       'div',
-      { clase: 'grupo-formulario' },
-      el('label', { texto: 'Correo electrónico' }),
-      entradaCorreo
+      { clase: 'campo' },
+      el('label', { clase: 'campo-etiqueta', texto: 'Correo electrónico' }),
+      entradaCorreo,
+      errorCorreo
     );
 
     // Campo: ciudad
+    const errorCiudad = el('small', {
+      clase: 'campo-error',
+      atributos: { id: 'error-ciudad', 'aria-live': 'polite' }
+    });
     const entradaCiudad = el('input', {
-      clase: 'input-formulario',
+      clase: 'entrada',
       name: 'ciudad',
       type: 'text',
       placeholder: 'Sucre',
       required: true,
-      'aria-label': 'Ciudad'
+      'aria-label': 'Ciudad',
+      atributos: {
+        'aria-describedby': 'error-ciudad',
+        autocomplete: 'address-level2'
+      }
     });
     const campoCiudad = el(
       'div',
-      { clase: 'grupo-formulario' },
-      el('label', { texto: 'Ciudad' }),
-      entradaCiudad
+      { clase: 'campo' },
+      el('label', { clase: 'campo-etiqueta', texto: 'Ciudad' }),
+      entradaCiudad,
+      errorCiudad
     );
 
     // Campo: dirección exacta
+    const errorDireccion = el('small', {
+      clase: 'campo-error',
+      atributos: { id: 'error-direccion', 'aria-live': 'polite' }
+    });
     const entradaDireccion = el('input', {
-      clase: 'input-formulario',
+      clase: 'entrada',
       name: 'direccion',
       type: 'text',
       placeholder: 'Calle 12 de Octubre No. 123',
       required: true,
-      'aria-label': 'Dirección exacta'
+      'aria-label': 'Dirección exacta',
+      atributos: {
+        'aria-describedby': 'error-direccion',
+        autocomplete: 'street-address'
+      }
     });
     const campoDireccion = el(
       'div',
-      { clase: 'grupo-formulario' },
-      el('label', { texto: 'Dirección exacta' }),
-      entradaDireccion
+      { clase: 'campo' },
+      el('label', { clase: 'campo-etiqueta', texto: 'Dirección exacta' }),
+      entradaDireccion,
+      errorDireccion
     );
 
-    // Resumen del pedido
-    let resumenPedido;
-    if (cotizacion) {
-      const lineasResumen = [
-        `Subtotal: ${formatearBs(cotizacion.subtotal)}`,
-        `Envío: ${formatearBs(cotizacion.costoEnvio)}`,
-        `Total: ${formatearBs(cotizacion.total)}`
-      ];
-      const parrafosResumen = lineasResumen.map((linea) =>
-        el('p', { clase: 'texto-suave', texto: linea })
-      );
-      resumenPedido = el(
-        'div',
-        { clase: 'resumen-pedido' },
-        el('h3', { texto: 'Resumen del pedido' }),
-        ...parrafosResumen
-      );
-    } else {
-      resumenPedido = el(
-        'div',
-        { clase: 'resumen-pedido' },
-        el('h3', { texto: 'Resumen del pedido' }),
-        el('p', { clase: 'texto-suave', texto: 'Cargando resumen...' })
-      );
-    }
-
-    // Metodos de pago
-    const metodosPago = el('div', { clase: 'metodos-pago' }, el('h3', { texto: 'Metodo de pago' }));
-
     // Obtener modo de PayPal desde el endpoint publico (sin exponer claves)
-    let paypalMensaje = 'PayPal (simulación académica)';
+    let paypalMensaje = 'PayPal';
 
     try {
       const configRes = await api.obtener('/config');
-      if (configRes && configRes.datos && configRes.datos.mensajePaypal) {
+      if (configRes?.datos?.mensajePaypal) {
         paypalMensaje = configRes.datos.mensajePaypal;
       }
     } catch {
-      // Si falla la consulta, usar valor por defecto
-      paypalMensaje = 'PayPal (simulación académica)';
+      paypalMensaje = 'PayPal';
     }
 
-    // Opcion 1: QR Simple
-    const entradaQr = el('input', {
-      type: 'radio',
-      name: 'metodo_pago',
-      value: 'qr_simple',
-      id: 'metodo-qr',
-      required: true,
-      'aria-label': 'Pago con QR simple'
-    });
-    const etiquetaQr = el(
-      'label',
-      { 'for': 'metodo-qr', clase: 'etiqueta-pago' },
-      el('span', { clase: 'texto-suave', texto: 'QR Simple' }),
-      el('span', {
-        clase: 'texto-suave',
-        texto: ' - Pago simulado con imagen QR, valida comprobante luego'
-      })
+    const seccionDatos = el(
+      'section',
+      { clase: 'checkout-seccion' },
+      el('h2', {
+        clase: 'checkout-seccion-titulo',
+        texto: 'Datos del cliente'
+      }),
+      el(
+        'div',
+        { clase: 'checkout-campos' },
+        campoNombre,
+        el('div', { clase: 'checkout-fila' }, campoCelular, campoCorreo),
+        campoCiudad,
+        campoDireccion
+      )
     );
-    const opcionQr = el('div', { clase: 'opcion-pago' }, entradaQr, etiquetaQr);
 
-    // Opcion 2: Depósito Bancario
-    const entradaDeposito = el('input', {
-      type: 'radio',
-      name: 'metodo_pago',
-      value: 'deposito_bancario',
-      id: 'metodo-deposito',
-      required: true,
-      'aria-label': 'Depósito bancario'
-    });
-    const etiquetaDeposito = el(
-      'label',
-      { 'for': 'metodo-deposito', clase: 'etiqueta-pago' },
-      el('span', { clase: 'texto-suave', texto: 'Depósito Bancario' }),
-      el('span', {
-        clase: 'texto-suave',
-        texto: ' - Comprobante con carga de archivo, valida manualmente'
-      })
+    const seccionPago = el(
+      'section',
+      { clase: 'checkout-seccion' },
+      el('h2', {
+        clase: 'checkout-seccion-titulo',
+        texto: 'Método de pago'
+      }),
+      el(
+        'div',
+        { clase: 'checkout-metodos' },
+        crearMetodoPago({
+          id: 'metodo-qr',
+          valor: 'qr_simple',
+          titulo: 'QR Simple',
+          descripcion: 'Escanea el QR y adjunta tu comprobante.',
+          iconoNombre: 'qr'
+        }),
+        crearMetodoPago({
+          id: 'metodo-deposito',
+          valor: 'deposito_bancario',
+          titulo: 'Depósito bancario',
+          descripcion:
+            'Transfiere a la cuenta de NubaGlow y adjunta el comprobante.',
+          iconoNombre: 'banco'
+        }),
+        crearMetodoPago({
+          id: 'metodo-paypal',
+          valor: 'paypal',
+          titulo: paypalMensaje,
+          descripcion: 'Paga con tu cuenta PayPal en el entorno de pruebas.',
+          iconoNombre: 'tarjeta'
+        }),
+        crearMetodoPago({
+          id: 'metodo-contra-entrega',
+          valor: 'contra_entrega',
+          titulo: 'Pago contra entrega',
+          descripcion: 'Paga en efectivo al recibir tu pedido en Sucre.',
+          iconoNombre: 'efectivo'
+        })
+      )
     );
-    const opcionDeposito = el(
+
+    const resumenPedido = crearResumenCheckout(carrito, cotizacion);
+    const botonConfirmar = el(
+      'button',
+      {
+        clase: 'btn btn-primary checkout-boton-confirmar',
+        type: 'submit',
+        disabled: true,
+        'aria-label': 'Confirmar pedido'
+      },
+      el('span', { texto: 'Confirmar pedido' })
+    );
+
+    resumenPedido.append(mensajes, botonConfirmar);
+
+    const columnaPrincipal = el(
       'div',
-      { clase: 'opcion-pago' },
-      entradaDeposito,
-      etiquetaDeposito
+      { clase: 'checkout-columna-principal' },
+      seccionDatos,
+      seccionPago
     );
 
-    // Opcion 3: PayPal
-    const entradaPaypal = el('input', {
-      type: 'radio',
-      name: 'metodo_pago',
-      value: 'paypal',
-      id: 'metodo-paypal',
-      required: true,
-      'aria-label': 'PayPal'
-    });
-    const etiquetaPaypal = el(
-      'label',
-      { 'for': 'metodo-paypal', clase: 'etiqueta-pago' },
-      el('span', { clase: 'texto-suave', texto: paypalMensaje })
-    );
-    const opcionPayPal = el(
-      'div',
-      { clase: 'opcion-pago' },
-      entradaPaypal,
-      etiquetaPaypal
-    );
-
-    // Opcion 4: Contra entrega
-    const entradaContraEntrega = el('input', {
-      type: 'radio',
-      name: 'metodo_pago',
-      value: 'contra_entrega',
-      id: 'metodo-contra-entrega',
-      required: true,
-      'aria-label': 'Contra entrega'
-    });
-    const etiquetaContraEntrega = el(
-      'label',
-      { 'for': 'metodo-contra-entrega', clase: 'etiqueta-pago' },
-      el('span', { clase: 'texto-suave', texto: 'Pago contra entrega' }),
-      el('span', {
-        clase: 'texto-suave',
-        texto: ' - Pagar al recibir el producto en Sucre'
-      })
-    );
-    const opcionContraEntrega = el(
-      'div',
-      { clase: 'opcion-pago' },
-      entradaContraEntrega,
-      etiquetaContraEntrega
-    );
-
-    // Botón de confirmar
-    const botonConfirmar = el('button', {
-      clase: 'boton-grande',
-      type: 'submit',
-      disabled: true,
-      'aria-label': 'Confirmar pedido'
-    }, el('span', { texto: 'Confirmar pedido' }));
-
-    formulario.append(
-      campoNombre,
-      campoCelular,
-      campoCorreo,
-      campoCiudad,
-      campoDireccion,
-      resumenPedido,
-      metodosPago,
-      opcionQr,
-      opcionDeposito,
-      opcionPayPal,
-      opcionContraEntrega,
-      botonConfirmar
-    );
-
-    seccion.append(mensajes, formulario);
+    formulario.append(columnaPrincipal, resumenPedido);
+    seccion.append(formulario);
 
     // Manejo de validacion de formulario en el navegador
     const formularioElemento = formulario;
@@ -385,50 +471,49 @@ export const vistaCheckout = {
       return String(campo?.value || '').trim();
     }
 
+    const validadores = {
+      nombre: (valor) =>
+        valor.length >= 3
+          ? ''
+          : 'El nombre debe tener al menos 3 caracteres',
+      celular: (valor) =>
+        /^[67][0-9]{7}$/.test(valor)
+          ? ''
+          : 'El celular debe tener 8 dígitos y comenzar con 6 o 7',
+      correo: (valor) =>
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)
+          ? ''
+          : 'El correo no tiene un formato válido',
+      ciudad: (valor) =>
+        valor.length >= 2
+          ? ''
+          : 'La ciudad debe tener al menos 2 caracteres',
+      direccion: (valor) =>
+        valor.length >= 5
+          ? ''
+          : 'La dirección debe tener al menos 5 caracteres'
+    };
+
+    const erroresPorCampo = {
+      nombre: errorNombre,
+      celular: errorCelular,
+      correo: errorCorreo,
+      ciudad: errorCiudad,
+      direccion: errorDireccion
+    };
+
     formularioElemento.addEventListener('input', (evento) => {
       const target = evento.target;
+      const validador = validadores[target.name];
+      if (!validador) return;
 
-      if (target.name === 'nombre') {
-        const valor = target.value.trim();
-        target.value = valor;
-        if (valor.length < 3) {
-          target.setCustomValidity('El nombre debe tener al menos 3 caracteres');
-        } else {
-          target.setCustomValidity('');
-        }
-      } else if (target.name === 'celular') {
-        const valor = target.value.trim();
-        target.value = valor;
-        if (!/^[67][0-9]{7}$/.test(valor)) {
-          target.setCustomValidity('El celular debe tener 8 dígitos y comenzar con 6 o 7');
-        } else {
-          target.setCustomValidity('');
-        }
-      } else if (target.name === 'correo') {
-        const valor = target.value.trim();
-        target.value = valor;
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)) {
-          target.setCustomValidity('El correo no tiene un formato válido');
-        } else {
-          target.setCustomValidity('');
-        }
-      } else if (target.name === 'ciudad') {
-        const valor = target.value.trim();
-        target.value = valor;
-        if (valor.length < 2) {
-          target.setCustomValidity('La ciudad debe tener al menos 2 caracteres');
-        } else {
-          target.setCustomValidity('');
-        }
-      } else if (target.name === 'direccion') {
-        const valor = target.value.trim();
-        target.value = valor;
-        if (valor.length < 5) {
-          target.setCustomValidity('La dirección debe tener al menos 5 caracteres');
-        } else {
-          target.setCustomValidity('');
-        }
-      }
+      const valor = target.value.trim();
+      target.value = valor;
+      const mensaje = validador(valor);
+      target.setCustomValidity(mensaje);
+
+      const error = erroresPorCampo[target.name];
+      if (error) error.textContent = mensaje;
     });
 
     // Habilitar/deshabilitar boton al rellenar campos y seleccionar metodo de pago
@@ -450,8 +535,11 @@ export const vistaCheckout = {
       const datosOk =
         nombreOk && celularOk && correoOk && ciudadOk && direccionOk;
 
-      const metodoPago = formularioElemento.elements.namedItem('metodo_pago');
-      const metodoSeleccionado = Boolean(metodoPago && metodoPago.checked);
+      const metodoSeleccionado = Boolean(
+        formularioElemento.querySelector(
+          'input[name="metodo_pago"]:checked'
+        )
+      );
 
       camposLlenos = datosOk && metodoSeleccionado;
       botonConfirmar.disabled = hayErrores || !camposLlenos;

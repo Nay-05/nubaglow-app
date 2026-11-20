@@ -31,3 +31,6 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 Thumbs.db
+
+# Capturas locales de verificacion visual
+capturas/

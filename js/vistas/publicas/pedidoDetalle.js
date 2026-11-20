@@ -23,6 +23,13 @@ import {
 
 const RUTA_CUENTA = '/cuenta';
 const RUTA_CATALOGO = '/catalogo';
+const ESTADOS_ENVIO = [
+  'Pendiente',
+  'En preparación',
+  'Empacado',
+  'En tránsito',
+  'Entregado'
+];
 const TAMANO_MAXIMO_COMPROBANTE = 2 * 1024 * 1024;
 const TIPOS_COMPROBANTE = new Set([
   'image/jpeg',
@@ -90,6 +97,7 @@ function crearBotonCopiar(codigo) {
       clase: 'btn btn-secondary btn-pequeno',
       atributos: { type: 'button', 'aria-label': 'Copiar código de rastreo' }
     },
+    icono('copiar', 15),
     el('span', { texto: 'Copiar código' })
   );
 
@@ -138,11 +146,43 @@ function crearBotonWhatsApp(pedido, numero) {
   );
 }
 
+function crearBadgesEstado(pedido) {
+  const pago = pedido.pago;
+  const envio = pedido.envio;
+  const badges = [];
+
+  badges.push(
+    pago
+      ? el('span', {
+          clase: `estado-badge ${claseEstadoPago(pago.estado)}`,
+          texto: `Pago: ${pago.estado}`
+        })
+      : el('span', {
+          clase: 'estado-badge estado-pendiente',
+          texto: 'Pago: sin registrar'
+        })
+  );
+
+  badges.push(
+    envio
+      ? el('span', {
+          clase: `estado-badge ${claseEstadoEnvio(envio.estado)}`,
+          texto: `Envío: ${envio.estado}`
+        })
+      : el('span', {
+          clase: 'estado-badge estado-pendiente',
+          texto: 'Envío: pendiente'
+        })
+  );
+
+  return el('div', { clase: 'pedido-badges' }, ...badges);
+}
+
 function crearCabeceraPedido(pedido, configuracion) {
   const numeroWhatsApp = configuracion?.whatsappNumero;
   const acciones = el(
     'div',
-    { clase: 'pedido-acciones' },
+    { clase: 'pedido-acciones pedido-cabecera-acciones' },
     crearBotonWhatsApp(pedido, numeroWhatsApp),
     enlaceInterno(RUTA_CUENTA, 'Volver a mi cuenta', {
       clase: 'btn btn-secondary'
@@ -150,23 +190,24 @@ function crearCabeceraPedido(pedido, configuracion) {
   );
 
   return el(
-    'div',
+    'header',
     { clase: 'pedido-cabecera' },
     el(
       'div',
-      { clase: 'pedido-codigo-bloque' },
+      { clase: 'pedido-cabecera-principal' },
+      el('p', { clase: 'rastreo-etiqueta', texto: 'Código de rastreo' }),
       el(
         'div',
-        {},
-        el('p', { clase: 'rastreo-etiqueta', texto: 'Código de rastreo' }),
-        el('h2', { clase: 'pedido-codigo', texto: pedido.codigoRastreo })
+        { clase: 'pedido-codigo-bloque' },
+        el('h2', { clase: 'pedido-codigo', texto: pedido.codigoRastreo }),
+        crearBotonCopiar(pedido.codigoRastreo)
       ),
-      crearBotonCopiar(pedido.codigoRastreo)
+      el('p', {
+        clase: 'texto-suave',
+        texto: `Pedido realizado el ${formatearFecha(pedido.creadoEn)}`
+      }),
+      crearBadgesEstado(pedido)
     ),
-    el('p', {
-      clase: 'texto-suave',
-      texto: `Pedido realizado el ${formatearFecha(pedido.creadoEn)}`
-    }),
     acciones
   );
 }
@@ -211,7 +252,7 @@ function crearResumenItems(pedido) {
 
   return el(
     'section',
-    { clase: 'pedido-panel' },
+    { clase: 'pedido-panel pedido-panel--resumen' },
     el('h2', { clase: 'pedido-panel-titulo', texto: 'Resumen del pedido' }),
     lista,
     el(
@@ -252,7 +293,7 @@ function crearPanelEntrega(pedido) {
 
   return el(
     'section',
-    { clase: 'pedido-panel' },
+    { clase: 'pedido-panel pedido-panel--entrega' },
     el('h2', { clase: 'pedido-panel-titulo', texto: 'Datos de entrega' }),
     el(
       'dl',
@@ -271,6 +312,11 @@ function crearPanelEntrega(pedido) {
 
 function crearLineaTiempo(envio) {
   const eventos = Array.isArray(envio?.eventos) ? envio.eventos : [];
+  const estadoActual = envio?.estado || '';
+  const indiceActual = envio
+    ? Math.max(0, ESTADOS_ENVIO.indexOf(estadoActual))
+    : -1;
+
   const badge = envio
     ? el('span', {
         clase: `estado-badge ${claseEstadoEnvio(envio.estado)}`,
@@ -278,54 +324,60 @@ function crearLineaTiempo(envio) {
       })
     : null;
 
-  const contenido = eventos.length
-    ? el(
-        'ol',
-        { clase: 'linea-tiempo' },
-        ...eventos.map((evento) =>
-          el(
-            'li',
-            { clase: 'linea-evento' },
-            el('span', {
-              clase: 'linea-punto',
-              atributos: { 'aria-hidden': 'true' }
-            }),
-            el(
-              'div',
-              { clase: 'linea-contenido' },
-              el('strong', { texto: evento.estado }),
-              el('span', {
-                clase: 'linea-fecha',
-                texto: formatearFecha(evento.creadoEn)
-              }),
-              evento.descripcion
-                ? el('p', {
-                    clase: 'texto-suave',
-                    texto: evento.descripcion
-                  })
-                : null
-            )
-          )
-        )
+  const pasos = ESTADOS_ENVIO.map((estado, indice) => {
+    const evento = eventos.find((actual) => actual.estado === estado);
+    let modificador = 'pedido-etapa--pendiente';
+
+    if (indice < indiceActual) {
+      modificador = 'pedido-etapa--completada';
+    } else if (indice === indiceActual) {
+      modificador = 'pedido-etapa--actual';
+    }
+
+    return el(
+      'li',
+      {
+        clase: `pedido-etapa ${modificador}`,
+        atributos:
+          indice === indiceActual ? { 'aria-current': 'step' } : {}
+      },
+      el('span', {
+        clase: 'pedido-etapa-punto',
+        atributos: { 'aria-hidden': 'true' }
+      }),
+      el(
+        'div',
+        { clase: 'pedido-etapa-contenido' },
+        el('strong', { texto: estado }),
+        evento
+          ? el('span', {
+              clase: 'linea-fecha',
+              texto: formatearFecha(evento.creadoEn)
+            })
+          : null,
+        evento?.descripcion
+          ? el('p', {
+              clase: 'texto-suave',
+              texto: evento.descripcion
+            })
+          : null
       )
-    : el('p', {
-        clase: 'texto-suave',
-        texto: 'Todavía no hay eventos registrados para este envío.'
-      });
+    );
+  });
 
   return el(
     'section',
-    { clase: 'pedido-panel pedido-panel--ancho' },
+    { clase: 'pedido-panel pedido-panel--ancho pedido-panel--seguimiento' },
     el(
       'div',
       { clase: 'pago-cabecera' },
       el('h2', {
         clase: 'pedido-panel-titulo',
-        texto: 'Línea de tiempo del envío'
+        texto: 'Estado del envío'
       }),
       badge
     ),
-    contenido
+    el('ol', { clase: 'pedido-etapas' }, ...pasos)
   );
 }
 
@@ -368,12 +420,18 @@ function crearFormularioComprobante(pedido, pago, alRecargar) {
   });
 
   const archivo = el('input', {
-    clase: 'entrada',
+    clase: 'comprobante-archivo',
     id: 'comprobante-archivo',
     name: 'archivo',
     type: 'file',
     required: true,
     accept: '.jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf'
+  });
+
+  const nombreArchivo = el('span', {
+    clase: 'comprobante-archivo-nombre',
+    atributos: { 'aria-live': 'polite' },
+    texto: 'Ningún archivo seleccionado'
   });
 
   const boton = el(
@@ -424,21 +482,45 @@ function crearFormularioComprobante(pedido, pago, alRecargar) {
       ),
       el(
         'div',
-        { clase: 'campo' },
+        { clase: 'campo campo--archivo' },
         el('label', {
           clase: 'campo-etiqueta',
           atributos: { for: 'comprobante-archivo' },
           texto: 'Archivo del comprobante'
         }),
-        archivo,
-        el('small', {
-          clase: 'campo-ayuda',
-          texto: 'Formatos JPG, PNG o PDF. Tamaño máximo 2 MB.'
-        })
+        el(
+          'label',
+          {
+            clase: 'comprobante-zona',
+            atributos: { for: 'comprobante-archivo' }
+          },
+          el(
+            'span',
+            { clase: 'comprobante-zona-icono', atributos: { 'aria-hidden': 'true' } },
+            icono('subir', 22)
+          ),
+          el('span', {
+            clase: 'comprobante-zona-titulo',
+            texto: 'Selecciona tu comprobante'
+          }),
+          el('span', {
+            clase: 'comprobante-zona-ayuda',
+            texto: 'JPG, PNG o PDF. Tamaño máximo 2 MB.'
+          }),
+          archivo
+        ),
+        nombreArchivo
       )
     ),
     el('div', { clase: 'pago-acciones' }, boton)
   );
+
+  archivo.addEventListener('change', () => {
+    const seleccionado = archivo.files && archivo.files[0];
+    nombreArchivo.textContent = seleccionado
+      ? seleccionado.name
+      : 'Ningún archivo seleccionado';
+  });
 
   formulario.addEventListener('submit', async (evento) => {
     evento.preventDefault();
@@ -525,16 +607,21 @@ function crearFormularioComprobante(pedido, pago, alRecargar) {
   return formulario;
 }
 
-function crearPanelPago(pedido, datosCobro, alRecargar) {
+function crearPanelPago(pedido, datosCobro) {
   const pago = pedido.pago;
   const metodo = pago?.metodo || '';
-  const panel = el('section', { clase: 'pedido-panel' });
+  const panel = el('section', {
+    clase: 'pedido-panel pedido-panel--pago'
+  });
 
   panel.appendChild(
     el(
       'div',
       { clase: 'pago-cabecera' },
-      el('h2', { clase: 'pedido-panel-titulo', texto: 'Pago' }),
+      el('h2', {
+        clase: 'pedido-panel-titulo',
+        texto: 'Instrucciones de pago'
+      }),
       pago
         ? el('span', {
             clase: `estado-badge ${claseEstadoPago(pago.estado)}`,
@@ -675,23 +762,6 @@ function crearPanelPago(pedido, datosCobro, alRecargar) {
     );
   }
 
-  const aceptaComprobante =
-    (metodo === 'qr_simple' || metodo === 'qr' || metodo === 'deposito_bancario') &&
-    (pago.estado === 'Pendiente' || pago.estado === 'En verificación');
-
-  if (aceptaComprobante) {
-    if (pago.estado === 'En verificación') {
-      panel.appendChild(
-        el('p', {
-          clase: 'texto-suave',
-          texto:
-            'Tu comprobante está en revisión. Puedes reemplazarlo si necesitas corregirlo.'
-        })
-      );
-    }
-    panel.appendChild(crearFormularioComprobante(pedido, pago, alRecargar));
-  }
-
   if (pago.fechaVencimiento && pago.estado !== 'Aprobado') {
     panel.appendChild(
       el('p', {
@@ -701,6 +771,42 @@ function crearPanelPago(pedido, datosCobro, alRecargar) {
     );
   }
 
+  return panel;
+}
+
+function crearPanelComprobante(pedido, pago, alRecargar) {
+  const panel = el('section', {
+    clase: 'pedido-panel pedido-panel--comprobante'
+  });
+
+  panel.appendChild(
+    el('h2', {
+      clase: 'pedido-panel-titulo',
+      texto: 'Comprobante de pago'
+    })
+  );
+
+  panel.appendChild(
+    el('p', {
+      clase: 'texto-suave',
+      texto:
+        'Adjunta el comprobante de tu QR o depósito para que el equipo ' +
+        'pueda verificarlo.'
+    })
+  );
+
+  if (pago.estado === 'En verificación') {
+    panel.appendChild(
+      el('p', {
+        clase: 'pago-aviso',
+        texto:
+          'Tu comprobante está en revisión. Puedes reemplazarlo si ' +
+          'necesitas corregirlo.'
+      })
+    );
+  }
+
+  panel.appendChild(crearFormularioComprobante(pedido, pago, alRecargar));
   return panel;
 }
 
@@ -840,17 +946,29 @@ export const vistaPedidoDetalle = {
         bloques.push(alerta(mensajeExito, 'exito'));
       }
 
+      const pago = pedido.pago;
+      const metodo = pago?.metodo;
+      const aceptaComprobante =
+        Boolean(pago) &&
+        (metodo === 'qr_simple' ||
+          metodo === 'qr' ||
+          metodo === 'deposito_bancario') &&
+        (pago.estado === 'Pendiente' || pago.estado === 'En verificación');
+
+      const paneles = [
+        crearResumenItems(pedido),
+        crearPanelPago(pedido, datosCobro)
+      ];
+
+      if (aceptaComprobante) {
+        paneles.push(crearPanelComprobante(pedido, pago, recargar));
+      }
+
+      paneles.push(crearPanelEntrega(pedido));
+      paneles.push(crearLineaTiempo(pedido.envio));
+
       bloques.push(crearCabeceraPedido(pedido, configuracion));
-      bloques.push(
-        el(
-          'div',
-          { clase: 'pedido-grid' },
-          crearResumenItems(pedido),
-          crearPanelPago(pedido, datosCobro, recargar),
-          crearPanelEntrega(pedido),
-          crearLineaTiempo(pedido.envio)
-        )
-      );
+      bloques.push(el('div', { clase: 'pedido-grid' }, ...paneles));
 
       contenido.replaceChildren(...bloques);
     };
