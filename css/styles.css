@@ -5489,18 +5489,22 @@ body.mini-carrito-abierto {
    14. Rediseño del portal interno: layout, tablas y filtros
    -------------------------------------------------------------------------- */
 .sidebar-staff {
-  background-color: var(--color-charcoal);
-  border-right: 1px solid var(--color-silver);
+  background-color: var(--color-wine-plum);
+  color: var(--color-ivory);
+}
+
+.sidebar-enlace {
+  color: var(--color-ivory);
 }
 
 .sidebar-enlace.activo {
-  background-color: var(--color-wine-plum);
-  color: var(--color-white);
+  background-color: rgba(255, 255, 255, 0.16);
+  color: var(--color-ivory);
 }
 
 .sidebar-enlace:hover {
-  background-color: var(--color-primary-soft);
-  color: var(--color-white);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-ivory);
 }
 
 .sidebar-enlace-descripcion {
