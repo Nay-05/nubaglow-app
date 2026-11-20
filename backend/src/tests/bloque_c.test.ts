@@ -19,6 +19,11 @@
 import jwt from 'jsonwebtoken';
 import app from '../index';
 import { consultar, conTransaccion, cerrarPool } from '../db';
+import {
+  eliminarHistorialDePedidosDePrueba,
+  eliminarOInactivarProductoDePrueba,
+  eliminarReferenciasDeUsuariosDePrueba
+} from './limpieza';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_super_segura_nubaglow_2026';
 process.env.JWT_SECRET = JWT_SECRET;
@@ -579,49 +584,28 @@ async function ejecutarPruebas() {
 }
 
 async function limpiarDatosPrueba(prodId?: number, userIds?: number[]) {
+  const idsUsuarios = userIds && userIds.length > 0 ? userIds : [];
+
   try {
-    if (prodId) {
-      await consultar('DELETE FROM resenas WHERE producto_id = $1', [prodId]);
-      // Obtener variantes
-      const vars = await consultar('SELECT id FROM variantes WHERE producto_id = $1', [prodId]);
-      const varIds = vars.rows.map((v) => v.id);
-      if (varIds.length > 0) {
-        await consultar('DELETE FROM carrito_items WHERE variante_id = ANY($1::int[])', [varIds]);
-        await consultar('DELETE FROM pedido_items WHERE variante_id = ANY($1::int[])', [varIds]);
-        await consultar('DELETE FROM movimientos_inventario WHERE variante_id = ANY($1::int[])', [varIds]);
-        await consultar('DELETE FROM variantes WHERE id = ANY($1::int[])', [varIds]);
-      }
-      await consultar('DELETE FROM productos WHERE id = $1', [prodId]);
+    if (idsUsuarios.length > 0) {
+      const pedidos = await consultar(
+        'SELECT id FROM pedidos WHERE usuario_id = ANY($1::int[])',
+        [idsUsuarios]
+      );
+      await eliminarHistorialDePedidosDePrueba(pedidos.rows.map((p) => p.id));
+
+      await eliminarReferenciasDeUsuariosDePrueba(idsUsuarios);
+      await consultar('DELETE FROM carritos WHERE usuario_id = ANY($1::int[])', [
+        idsUsuarios
+      ]);
+      await consultar('DELETE FROM auditoria WHERE usuario_id = ANY($1::int[])', [
+        idsUsuarios
+      ]);
+      await consultar('DELETE FROM usuarios WHERE id = ANY($1::int[])', [idsUsuarios]);
     }
 
-    if (userIds && userIds.length > 0) {
-      // Borrar auditoria, envios, pagos, pedidos de esos usuarios
-      const pedidos = await consultar('SELECT id FROM pedidos WHERE usuario_id = ANY($1::int[])', [userIds]);
-      const pIds = pedidos.rows.map((p) => p.id);
-      if (pIds.length > 0) {
-        const envios = await consultar('SELECT id FROM envios WHERE pedido_id = ANY($1::int[])', [pIds]);
-        const eIds = envios.rows.map((e) => e.id);
-        if (eIds.length > 0) {
-          await consultar('DELETE FROM entregas WHERE envio_id = ANY($1::int[])', [eIds]);
-          await consultar('DELETE FROM envio_eventos WHERE envio_id = ANY($1::int[])', [eIds]);
-          await consultar('DELETE FROM envios WHERE id = ANY($1::int[])', [eIds]);
-        }
-        await consultar(
-          'DELETE FROM comprobantes_pago WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = ANY($1::int[]))',
-          [pIds]
-        );
-        await consultar(
-          'DELETE FROM pago_eventos WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = ANY($1::int[]))',
-          [pIds]
-        );
-        await consultar('DELETE FROM pagos WHERE pedido_id = ANY($1::int[])', [pIds]);
-        await consultar('DELETE FROM pedido_items WHERE pedido_id = ANY($1::int[])', [pIds]);
-        await consultar('DELETE FROM movimientos_inventario WHERE pedido_id = ANY($1::int[])', [pIds]);
-        await consultar('DELETE FROM pedidos WHERE id = ANY($1::int[])', [pIds]);
-      }
-      await consultar('DELETE FROM carritos WHERE usuario_id = ANY($1::int[])', [userIds]);
-      await consultar('DELETE FROM auditoria WHERE usuario_id = ANY($1::int[])', [userIds]);
-      await consultar('DELETE FROM usuarios WHERE id = ANY($1::int[])', [userIds]);
+    if (prodId) {
+      await eliminarOInactivarProductoDePrueba(prodId);
     }
   } catch (err) {
     console.error('Nota: error menor durante la limpieza de datos de prueba:', err);

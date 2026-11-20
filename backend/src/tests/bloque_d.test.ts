@@ -21,6 +21,11 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import app from '../index';
 import { consultar, cerrarPool } from '../db';
+import {
+  eliminarHistorialDePedidosDePrueba,
+  eliminarOInactivarProductoDePrueba,
+  eliminarReferenciasDeUsuariosDePrueba
+} from './limpieza';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_super_segura_nubaglow_2026';
 process.env.JWT_SECRET = JWT_SECRET;
@@ -827,60 +832,63 @@ async function limpiarDatosPrueba(
   pedId?: number,
   adminsRestaurar?: { id: number; activo: boolean }[]
 ) {
+  const idsValidos = (userIds || []).filter(
+    (id): id is number => typeof id === 'number'
+  );
+
   try {
-    if (envioId) {
-      await consultar('DELETE FROM envio_eventos WHERE envio_id = $1', [envioId]);
-      await consultar('DELETE FROM auditoria WHERE tabla_afectada = $1 AND registro_id = $2', ['envios', envioId]);
-      await consultar('DELETE FROM envios WHERE id = $1', [envioId]);
-    }
     if (pedId) {
-      await consultar(
-        'DELETE FROM comprobantes_pago WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = $1)',
+      const pagos = await consultar(
+        'SELECT id FROM pagos WHERE pedido_id = $1',
         [pedId]
       );
       await consultar(
-        'DELETE FROM pago_eventos WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = $1)',
-        [pedId]
+        `DELETE FROM auditoria
+         WHERE tabla_afectada = 'pagos' AND registro_id = ANY($1::int[])`,
+        [pagos.rows.map((p) => p.id)]
       );
-      await consultar(
-        "DELETE FROM auditoria WHERE tabla_afectada = 'pagos' AND registro_id IN (SELECT id FROM pagos WHERE pedido_id = $1)",
-        [pedId]
-      );
-      await consultar('DELETE FROM pagos WHERE pedido_id = $1', [pedId]);
-      await consultar('DELETE FROM pedido_items WHERE pedido_id = $1', [pedId]);
-      await consultar('DELETE FROM movimientos_inventario WHERE pedido_id = $1', [pedId]);
-      await consultar('DELETE FROM pedidos WHERE id = $1', [pedId]);
-    }
-    if (prodId) {
-      const vars = await consultar('SELECT id FROM variantes WHERE producto_id = $1', [prodId]);
-      const varIds = vars.rows.map((v) => v.id);
-      if (varIds.length > 0) {
-        await consultar('DELETE FROM auditoria WHERE tabla_afectada = $1 AND registro_id = ANY($2::int[])', ['variantes', varIds]);
-        await consultar('DELETE FROM movimientos_inventario WHERE variante_id = ANY($1::int[])', [varIds]);
-        await consultar('DELETE FROM variantes WHERE id = ANY($1::int[])', [varIds]);
-      }
-      await consultar('DELETE FROM productos WHERE id = $1', [prodId]);
+      await eliminarHistorialDePedidosDePrueba([pedId]);
     }
 
-    if (userIds && userIds.length > 0) {
-      const idsValidos = userIds.filter((id) => id !== undefined && id !== null);
-      if (idsValidos.length > 0) {
-        const ventas = await consultar('SELECT id FROM ventas_pos WHERE vendedor_id = ANY($1::int[])', [idsValidos]);
-        const vIds = ventas.rows.map((v) => v.id);
-        if (vIds.length > 0) {
-          await consultar('DELETE FROM facturas WHERE venta_pos_id = ANY($1::int[])', [vIds]);
-          await consultar('DELETE FROM ventas_pos WHERE id = ANY($1::int[])', [vIds]);
-        }
-        await consultar('DELETE FROM movimientos_inventario WHERE usuario_id = ANY($1::int[])', [idsValidos]);
-        await consultar('DELETE FROM auditoria WHERE usuario_id = ANY($1::int[])', [idsValidos]);
-        await consultar('DELETE FROM usuarios WHERE id = ANY($1::int[])', [idsValidos]);
+    if (envioId) {
+      await consultar('DELETE FROM envio_eventos WHERE envio_id = $1', [envioId]);
+      await consultar(
+        'DELETE FROM auditoria WHERE tabla_afectada = $1 AND registro_id = $2',
+        ['envios', envioId]
+      );
+      await consultar('DELETE FROM envios WHERE id = $1', [envioId]);
+    }
+
+    if (idsValidos.length > 0) {
+      const ventas = await consultar(
+        'SELECT id FROM ventas_pos WHERE vendedor_id = ANY($1::int[])',
+        [idsValidos]
+      );
+      const vIds = ventas.rows.map((v) => v.id);
+      if (vIds.length > 0) {
+        await consultar('DELETE FROM facturas WHERE venta_pos_id = ANY($1::int[])', [
+          vIds
+        ]);
+        await consultar('DELETE FROM ventas_pos WHERE id = ANY($1::int[])', [vIds]);
       }
+      await eliminarReferenciasDeUsuariosDePrueba(idsValidos);
+      await consultar('DELETE FROM auditoria WHERE usuario_id = ANY($1::int[])', [
+        idsValidos
+      ]);
+      await consultar('DELETE FROM usuarios WHERE id = ANY($1::int[])', [idsValidos]);
+    }
+
+    if (prodId) {
+      await eliminarOInactivarProductoDePrueba(prodId);
     }
 
     // Restaurar estado exacto de administradores preexistentes sin asumir correos fijos
     if (adminsRestaurar && adminsRestaurar.length > 0) {
       for (const adm of adminsRestaurar) {
-        await consultar('UPDATE usuarios SET activo = $1 WHERE id = $2', [adm.activo, adm.id]);
+        await consultar('UPDATE usuarios SET activo = $1 WHERE id = $2', [
+          adm.activo,
+          adm.id
+        ]);
       }
     }
   } catch (err) {

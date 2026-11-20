@@ -17,6 +17,11 @@ import app from '../index';
 import { consultar, cerrarPool } from '../db';
 import { PaypalService } from '../services/paypal.service';
 import { PasarelaPaypal } from '../services/paypalPasarela.service';
+import {
+  eliminarHistorialDePedidosDePrueba,
+  eliminarOInactivarProductoDePrueba,
+  eliminarReferenciasDeUsuariosDePrueba
+} from './limpieza';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'clave_secreta_super_segura_nubaglow_2026';
 process.env.JWT_SECRET = JWT_SECRET;
@@ -536,51 +541,7 @@ async function limpiarDatos(
   userIds: number[]
 ): Promise<void> {
   try {
-    if (pedidoIds.length > 0) {
-      await consultar(
-        'DELETE FROM pago_eventos WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = ANY($1::int[]))',
-        [pedidoIds]
-      );
-      await consultar(
-        'DELETE FROM comprobantes_pago WHERE pago_id IN (SELECT id FROM pagos WHERE pedido_id = ANY($1::int[]))',
-        [pedidoIds]
-      );
-      await consultar(
-        'DELETE FROM envio_eventos WHERE envio_id IN (SELECT id FROM envios WHERE pedido_id = ANY($1::int[]))',
-        [pedidoIds]
-      );
-      await consultar('DELETE FROM envios WHERE pedido_id = ANY($1::int[])', [pedidoIds]);
-      await consultar('DELETE FROM pedido_items WHERE pedido_id = ANY($1::int[])', [pedidoIds]);
-      await consultar('DELETE FROM movimientos_inventario WHERE pedido_id = ANY($1::int[])', [
-        pedidoIds
-      ]);
-      await consultar('DELETE FROM pagos WHERE pedido_id = ANY($1::int[])', [pedidoIds]);
-      await consultar('DELETE FROM pedidos WHERE id = ANY($1::int[])', [pedidoIds]);
-    }
-
-    if (productoId) {
-      const resVariantes = await consultar('SELECT id FROM variantes WHERE producto_id = $1', [
-        productoId
-      ]);
-      const varianteIds = resVariantes.rows.map((v) => v.id);
-
-      if (varianteIds.length > 0) {
-        await consultar('DELETE FROM movimientos_inventario WHERE variante_id = ANY($1::int[])', [
-          varianteIds
-        ]);
-        await consultar('DELETE FROM carrito_items WHERE variante_id = ANY($1::int[])', [
-          varianteIds
-        ]);
-        await consultar('DELETE FROM pedido_items WHERE variante_id = ANY($1::int[])', [
-          varianteIds
-        ]);
-        await consultar('DELETE FROM resenas WHERE producto_id = $1', [productoId]);
-        await consultar('DELETE FROM imagenes_producto WHERE producto_id = $1', [productoId]);
-        await consultar('DELETE FROM variantes WHERE id = ANY($1::int[])', [varianteIds]);
-      }
-
-      await consultar('DELETE FROM productos WHERE id = $1', [productoId]);
-    }
+    await eliminarHistorialDePedidosDePrueba(pedidoIds);
 
     if (userIds.length > 0) {
       await consultar(
@@ -588,8 +549,13 @@ async function limpiarDatos(
         [userIds]
       );
       await consultar('DELETE FROM carritos WHERE usuario_id = ANY($1::int[])', [userIds]);
+      await eliminarReferenciasDeUsuariosDePrueba(userIds);
       await consultar('DELETE FROM auditoria WHERE usuario_id = ANY($1::int[])', [userIds]);
       await consultar('DELETE FROM usuarios WHERE id = ANY($1::int[])', [userIds]);
+    }
+
+    if (productoId) {
+      await eliminarOInactivarProductoDePrueba(productoId);
     }
   } catch (error) {
     console.error('Nota: error durante la limpieza de la prueba PayPal:', error);
