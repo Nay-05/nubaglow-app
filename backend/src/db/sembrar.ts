@@ -19,6 +19,7 @@ import path from 'path';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { consultar, conTransaccion, cerrarPool } from './index';
+import { IMAGENES_REALES } from './imagenes_catalogo';
 
 // Genera una contrasena segura que cumple con la politica (8+ caracteres, mayuscula, numero)
 function generarPasswordSegura(prefijo: string): string {
@@ -652,12 +653,16 @@ async function sembrarBaseDeDatos() {
         totalVariantes++;
       }
 
-      // Insertar imagenes
-      for (let i = 0; i < p.imagenes.length; i++) {
+      // Insertar imagenes reales cuando exista una asignada por slug.
+      const imagenes = IMAGENES_REALES[p.slug]
+        ? [IMAGENES_REALES[p.slug]]
+        : p.imagenes;
+      for (let i = 0; i < imagenes.length; i++) {
         await cliente.query(
-          `INSERT INTO imagenes_producto (producto_id, url, es_principal, orden)
+          `INSERT INTO imagenes_producto
+           (producto_id, url, es_principal, orden)
            VALUES ($1, $2, $3, $4);`,
-          [productoId, p.imagenes[i], i === 0, i]
+          [productoId, imagenes[i], i === 0, i === 0 ? 1 : i + 1]
         );
       }
     }

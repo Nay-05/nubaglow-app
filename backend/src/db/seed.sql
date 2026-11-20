@@ -338,6 +338,113 @@ WHERE NOT EXISTS (
     SELECT 1 FROM imagenes_producto img WHERE img.producto_id = p.id
 );
 
+
+-- 4.1. Imagenes reales del catalogo (idempotente).
+CREATE TEMP TABLE IF NOT EXISTS imagenes_reales_catalogo (
+    slug TEXT PRIMARY KEY,
+    url TEXT NOT NULL
+);
+TRUNCATE imagenes_reales_catalogo;
+INSERT INTO imagenes_reales_catalogo (slug, url) VALUES
+      ('aceite-labial-nutritivo-lip-oil-escualano',
+        '/assets/images/Aceite%20Labial%20Nutritivo%20L' ||
+        'ip%20Oil%20con%20Escualano%20%26%20Jojoba.webp'),
+      ('aceite-limpiador-desmaquillante-nutritivo',
+        '/assets/images/aceite_limpiador.avif'),
+      ('agua-micelar-calmante-rosas-pantenol',
+        '/assets/images/Agua_Micelar_Calmante_Agua_de_Rosas_%26_Pantenol.jpg'),
+      ('balsamo-labial-reparador-peptidos-karite',
+        '/assets/images/Balsamo%20Labial%20Reparador%20' ||
+        'con%20Peptidos%20y%20Manteca%20de%20Karite.webp'),
+      ('balsamo-limpiador-avena-escualano',
+        '/assets/images/Balsamo_Limpiador_de_Avena_y_Escualano.jpg'),
+      ('base-liquida-glow-serum-ligera-spf-20',
+        '/assets/images/Base%20Liquida%20Glow%20Serum%20Ligera%20SPF%2020.jpg'),
+      ('base-mate-terciopelo-larga-duracion-24h',
+        '/assets/images/Base%20Mate%20Terciopelo%20Larga%20Duracion%2024h.webp'),
+      ('bruma-solar-fijadora-spf-50-reaplicacion',
+        '/assets/images/Bruma%20Solar%20Fijadora' ||
+        '%20SPF%2050%20Reaplicacion%20Facial.webp'),
+      ('corrector-hidratante-alta-cobertura-cafeina',
+        '/assets/images/Corrector%20Hidratante%20Alta' ||
+        '%20Cobertura%20Cafeina%20%26%20Escualano.webp'),
+      ('crema-hidratante-ceramide-barrier-relief',
+        '/assets/images/Crema_Hidratante_Ceramide_Barrier_Relief.avif'),
+      ('crema-nutritiva-noche-peptidos-cobre',
+        '/assets/images/CremaNutritiva_de_Noche_con_Peptidos_de_Cobre.avif'),
+      ('espuma-limpiadora-calmante-centella-asiatica',
+        '/assets/images/Espuma_Limpiadora_Calmante_Centella_Asiatica.webp'),
+      ('fluido-solar-matificante-ultra-ligero-spf-50',
+        '/assets/images/Fluido%20Solar%20Matific' ||
+        'ante%20Ultra%20Ligero%20SPF%2050%2B.webp'),
+      ('gel-fijador-cejas-invisible-lamination-effect',
+        '/assets/images/Gel%20Fijador%20de%20Cej' ||
+        'as%20Invisible%20Lamination%20Effect.jpg'),
+      ('gel-limpiador-purificante-acido-salicilico',
+        '/assets/images/gel_limpiador.webp'),
+      ('gel-crema-hidratante-matificante-oil-free',
+        '/assets/images/Gel-Crema_Hidratante_Matificante_Oil-Free.jpg'),
+      ('iluminador-liquido-glow-drops-champagne',
+        '/assets/images/Iluminador%20Liquido%20Glow%20Drops%20Champagne.webp'),
+      ('labial-liquido-mate-velvet-sedoso',
+        '/assets/images/Labial%20Liquido%20Mate%20Velvet%20Sedoso.jpg'),
+      ('mascara-pestanas-efecto-lifting-longitud-24h',
+        '/assets/images/Mascara%20de%20Pestanas%20' ||
+        'Efecto%20Lifting%20y%20Longitud%2024h.jpg'),
+      ('mascarilla-nocturna-reparadora-cica-alantoina',
+        '/assets/images/Mascarilla_Nocturna_Reparadora_Cica_%26_Alantoina.webp'),
+      ('paleta-sombras-sunset-rose-9-tonos',
+        '/assets/images/Paleta%20de%20Sombras%20Sunset%20Rose%209%20Tonos.webp'),
+      ('paleta-sombras-warm-earth-nudes-9-tonos',
+        '/assets/images/Paleta%20de%20Sombras%20Warm%20Earth%20Nudes%209%20Tonos.webp'),
+      ('polvo-traslucido-fijador-matificante-ultrafino',
+        '/assets/images/Polvo%20Traslucido%20Fijador%20Matificante%20Ultrafino.jpg'),
+      ('protector-solar-mineral-calming-spf-50-zinc',
+        '/assets/images/Protector%20Solar%20Mineral%20' ||
+        'Calming%20SPF%2050%2B%20Oxido%20de%20Zinc.webp'),
+      ('protector-solar-toque-seco-spf-50-invisible',
+        '/assets/images/Protector%20Solar%20Toque%20Seco%20SPF%2050%2B%20Invisible.webp'),
+      ('rubor-liquido-soft-tint-rose-acabado-natural',
+        '/assets/images/Rubor%20Liquido%20Soft%20' ||
+        'Tint%20Ros%C3%A9%20Acabado%20Natural.webp'),
+      ('serum-acido-hialuronico-multi-molecular-b5',
+        '/assets/images/Serum_Acido_Hialuronico_Multi-Molecular_2%25_%2B_B5.webp'),
+      ('serum-acido-salicilico-bha-2',
+        '/assets/images/srum_acido_salicilico.webp'),
+      ('serum-vitamina-c-15-ferulico',
+        '/assets/images/Serum%20Glow%20Vitamina%2' ||
+        '0C%2015%25%20%2B%20Acido%20Ferulico.webp'),
+      ('serum-niacinamida-10-zinc-pca',
+        '/assets/niacinamida+zinc.webp'),
+      ('serum-retinol-puro-03-nocturno',
+        '/assets/images/Serum_Retinol_Puro_0.3%25_Renovador_Nocturno.webp'),
+      ('tonico-hidratante-equilibrante-niacinamida-5',
+        '/assets/images/Tonico_Hidratante_y_Equilibrante_Niacinamida_5%25.webp');
+
+DELETE FROM imagenes_producto img
+USING productos p, imagenes_reales_catalogo ir
+WHERE img.producto_id = p.id
+  AND p.slug = ir.slug
+  AND (img.url LIKE '%icono1.png' OR img.url LIKE '%icono2.png');
+
+INSERT INTO imagenes_producto (producto_id, url, es_principal, orden)
+SELECT p.id, ir.url, TRUE, 1
+FROM productos p
+INNER JOIN imagenes_reales_catalogo ir ON ir.slug = p.slug
+WHERE NOT EXISTS (
+    SELECT 1 FROM imagenes_producto img
+    WHERE img.producto_id = p.id AND img.url = ir.url
+);
+
+UPDATE imagenes_producto img
+SET es_principal = (img.url = ir.url),
+    orden = CASE WHEN img.url = ir.url THEN 1 ELSE img.orden END
+FROM productos p
+INNER JOIN imagenes_reales_catalogo ir ON ir.slug = p.slug
+WHERE img.producto_id = p.id;
+
+DROP TABLE imagenes_reales_catalogo;
+
 -- ============================================================================
 -- 5. NOTA SOBRE USUARIOS Y CONTRASENAS (SEGURIDAD ESTRICTA)
 -- ============================================================================

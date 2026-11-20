@@ -92,6 +92,48 @@ function crearSelect(opciones, valor, etiquetaVacia = '') {
   return el('select', { clase: 'entrada' }, ...nodos);
 }
 
+
+async function subirArchivoImagen(productoId, archivo) {
+  const tipo = archivo.type || (
+    /\.png$/i.test(archivo.name)
+      ? 'image/png'
+      : /\.webp$/i.test(archivo.name)
+        ? 'image/webp'
+        : 'image/jpeg'
+  );
+  const enviar = () =>
+    fetch(`/api/staff/productos/${productoId}/imagen`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': tipo },
+      body: archivo
+    });
+
+  let respuesta = await enviar();
+  if (respuesta.status === 401) {
+    await fetch('/api/auth/refresh', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    });
+    respuesta = await enviar();
+  }
+
+  let datos = null;
+  try {
+    datos = await respuesta.json();
+  } catch {
+    datos = null;
+  }
+  if (!respuesta.ok || !datos?.exito) {
+    throw new Error(
+      datos?.error || 'No se pudo subir la imagen del producto.'
+    );
+  }
+  return datos.datos.imagen;
+}
+
 export const vistaProductos = {
   async render() {
     let categorias = [];
@@ -316,6 +358,55 @@ export const vistaProductos = {
         type: 'checkbox',
         checked: producto ? producto.activo : true
       });
+      const archivoImagen = el('input', {
+        clase: 'entrada',
+        type: 'file',
+        accept: 'image/jpeg,image/png,image/webp'
+      });
+      const vistaPrevia = el('img', {
+        clase: 'imagen-producto',
+        alt: 'Vista previa de la imagen seleccionada'
+      });
+      const contenedorPrevia = el(
+        'div',
+        { clase: 'admin-imagen-preview', hidden: true },
+        vistaPrevia
+      );
+      let archivoSeleccionado = null;
+      let urlPrevia = null;
+
+      archivoImagen.addEventListener('change', () => {
+        if (urlPrevia) URL.revokeObjectURL(urlPrevia);
+        urlPrevia = null;
+        const archivo = archivoImagen.files
+          ? archivoImagen.files[0]
+          : null;
+        if (!archivo) {
+          archivoSeleccionado = null;
+          contenedorPrevia.hidden = true;
+          return;
+        }
+        if (archivo.size > 3 * 1024 * 1024) {
+          mostrarMensaje('La imagen no puede superar los 3 MB.', 'error');
+          archivoImagen.value = '';
+          archivoSeleccionado = null;
+          contenedorPrevia.hidden = true;
+          return;
+        }
+        const tipos = ['image/jpeg', 'image/png', 'image/webp'];
+        const extensionValida = /\.(jpe?g|png|webp)$/i.test(archivo.name);
+        if (!tipos.includes(archivo.type) && !extensionValida) {
+          mostrarMensaje('Selecciona una imagen JPG, PNG o WEBP.', 'error');
+          archivoImagen.value = '';
+          archivoSeleccionado = null;
+          contenedorPrevia.hidden = true;
+          return;
+        }
+        archivoSeleccionado = archivo;
+        urlPrevia = URL.createObjectURL(archivo);
+        vistaPrevia.setAttribute('src', urlPrevia);
+        contenedorPrevia.hidden = false;
+      });
       const guardar = boton(esNuevo ? 'Crear producto' : 'Guardar cambios', {
         tipo: 'submit',
         variante: 'primary',
@@ -326,6 +417,7 @@ export const vistaProductos = {
         variante: 'outline'
       });
       cancelar.addEventListener('click', () => {
+        if (urlPrevia) URL.revokeObjectURL(urlPrevia);
         if (esNuevo) {
           editor.replaceChildren();
           return;
@@ -347,7 +439,21 @@ export const vistaProductos = {
           campoCheckAdmin('Producto activo', activo),
           campoAreaAdmin('Descripción', descripcion, 'admin-col-completa'),
           campoAreaAdmin('Ingredientes', ingredientes, 'admin-col-completa'),
-          campoAreaAdmin('Modo de uso', modoUso, 'admin-col-completa')
+          campoAreaAdmin('Modo de uso', modoUso, 'admin-col-completa'),
+          campoAdmin(
+            'Imagen del producto (archivo)',
+            archivoImagen,
+            'admin-col-completa'
+          ),
+          el(
+            'div',
+            { clase: 'admin-upload-vista' },
+            contenedorPrevia,
+            el('p', {
+              clase: 'texto-suave',
+              texto: 'JPG, PNG o WEBP. M?ximo 3 MB. Se usar? como imagen principal.'
+            })
+          )
         ),
         el('div', { clase: 'admin-form-acciones' }, guardar, cancelar)
       );
@@ -374,13 +480,35 @@ export const vistaProductos = {
           const guardado = respuesta?.datos?.producto;
           if (!guardado) throw new Error('El producto no devolvio datos.');
 
-          productoActual = guardado;
-          mostrarMensaje(
-            esNuevo
-              ? 'Producto creado correctamente.'
-              : 'Producto actualizado correctamente.'
-          );
-          renderEditor(guardado);
+          let productoFinal = guardado;
+          let errorImagen = null;
+          if (archivoSeleccionado) {
+            try {
+              await subirArchivoImagen(guardado.id, archivoSeleccionado);
+              const detalle = await api.obtener(
+                `/productos/${encodeURIComponent(guardado.slug)}`
+              );
+              productoFinal = detalle?.datos?.producto || guardado;
+            } catch (error) {
+              errorImagen = error;
+            }
+          }
+          if (urlPrevia) URL.revokeObjectURL(urlPrevia);
+          productoActual = productoFinal;
+          renderEditor(productoFinal);
+          if (errorImagen) {
+            mostrarMensaje(
+              'Producto guardado, pero la imagen no se pudo subir: ' +
+                (errorImagen.message || 'error desconocido'),
+              'error'
+            );
+          } else {
+            mostrarMensaje(
+              esNuevo
+                ? 'Producto creado correctamente.'
+                : 'Producto actualizado correctamente.'
+            );
+          }
           await cargarProductos();
         } catch (error) {
           mostrarMensaje(

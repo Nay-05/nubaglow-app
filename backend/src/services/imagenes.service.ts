@@ -6,6 +6,8 @@
  * producto y audita cada cambio realizado desde el portal administrativo.
  */
 
+import fs from 'fs';
+import path from 'path';
 import type { PoolClient } from 'pg';
 import { consultar, conTransaccion } from '../db';
 import { AppError } from '../middlewares/errores';
@@ -244,6 +246,100 @@ export class ImagenesService {
 
       return actualizada;
     });
+  }
+
+  private detectarImagen(buffer: Buffer): { extension: string } | null {
+    if (buffer.length < 12) return null;
+    if (
+      buffer[0] === 0xff &&
+      buffer[1] === 0xd8 &&
+      buffer[2] === 0xff
+    ) {
+      return { extension: 'jpg' };
+    }
+    if (
+      buffer.subarray(0, 8).toString('hex') === '89504e470d0a1a0a'
+    ) {
+      return { extension: 'png' };
+    }
+    if (
+      buffer.subarray(0, 4).toString() === 'RIFF' &&
+      buffer.subarray(8, 12).toString() === 'WEBP'
+    ) {
+      return { extension: 'webp' };
+    }
+    return null;
+  }
+
+  async guardarArchivo(
+    productoId: number,
+    buffer: Buffer,
+    usuarioId: number,
+    esPrincipal: boolean
+  ): Promise<ImagenProductoItem> {
+    if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+      throw new AppError('No se recibio ninguna imagen valida', 400);
+    }
+    if (buffer.length > 3 * 1024 * 1024) {
+      throw new AppError('La imagen no puede superar los 3 MB', 400);
+    }
+
+    const tipo = this.detectarImagen(buffer);
+    if (!tipo) {
+      throw new AppError(
+        'El archivo no es una imagen JPG, PNG o WEBP valida',
+        400
+      );
+    }
+
+    const producto = await consultar(
+      'SELECT id, slug FROM productos WHERE id = $1',
+      [productoId]
+    );
+    if (producto.rows.length === 0) {
+      throw new AppError('Producto no encontrado', 404);
+    }
+
+    const slug = String(producto.rows[0].slug || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const base = slug || `producto-${productoId}`;
+    const sufijo = `${Date.now().toString(36)}-` +
+      `${Math.random().toString(36).slice(2, 8)}`;
+    const nombreArchivo = `${base}-${sufijo}.${tipo.extension}`;
+    const carpeta = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'assets',
+      'images'
+    );
+    const ruta = path.join(carpeta, nombreArchivo);
+
+    fs.mkdirSync(carpeta, { recursive: true });
+    fs.writeFileSync(ruta, buffer, { flag: 'wx' });
+
+    try {
+      return await this.crear(
+        productoId,
+        {
+          url: `/assets/images/${encodeURIComponent(nombreArchivo)}`,
+          es_principal: esPrincipal,
+          orden: esPrincipal ? 1 : 0
+        },
+        usuarioId
+      );
+    } catch (error) {
+      try {
+        fs.unlinkSync(ruta);
+      } catch {
+        // La imagen no se pudo borrar, pero se conserva el error original.
+      }
+      throw error;
+    }
   }
 
   async eliminar(

@@ -35,6 +35,7 @@ function normalizarUrl(valor) {
   if (!url) return '';
   if (ESQUEMA_PELIGROSO.test(url)) return '#';
   if (url.startsWith('//')) return '#';
+  if (/^blob:/i.test(url)) return url;
   if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) return url;
   if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) return url;
   if (/^https?:\/\//i.test(url)) return url;

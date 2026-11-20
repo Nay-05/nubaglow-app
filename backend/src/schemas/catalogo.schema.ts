@@ -143,6 +143,10 @@ export const crearImagenProductoSchema = z.object({
 export const actualizarImagenProductoSchema =
   crearImagenProductoSchema.partial();
 
+export const subirImagenProductoQuerySchema = z.object({
+  principal: z.enum(['true', 'false']).optional()
+});
+
 export type ConsultaProductosInput = z.infer<typeof consultaProductosSchema>;
 export type CrearProductoInput = z.infer<typeof crearProductoSchema>;
 export type ActualizarProductoInput = z.infer<typeof actualizarProductoSchema>;

@@ -130,6 +130,9 @@ npm run db:migrate
 
 # 2. Poblar catalogo base (30+ productos con variantes y usuarios de cada rol)
 npm run db:seed
+
+# 3. Vincular las fotos reales de assets/images/ con el catalogo
+npm run db:imagenes
 ```
 
 > **Nota de seguridad:** Al correr `npm run db:seed`, las contraseñas generadas dinámicamente para las cuentas de demostración se imprimen en consola y se guardan temporalmente en `seed_passwords.txt` (archivo ignorado por `.gitignore`). Nunca se exponen contraseñas en código o documentación.
@@ -167,7 +170,7 @@ npm run test:bloque-b
 # Ejecutar suite Bloque C (Carrito persistente, pedidos atomicos, rastreo y resenas) - 36 pruebas
 npm run test:bloque-c
 
-# Ejecutar suite Bloque D (POS, facturacion, inventario, reportes y auditoria) - 106 pruebas
+# Ejecutar suite Bloque D (POS, facturacion, inventario, reportes y auditoria) - 110 pruebas
 npm run test:bloque-d
 
 # Verificar que el costo y el umbral de envio se leen de ENVIO_COSTO / ENVIO_GRATIS_DESDE
@@ -263,6 +266,7 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 | `POST` | `/api/productos/:productoId/imagenes` | `admin` | Agrega una imagen. Garantiza una sola principal. Audita `CREAR_IMAGEN_PRODUCTO` | `POST /api/productos/1/imagenes`<br>`{"url": "/assets/brand/icono1.png", "es_principal": true, "orden": 0}` |
 | `PUT` | `/api/productos/:productoId/imagenes/:imagenId` | `admin` | Edita URL, orden o imagen principal. Audita `ACTUALIZAR_IMAGEN_PRODUCTO` | `PUT /api/productos/1/imagenes/3`<br>`{"orden": 1, "es_principal": false}` |
 | `DELETE` | `/api/productos/:productoId/imagenes/:imagenId` | `admin` | Elimina una imagen y promueve otra como principal. Audita `ELIMINAR_IMAGEN_PRODUCTO` | `DELETE /api/productos/1/imagenes/3` |
+| `POST` | `/api/staff/productos/:id/imagen` | `admin` | Sube un archivo JPG, PNG o WEBP de hasta 3 MB, valida magic bytes, lo guarda en `assets/images/` con nombre basado en el slug y lo registra como principal o adicional | `POST /api/staff/productos/1/imagen`<br>`Content-Type: image/webp`<br>`(cuerpo binario)` |
 
 ---
 

@@ -87,3 +87,28 @@ export async function eliminarImagenProducto(
     next(error);
   }
 }
+
+export async function subirImagenProducto(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const productoId = Number(req.params.id);
+    const usuarioId = req.usuario!.id;
+    const principal = String(req.query.principal || 'true') !== 'false';
+    const imagen = await imagenesService.guardarArchivo(
+      productoId,
+      req.body,
+      usuarioId,
+      principal
+    );
+    res.status(201).json({
+      exito: true,
+      mensaje: 'Imagen subida exitosamente',
+      datos: { imagen }
+    });
+  } catch (error) {
+    next(error);
+  }
+}

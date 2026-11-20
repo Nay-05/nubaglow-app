@@ -17,6 +17,8 @@
  * 8. Verificacion de registros en tabla auditoria (login, usuarios, precios, stock, envios).
  */
 
+import fs from 'fs';
+import path from 'path';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import app from '../index';
@@ -1038,6 +1040,79 @@ async function ejecutarPruebas() {
     asegurar(
       resAuditEstadoProducto.rows.length > 0,
       'El cambio de estado del producto queda auditado'
+    );
+
+    const rutaImagenReal = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'assets',
+      'images',
+      'gel_limpiador.webp'
+    );
+    const imagenReal = fs.readFileSync(rutaImagenReal);
+    const resSubirImagen = await fetch(
+      `${baseUrl}/api/staff/productos/${productoTestId}/imagen`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'image/webp',
+          ...authAdmin
+        },
+        body: imagenReal
+      }
+    );
+    const dataSubirImagen = (await resSubirImagen.json()) as any;
+    const urlSubida = String(dataSubirImagen.datos?.imagen?.url || '');
+    const rutaSubida = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      urlSubida.replace(/^\//, '')
+    );
+    asegurar(
+      resSubirImagen.status === 201 &&
+        urlSubida.startsWith('/assets/images/'),
+      'Admin sube una imagen real al producto (201)'
+    );
+    asegurar(
+      fs.existsSync(rutaSubida),
+      'El archivo subido queda guardado en assets/images'
+    );
+    if (fs.existsSync(rutaSubida)) fs.unlinkSync(rutaSubida);
+
+    const resImagenFalsa = await fetch(
+      `${baseUrl}/api/staff/productos/${productoTestId}/imagen`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'image/png',
+          ...authAdmin
+        },
+        body: Buffer.from('esto-no-es-una-imagen')
+      }
+    );
+    asegurar(
+      resImagenFalsa.status === 400,
+      'La subida rechaza archivos falsos por magic bytes (400)'
+    );
+
+    const resSubirVendedor = await fetch(
+      `${baseUrl}/api/staff/productos/${productoTestId}/imagen`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'image/webp',
+          Authorization: `Bearer ${tokenVendedor1}`
+        },
+        body: imagenReal
+      }
+    );
+    asegurar(
+      resSubirVendedor.status === 403,
+      'Vendedor no puede subir imagenes de producto (403)'
     );
 
     const resListarInactivos = await fetch(

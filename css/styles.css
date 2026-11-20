@@ -6984,3 +6984,21 @@ body.mini-carrito-abierto {
   margin: 0;
   color: var(--color-text);
 }
+
+.admin-upload-vista {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.admin-upload-vista .admin-imagen-preview {
+  flex: 0 0 auto;
+}
+
+.admin-upload-vista .texto-suave {
+  max-width: 52ch;
+  margin: 0;
+  font-size: 12px;
+}

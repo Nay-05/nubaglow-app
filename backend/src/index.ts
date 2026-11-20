@@ -51,7 +51,7 @@ app.use(
         scriptSrc: ["'self'"], // Scripts solo propios (sin inline)
         styleSrc: ["'self'", 'https://fonts.googleapis.com'], // Estilos solo propios y Google Fonts (sin inline)
         fontSrc: ["'self'", 'https://fonts.gstatic.com'], // Fuentes de Google Fonts
-        imgSrc: ["'self'", 'data:', 'https:'], // Imagenes propias, data y CDN https
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'], // Propias, preview y CDN
         connectSrc: ["'self'"], // Comunicacion fetch con la API
         frameAncestors: ["'none'"],
         objectSrc: ["'none'"],
@@ -102,7 +102,16 @@ app.use(proteccionCsrf);
 // 5. Servir estaticos del frontend (css, js, assets, favicon)
 app.use('/css', express.static(path.join(rutaFrontend, 'css')));
 app.use('/js', express.static(path.join(rutaFrontend, 'js')));
-app.use('/assets', express.static(path.join(rutaFrontend, 'assets')));
+app.use(
+  '/assets',
+  express.static(path.join(rutaFrontend, 'assets'), {
+    setHeaders: (res, archivo) => {
+      if (archivo.toLowerCase().endsWith('.avif')) {
+        res.setHeader('Content-Type', 'image/avif');
+      }
+    }
+  })
+);
 app.get('/favicon.ico', (_req, res) => {
   res.sendFile(path.join(rutaFrontend, 'assets', 'brand', 'icono1.png'));
 });
