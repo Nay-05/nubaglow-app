@@ -34,7 +34,7 @@ export const MODULOS_STAFF = [
     etiqueta: 'Operaciones',
     descripcion: 'Inventario, despachos y envíos',
     icono: 'operaciones',
-    roles: ['operaciones', 'admin']
+    roles: ['almacen', 'logistica', 'admin']
   },
   {
     ruta: '/staff/productos',
@@ -61,7 +61,8 @@ export const MODULOS_STAFF = [
 
 export const RUTA_INICIO_POR_ROL = {
   vendedor: '/staff/pos',
-  operaciones: '/staff/operaciones',
+  almacen: '/staff/operaciones',
+  logistica: '/staff/operaciones',
   admin: '/staff/dashboard',
   cliente: '/'
 };
@@ -69,7 +70,8 @@ export const RUTA_INICIO_POR_ROL = {
 export const ETIQUETA_ROL = {
   cliente: 'Cliente',
   vendedor: 'Vendedor',
-  operaciones: 'Operaciones',
+  almacen: 'Almacén',
+  logistica: 'Logística',
   admin: 'Administrador'
 };
 

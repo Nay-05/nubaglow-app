@@ -75,7 +75,10 @@ export async function colaDespachosPreparacion(_req: Request, res: Response, nex
 
 export async function colaDespachosLogistica(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const pedidos = await inventarioService.colaDespachos(['Empacado']);
+    const pedidos = await inventarioService.colaDespachos([
+      'Empacado',
+      'En tránsito'
+    ]);
     res.status(200).json({
       exito: true,
       datos: { pedidos }
