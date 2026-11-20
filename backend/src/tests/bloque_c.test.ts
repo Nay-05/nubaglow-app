@@ -564,6 +564,110 @@ async function ejecutarPruebas() {
       'Estadisticas de resenas calculan promedio 5 y total 1'
     );
 
+    // ------------------------------------------------------------------------
+    // 8. DISPONIBILIDAD DE VARIANTES Y MENSAJES DE COTIZACION
+    // ------------------------------------------------------------------------
+    console.log('\n--- 8. Disponibilidad y mensajes de cotizacion ---');
+    const headersClienteA = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tokenClienteA}`
+    };
+
+    const cotizar = async (payload: any) => {
+      const res = await fetch(`${baseUrl}/api/pedidos/cotizar`, {
+        method: 'POST',
+        headers: headersClienteA,
+        body: JSON.stringify(payload)
+      });
+      return { status: res.status, body: (await res.json()) as any };
+    };
+
+    await consultar('UPDATE variantes SET activo = TRUE, stock = 10 WHERE id = $1', [
+      varianteNormalId
+    ]);
+    const resAgregarCarrito = await fetch(`${baseUrl}/api/carrito/items`, {
+      method: 'POST',
+      headers: headersClienteA,
+      body: JSON.stringify({ variante_id: varianteNormalId, cantidad: 1 })
+    });
+    asegurar(resAgregarCarrito.status === 200, 'Cliente agrega variante activa al carrito (200)');
+
+    await consultar('UPDATE variantes SET activo = FALSE WHERE id = $1', [
+      varianteNormalId
+    ]);
+    const resCarritoInactiva = await fetch(`${baseUrl}/api/carrito`, {
+      headers: { Authorization: `Bearer ${tokenClienteA}` }
+    });
+    const dataCarritoInactiva = (await resCarritoInactiva.json()) as any;
+    const itemInactivo = dataCarritoInactiva.datos.carrito.items.find(
+      (item: any) => item.varianteId === varianteNormalId
+    );
+    asegurar(
+      itemInactivo?.noDisponible === true,
+      'La API del carrito marca la variante inactiva como no disponible'
+    );
+
+    const resCotizarInactiva = await cotizar({
+      ciudad: 'Sucre',
+      items: [{ variante_id: varianteNormalId, cantidad: 1 }]
+    });
+    asegurar(
+      resCotizarInactiva.status === 400 &&
+        String(resCotizarInactiva.body.error).includes('ya no está disponible'),
+      'Cotizar con variante inactiva devuelve un mensaje claro (400)'
+    );
+
+    await consultar('UPDATE variantes SET activo = TRUE, stock = 0 WHERE id = $1', [
+      varianteNormalId
+    ]);
+    const resCotizarSinStock = await cotizar({
+      ciudad: 'Sucre',
+      items: [{ variante_id: varianteNormalId, cantidad: 1 }]
+    });
+    asegurar(
+      resCotizarSinStock.status === 400 &&
+        String(resCotizarSinStock.body.error).includes('no tiene stock disponible'),
+      'Cotizar una variante sin stock devuelve un mensaje claro'
+    );
+
+    await consultar('UPDATE variantes SET stock = 2 WHERE id = $1', [varianteNormalId]);
+    const resCotizarExcede = await cotizar({
+      ciudad: 'Sucre',
+      items: [{ variante_id: varianteNormalId, cantidad: 3 }]
+    });
+    asegurar(
+      resCotizarExcede.status === 400 &&
+        String(resCotizarExcede.body.error).includes('Stock insuficiente'),
+      'Cotizar una cantidad mayor al stock devuelve un mensaje claro'
+    );
+
+    const resCotizarVacio = await cotizar({ ciudad: 'Sucre', items: [] });
+    asegurar(
+      resCotizarVacio.status === 400 &&
+        Array.isArray(resCotizarVacio.body.detalles) &&
+        resCotizarVacio.body.detalles.some((detalle: any) =>
+          String(detalle.mensaje).includes('El carrito está vacío')
+        ),
+      'Cotizar un carrito vacio devuelve un mensaje claro'
+    );
+
+    const resCotizarCiudad = await cotizar({
+      ciudad: 'X',
+      items: [{ variante_id: varianteNormalId, cantidad: 1 }]
+    });
+    asegurar(
+      resCotizarCiudad.status === 400 &&
+        Array.isArray(resCotizarCiudad.body.detalles) &&
+        resCotizarCiudad.body.detalles.some((detalle: any) =>
+          String(detalle.mensaje).includes('al menos 2 caracteres')
+        ),
+      'Cotizar con ciudad invalida devuelve un mensaje claro'
+    );
+
+    await consultar('UPDATE variantes SET activo = TRUE, stock = 10 WHERE id = $1', [
+      varianteNormalId
+    ]);
+
     console.log(`\n============================================================`);
     console.log(`Resultado final de la suite Bloque C: ${exitos} aprobadas, ${fallos} fallidas.`);
     console.log(`============================================================\n`);

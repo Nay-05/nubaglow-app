@@ -14,11 +14,56 @@
 import { el, icono, texto, vaciar } from '../../core/dom.js';
 import { api } from '../../core/api.js';
 import { formatearBs } from '../../core/formato.js';
+import { alerta, boton } from '../comunes.js';
 
-const MENSAJE_CARRITO_VACIO = 'El carrito está vacío. Explora el catálogo para agregar productos.';
+const MENSAJE_CARRITO_VACIO =
+  'El carrito está vacío. Explora el catálogo para agregar productos.';
+const CIUDAD_COTIZACION_INICIAL = 'Sucre';
 const RUTA_INICIO = '/';
-const RUTA_LOGIN = '/login';
+const RUTA_LOGIN = '/login?redirigir=/checkout';
 const RUTA_CARRITO = '/carrito';
+
+function normalizarItemsParaCotizar(items) {
+  return items.map((item) => ({
+    variante_id: item.varianteId,
+    cantidad: item.cantidad
+  }));
+}
+
+function describirLineasNoDisponibles(items) {
+  return items
+    .filter((item) => item.noDisponible)
+    .map((item) => `${item.productoNombre} - ${item.varianteNombre}`);
+}
+
+function detallesDeValidacion(error) {
+  const detalles = error?.datos?.detalles;
+  if (!Array.isArray(detalles)) return [];
+  return detalles.map((detalle) => `${detalle.campo}: ${detalle.mensaje}`);
+}
+
+function crearPantallaError({ titulo, mensaje, detalles = [], router }) {
+  const volver = boton('Volver al carrito', {
+    tipo: 'button',
+    variante: 'primary'
+  });
+  volver.addEventListener('click', () => router.navegar(RUTA_CARRITO));
+
+  return el(
+    'section',
+    { clase: 'pagina' },
+    el('h1', { clase: 'titulo-pagina', texto: titulo }),
+    alerta(mensaje, 'error'),
+    ...detalles.map((detalle) =>
+      el('p', { clase: 'texto-error', texto: detalle })
+    ),
+    el(
+      'div',
+      { clase: 'carrito-acciones' },
+      volver
+    )
+  );
+}
 
 export const vistaCheckout = {
   async render(contexto = {}) {
@@ -32,35 +77,50 @@ export const vistaCheckout = {
 
     // 2. Verificar que el carrito no este vacio y obtener sus items
     let carrito = null;
-    let itemsParaCotizar = [];
     try {
       const carritoRes = await api.obtener('/carrito', { sinRenovacion: true });
       carrito = carritoRes?.datos?.carrito;
-      if (carrito && carrito.items && carrito.items.length > 0) {
-        itemsParaCotizar = carrito.items;
-      }
-    } catch {
-      router.navegar(RUTA_CARRITO, { reemplazar: true });
-      return null;
+    } catch (error) {
+      return crearPantallaError({
+        titulo: 'No se pudo preparar la compra',
+        mensaje:
+          error.message || 'No se pudo cargar tu carrito. Intenta nuevamente.',
+        router
+      });
     }
 
-    if (!carrito || carrito.items.length === 0) {
-      router.navegar(RUTA_CARRITO, { reemplazar: true });
-      return null;
+    if (!carrito || !carrito.items || carrito.items.length === 0) {
+      return crearPantallaError({
+        titulo: 'Tu carrito está vacío',
+        mensaje: MENSAJE_CARRITO_VACIO,
+        router
+      });
     }
 
     // 3. Obtener resumen de pedido desde el servidor usando items del carrito
     let cotizacion = null;
     try {
-      const respuesta = await api.crear('/pedidos/cotizar', {
-        ciudad: '',
-        items: itemsParaCotizar
-      }, { sinRenovacion: true });
+      const itemsParaCotizar = normalizarItemsParaCotizar(carrito.items);
+      const respuesta = await api.crear(
+        '/pedidos/cotizar',
+        {
+          ciudad: CIUDAD_COTIZACION_INICIAL,
+          items: itemsParaCotizar
+        },
+        { sinRenovacion: true }
+      );
       cotizacion = respuesta?.datos?.cotizacion;
     } catch (error) {
-      // Si la cotizacion falla, volvemos al carrito
-      router.navegar(RUTA_CARRITO, { reemplazar: true });
-      return null;
+      return crearPantallaError({
+        titulo: 'No se pudo cotizar tu pedido',
+        mensaje:
+          error.message || 'No se pudo cotizar el pedido. Intenta nuevamente.',
+        detalles: [
+          ...describirLineasNoDisponibles(carrito.items),
+          ...detallesDeValidacion(error)
+        ],
+        router
+      });
     }
 
     // 4. Construir la seccion del checkout
@@ -80,7 +140,7 @@ export const vistaCheckout = {
     // Campo: nombre completo
     const entradaNombre = el('input', {
       clase: 'input-formulario',
-      nombre: 'nombre',
+      name: 'nombre',
       type: 'text',
       placeholder: 'Juan Perez',
       required: true,
@@ -97,7 +157,7 @@ export const vistaCheckout = {
     // Campo: celular (8 dígitos bolivianos, iniciar con 6 o 7)
     const entradaCelular = el('input', {
       clase: 'input-formulario',
-      nombre: 'celular',
+      name: 'celular',
       type: 'tel',
       placeholder: '61234567',
       required: true,
@@ -114,7 +174,7 @@ export const vistaCheckout = {
     // Campo: correo electrónico
     const entradaCorreo = el('input', {
       clase: 'input-formulario',
-      nombre: 'correo',
+      name: 'correo',
       type: 'email',
       placeholder: 'juan@ejemplo.com',
       required: true,
@@ -130,7 +190,7 @@ export const vistaCheckout = {
     // Campo: ciudad
     const entradaCiudad = el('input', {
       clase: 'input-formulario',
-      nombre: 'ciudad',
+      name: 'ciudad',
       type: 'text',
       placeholder: 'Sucre',
       required: true,
@@ -146,7 +206,7 @@ export const vistaCheckout = {
     // Campo: dirección exacta
     const entradaDireccion = el('input', {
       clase: 'input-formulario',
-      nombre: 'direccion',
+      name: 'direccion',
       type: 'text',
       placeholder: 'Calle 12 de Octubre No. 123',
       required: true,
@@ -203,8 +263,8 @@ export const vistaCheckout = {
 
     // Opcion 1: QR Simple
     const entradaQr = el('input', {
-      tipo: 'radio',
-      nombre: 'metodo_pago',
+      type: 'radio',
+      name: 'metodo_pago',
       value: 'qr_simple',
       id: 'metodo-qr',
       required: true,
@@ -223,8 +283,8 @@ export const vistaCheckout = {
 
     // Opcion 2: Depósito Bancario
     const entradaDeposito = el('input', {
-      tipo: 'radio',
-      nombre: 'metodo_pago',
+      type: 'radio',
+      name: 'metodo_pago',
       value: 'deposito_bancario',
       id: 'metodo-deposito',
       required: true,
@@ -248,8 +308,8 @@ export const vistaCheckout = {
 
     // Opcion 3: PayPal
     const entradaPaypal = el('input', {
-      tipo: 'radio',
-      nombre: 'metodo_pago',
+      type: 'radio',
+      name: 'metodo_pago',
       value: 'paypal',
       id: 'metodo-paypal',
       required: true,
@@ -269,8 +329,8 @@ export const vistaCheckout = {
 
     // Opcion 4: Contra entrega
     const entradaContraEntrega = el('input', {
-      tipo: 'radio',
-      nombre: 'metodo_pago',
+      type: 'radio',
+      name: 'metodo_pago',
       value: 'contra_entrega',
       id: 'metodo-contra-entrega',
       required: true,
@@ -295,7 +355,7 @@ export const vistaCheckout = {
     // Botón de confirmar
     const botonConfirmar = el('button', {
       clase: 'boton-grande',
-      tipo: 'submit',
+      type: 'submit',
       disabled: true,
       'aria-label': 'Confirmar pedido'
     }, el('span', { texto: 'Confirmar pedido' }));
@@ -319,6 +379,11 @@ export const vistaCheckout = {
 
     // Manejo de validacion de formulario en el navegador
     const formularioElemento = formulario;
+
+    function valorCampo(nombre) {
+      const campo = formularioElemento.elements.namedItem(nombre);
+      return String(campo?.value || '').trim();
+    }
 
     formularioElemento.addEventListener('input', (evento) => {
       const target = evento.target;
@@ -370,11 +435,11 @@ export const vistaCheckout = {
     let camposLlenos = false;
 
     function actualizarEstadoBoton() {
-      const nombre = formularioElemento.elements.namedItem('nombre').value.trim();
-      const celular = formularioElemento.elements.namedItem('celular').value.trim();
-      const correo = formularioElemento.elements.namedItem('correo').value.trim();
-      const ciudad = formularioElemento.elements.namedItem('ciudad').value.trim();
-      const direccion = formularioElemento.elements.namedItem('direccion').value.trim();
+      const nombre = valorCampo('nombre');
+      const celular = valorCampo('celular');
+      const correo = valorCampo('correo');
+      const ciudad = valorCampo('ciudad');
+      const direccion = valorCampo('direccion');
 
       const hayErrores = formularioElemento.checkValidity() === false;
       const nombreOk = nombre.length >= 3;
@@ -415,12 +480,16 @@ export const vistaCheckout = {
       boton.textContent = 'Procesando...';
 
       try {
-        const nombre = String(formularioElemento.elements.namedItem('nombre')?.value || '').trim();
-        const celular = String(formularioElemento.elements.namedItem('celular')?.value || '').trim();
-        const correo = String(formularioElemento.elements.namedItem('correo')?.value || '').trim();
-        const ciudad = String(formularioElemento.elements.namedItem('ciudad')?.value || '').trim();
-        const direccion = String(formularioElemento.elements.namedItem('direccion')?.value || '').trim();
-        const metodoPago = formularioElemento.elements.namedItem('metodo_pago').value;
+        const nombre = valorCampo('nombre');
+        const celular = valorCampo('celular');
+        const correo = valorCampo('correo');
+        const ciudad = valorCampo('ciudad');
+        const direccion = valorCampo('direccion');
+        const metodoPagoElemento =
+          formularioElemento.elements.namedItem('metodo_pago');
+        const metodoPago = metodoPagoElemento
+          ? metodoPagoElemento.value
+          : '';
 
         // Enviar al servidor para crear el pedido
         const respuesta = await api.crear('/pedidos', {
@@ -443,7 +512,12 @@ export const vistaCheckout = {
         } else {
           // Si no hay codigo de rastreo, mostrar error
           mensajes.replaceChildren(
-            el('p', { clase: 'texto-error', texto: 'Error: no se generó el código de rastreo. Intente nuevamente.' })
+            el('p', {
+              clase: 'texto-error',
+              texto:
+                'Error: no se generó el código de rastreo. ' +
+                'Intente nuevamente.'
+            })
           );
           boton.disabled = false;
           boton.removeAttribute('aria-busy');
@@ -451,7 +525,10 @@ export const vistaCheckout = {
         }
       } catch (error) {
         // Mostrar errores del servidor
-        const mensajeError = error instanceof Error ? error.message : 'Error desconocido al crear el pedido';
+        const mensajeError =
+          error instanceof Error
+            ? error.message
+            : 'Error desconocido al crear el pedido';
         mensajes.replaceChildren(
           el('p', { clase: 'texto-error', texto: mensajeError })
         );

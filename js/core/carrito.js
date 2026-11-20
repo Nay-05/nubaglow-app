@@ -75,7 +75,7 @@ function normalizarItemCliente(item) {
     subtotal: numeroSeguro(item.subtotal),
     stockDisponible: stockSeguro(item.stockDisponible),
     imagen: String(item.imagen || ''),
-    noDisponible: false
+    noDisponible: Boolean(item.noDisponible)
   };
 }
 
@@ -143,11 +143,15 @@ async function refrescarStockVisitante(items) {
       return item;
     }
 
+    if (detalle.producto.activo === false) {
+      return { ...item, stockDisponible: 0, noDisponible: true };
+    }
+
     const variante = (detalle.producto.variantes || []).find(
       (actual) => Number(actual.id) === Number(item.varianteId)
     );
 
-    if (!variante) {
+    if (!variante || variante.activo === false) {
       return { ...item, stockDisponible: 0, noDisponible: true };
     }
 
@@ -326,7 +330,12 @@ export async function fusionarCarritoVisitante(usuario) {
       (actual) => Number(actual.id) === Number(item.varianteId)
     );
 
-    if (!detalle || !variante) {
+    if (
+      !detalle ||
+      detalle.activo === false ||
+      !variante ||
+      variante.activo === false
+    ) {
       resultado.noDisponibles += 1;
       continue;
     }

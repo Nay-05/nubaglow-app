@@ -33,8 +33,10 @@ export const cotizarPedidoSchema = z.object({
     .min(2, 'La ciudad debe tener al menos 2 caracteres')
     .max(100),
   items: z
-    .array(crearPedidoItemSchema)
-    .min(1, 'Debe incluir al menos un item para cotizar')
+    .array(crearPedidoItemSchema, {
+      required_error: 'El carrito está vacío. Agrega al menos un artículo antes de cotizar.'
+    })
+    .min(1, 'El carrito está vacío. Agrega al menos un artículo antes de cotizar.')
 });
 
 export const crearPedidoSchema = z.object({
@@ -68,11 +70,15 @@ export const crearPedidoSchema = z.object({
   metodo_pago: z.enum(['qr_simple', 'qr', 'deposito_bancario', 'paypal', 'contra_entrega'], {
     errorMap: () => ({
       message:
-        'Metodo de pago no valido. Opciones permitidas: qr_simple, deposito_bancario, paypal, contra_entrega'
+        'Metodo de pago no valido. Opciones permitidas: ' +
+        'qr_simple, deposito_bancario, paypal, contra_entrega'
     })
   }),
   // Opcional: si se envia items se compran esos; si no se envia se procesa el carrito persistente
-  items: z.array(crearPedidoItemSchema).min(1, 'Debe incluir al menos un item para comprar').optional()
+  items: z
+    .array(crearPedidoItemSchema)
+    .min(1, 'Debe incluir al menos un item para comprar')
+    .optional()
 });
 
 // ----------------------------------------------------------------------------
@@ -113,7 +119,8 @@ export const subirComprobantePagoSchema = z.object({
   mime_type: z.enum(mimeTiposComprobante, {
     errorMap: () => ({
       message:
-        'Tipo de archivo no permitido. Formatos aceptados: image/jpeg, image/png, image/webp, application/pdf'
+        'Tipo de archivo no permitido. Formatos aceptados: ' +
+        'image/jpeg, image/png, image/webp, application/pdf'
     })
   }),
   referencia: z
@@ -153,7 +160,8 @@ export const cambiarEstadoEnvioSchema = z.object({
   estado: z.enum(estadosEnvioValidos, {
     errorMap: () => ({
       message:
-        'Estado de envio invalido. Opciones: Pendiente, En preparación, Empacado, En tránsito, Entregado'
+        'Estado de envio invalido. Opciones: Pendiente, ' +
+        'En preparación, Empacado, En tránsito, Entregado'
     })
   }),
   descripcion: z.string().trim().max(500).optional()
@@ -177,7 +185,12 @@ export const cerrarEntregaSchema = z.object({
     .trim()
     .min(3, 'La nota debe tener al menos 3 caracteres')
     .max(500),
-  comprobante_url: z.string().trim().url('El comprobante debe ser una URL valida').max(500).optional()
+  comprobante_url: z
+    .string()
+    .trim()
+    .url('El comprobante debe ser una URL valida')
+    .max(500)
+    .optional()
 });
 
 // ----------------------------------------------------------------------------

@@ -329,14 +329,19 @@ function crearMiniCarrito({ usuario, router }) {
       item.stockDisponible === null ? null : Number(item.stockDisponible);
     const ruta = `/producto/${encodeURIComponent(item.productoSlug)}`;
 
+    let textoDisponibilidad = 'Disponibilidad a confirmar.';
+
+    if (stock === 'agotado') {
+      textoDisponibilidad = item.noDisponible
+        ? 'Este artículo ya no está disponible.'
+        : 'Variante agotada.';
+    } else if (stockDisponible !== null) {
+      textoDisponibilidad = `Disponible: ${stockDisponible} unidades.`;
+    }
+
     const disponibilidad = el('span', {
       clase: 'mini-linea-disponibilidad',
-      texto:
-        stock === 'agotado'
-          ? 'No disponible.'
-          : stockDisponible === null
-            ? 'Disponibilidad a confirmar.'
-            : `Disponible: ${stockDisponible} unidades.`
+      texto: textoDisponibilidad
     });
     if (stock !== 'ok') disponibilidad.classList.add('texto-error');
 
@@ -349,7 +354,7 @@ function crearMiniCarrito({ usuario, router }) {
     if (stock === 'agotado') {
       aviso.hidden = false;
       aviso.textContent = item.noDisponible
-        ? 'Esta variante ya no está disponible. Quítala para continuar.'
+        ? 'Este artículo ya no está disponible. Quítalo para continuar.'
         : 'Variante agotada. Quítala del carrito para continuar.';
     } else if (stock === 'excede') {
       aviso.hidden = false;

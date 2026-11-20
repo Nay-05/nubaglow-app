@@ -24,6 +24,7 @@ export interface CarritoItemDetalle {
   cantidad: number;
   subtotal: number;
   stockDisponible: number;
+  noDisponible: boolean;
   imagen: string | null;
 }
 
@@ -46,7 +47,10 @@ export class CarritoService {
     }
 
     const nuevo = await consultar(
-      'INSERT INTO carritos (usuario_id) VALUES ($1) ON CONFLICT (usuario_id) DO UPDATE SET actualizado_en = NOW() RETURNING id',
+      `INSERT INTO carritos (usuario_id) VALUES ($1)
+       ON CONFLICT (usuario_id)
+       DO UPDATE SET actualizado_en = NOW()
+       RETURNING id`,
       [usuarioId]
     );
     return nuevo.rows[0].id;
@@ -71,6 +75,8 @@ export class CarritoService {
         ci.cantidad,
         (ci.cantidad * v.precio)::numeric AS subtotal,
         v.stock AS "stockDisponible",
+        v.activo AS "varianteActiva",
+        p.activo AS "productoActivo",
         (
           SELECT img.url 
           FROM imagenes_producto img 
@@ -100,7 +106,8 @@ export class CarritoService {
         ...r,
         precioUnitario: precio,
         subtotal: sub,
-        stockDisponible: Number(r.stockDisponible)
+        stockDisponible: Number(r.stockDisponible),
+        noDisponible: !r.varianteActiva || !r.productoActivo
       };
     });
 
@@ -116,23 +123,39 @@ export class CarritoService {
   /**
    * Agrega una variante al carrito o incrementa la cantidad existente si hay stock
    */
-  async agregarItem(usuarioId: number, varianteId: number, cantidadDeseada: number = 1): Promise<CarritoResumen> {
+  async agregarItem(
+    usuarioId: number,
+    varianteId: number,
+    cantidadDeseada: number = 1
+  ): Promise<CarritoResumen> {
     const carritoId = await this.obtenerOCrearCarritoId(usuarioId);
 
     // 1. Validar que la variante y producto existan y esten activos
     const resVar = await consultar(
-      `SELECT v.id, v.stock, v.precio, v.activo AS "varianteActiva", p.activo AS "productoActivo", p.nombre AS "productoNombre"
+      `SELECT v.id, v.stock, v.precio,
+              v.activo AS "varianteActiva",
+              p.activo AS "productoActivo",
+              p.nombre AS "productoNombre"
        FROM variantes v
        INNER JOIN productos p ON p.id = v.producto_id
        WHERE v.id = $1`,
       [varianteId]
     );
 
-    if (resVar.rows.length === 0 || !resVar.rows[0].varianteActiva || !resVar.rows[0].productoActivo) {
-      throw new AppError('El producto o variante seleccionado no esta disponible en tienda', 404);
+    const varianteConsultada = resVar.rows[0];
+
+    if (
+      !varianteConsultada ||
+      !varianteConsultada.varianteActiva ||
+      !varianteConsultada.productoActivo
+    ) {
+      throw new AppError(
+        'El producto o variante seleccionado no esta disponible en tienda',
+        404
+      );
     }
 
-    const variante = resVar.rows[0];
+    const variante = varianteConsultada;
 
     // 2. Comprobar si ya existe en el carrito
     const resItem = await consultar(
@@ -146,7 +169,9 @@ export class CarritoService {
     // 3. Validar contra el stock disponible
     if (cantidadTotalCalculada > variante.stock) {
       throw new AppError(
-        `Stock insuficiente para ${variante.productoNombre}. Stock disponible: ${variante.stock}, solicitados: ${cantidadTotalCalculada}`,
+        `Stock insuficiente para ${variante.productoNombre}. ` +
+          `Stock disponible: ${variante.stock}, ` +
+          `solicitados: ${cantidadTotalCalculada}`,
         400
       );
     }
@@ -170,12 +195,19 @@ export class CarritoService {
   /**
    * Cambia la cantidad de un item existente en el carrito
    */
-  async actualizarCantidad(usuarioId: number, itemId: number, nuevaCantidad: number): Promise<CarritoResumen> {
+  async actualizarCantidad(
+    usuarioId: number,
+    itemId: number,
+    nuevaCantidad: number
+  ): Promise<CarritoResumen> {
     const carritoId = await this.obtenerOCrearCarritoId(usuarioId);
 
     // 1. Obtener item y comprobar que pertenece al carrito del usuario
     const resItem = await consultar(
-      `SELECT ci.id, ci.variante_id, v.stock, p.nombre AS "productoNombre"
+      `SELECT ci.id, ci.variante_id, v.stock,
+              v.activo AS "varianteActiva",
+              p.activo AS "productoActivo",
+              p.nombre AS "productoNombre"
        FROM carrito_items ci
        INNER JOIN variantes v ON v.id = ci.variante_id
        INNER JOIN productos p ON p.id = v.producto_id
@@ -189,6 +221,13 @@ export class CarritoService {
 
     const item = resItem.rows[0];
 
+    if (!item.varianteActiva || !item.productoActivo) {
+      throw new AppError(
+        'Este artículo ya no está disponible. Quítalo del carrito para continuar.',
+        409
+      );
+    }
+
     if (nuevaCantidad > item.stock) {
       throw new AppError(
         `No es posible aumentar la cantidad. Stock disponible: ${item.stock}`,
@@ -196,7 +235,10 @@ export class CarritoService {
       );
     }
 
-    await consultar('UPDATE carrito_items SET cantidad = $1 WHERE id = $2', [nuevaCantidad, itemId]);
+    await consultar(
+      'UPDATE carrito_items SET cantidad = $1 WHERE id = $2',
+      [nuevaCantidad, itemId]
+    );
     return this.obtenerCarrito(usuarioId);
   }
 
@@ -206,10 +248,12 @@ export class CarritoService {
   async eliminarItem(usuarioId: number, itemId: number): Promise<CarritoResumen> {
     const carritoId = await this.obtenerOCrearCarritoId(usuarioId);
 
-    const res = await consultar('DELETE FROM carrito_items WHERE id = $1 AND carrito_id = $2 RETURNING id', [
-      itemId,
-      carritoId
-    ]);
+    const res = await consultar(
+      `DELETE FROM carrito_items
+       WHERE id = $1 AND carrito_id = $2
+       RETURNING id`,
+      [itemId, carritoId]
+    );
 
     if (res.rows.length === 0) {
       throw new AppError('El articulo no existe en su carrito', 404);

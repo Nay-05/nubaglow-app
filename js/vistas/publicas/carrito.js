@@ -83,7 +83,7 @@ function textoDisponibilidad(item) {
   if (stock === 'agotado') {
     return {
       texto: item.noDisponible
-        ? 'Esta variante ya no está disponible.'
+        ? 'Este artículo ya no está disponible.'
         : 'Variante agotada.',
       clase: 'texto-error'
     };

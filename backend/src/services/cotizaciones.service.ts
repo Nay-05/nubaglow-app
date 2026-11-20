@@ -43,6 +43,7 @@ export class CotizacionesService {
         v.nombre AS "varianteNombre",
         v.sku,
         v.precio,
+        v.stock,
         v.activo AS "varianteActiva",
         p.nombre AS "productoNombre",
         p.activo AS "productoActivo"
@@ -60,9 +61,44 @@ export class CotizacionesService {
 
     for (const item of itemsOrdenados) {
       const infoVar = mapaVariantes.get(item.variante_id);
-      if (!infoVar || !infoVar.varianteActiva || !infoVar.productoActivo) {
+
+      if (!infoVar) {
         throw new AppError(
-          `El producto '${infoVar ? infoVar.productoNombre : item.variante_id}' ya no esta disponible en tienda`,
+          `La variante con id ${item.variante_id} ya no está disponible.`,
+          400
+        );
+      }
+
+      if (!infoVar.productoActivo) {
+        throw new AppError(
+          `El producto '${infoVar.productoNombre}' ya no está disponible.`,
+          400
+        );
+      }
+
+      if (!infoVar.varianteActiva) {
+        throw new AppError(
+          `La variante '${infoVar.varianteNombre}' del producto ` +
+            `'${infoVar.productoNombre}' ya no está disponible.`,
+          400
+        );
+      }
+
+      const stock = Number(infoVar.stock);
+
+      if (stock <= 0) {
+        throw new AppError(
+          `La variante '${infoVar.varianteNombre}' del producto ` +
+            `'${infoVar.productoNombre}' no tiene stock disponible.`,
+          400
+        );
+      }
+
+      if (item.cantidad > stock) {
+        throw new AppError(
+          `Stock insuficiente para '${infoVar.productoNombre} - ` +
+            `${infoVar.varianteNombre}': disponibles ${stock}, ` +
+            `solicitadas ${item.cantidad}.`,
           400
         );
       }
