@@ -26,6 +26,8 @@ const cargadoresVistas = {
     import('./vistas/publicas/producto.js').then((m) => m.vistaProducto),
   pedidos: () =>
     import('./vistas/publicas/pedidos.js').then((m) => m.vistaPedidos),
+  pedidoDetalle: () =>
+    import('./vistas/publicas/pedidoDetalle.js').then((m) => m.vistaPedidoDetalle),
   carrito: () =>
     import('./vistas/publicas/carrito.js').then((m) => m.vistaCarrito),
   cuenta: () =>
@@ -81,6 +83,13 @@ function accesoCarrito(usuario) {
   return usuario.rol === 'cliente' ? null : rutaInicioPorRol(usuario.rol);
 }
 
+function accesoPedidoCliente(usuario, { params } = {}) {
+  const codigo = params && params.codigo ? params.codigo : '';
+  const destino = codigo ? `/pedido/${codigo}` : '/cuenta';
+  if (!usuario) return `/login?redirigir=${encodeURIComponent(destino)}`;
+  return usuario.rol === 'cliente' ? null : rutaInicioPorRol(usuario.rol);
+}
+
 // Rutas publicas
 router
   .registrar('/', cargadoresVistas.inicio, { titulo: 'Inicio' })
@@ -90,6 +99,10 @@ router
   })
   .registrar('/pedidos', cargadoresVistas.pedidos, {
     titulo: 'Rastreo de pedidos'
+  })
+  .registrar('/pedido/:codigo', cargadoresVistas.pedidoDetalle, {
+    titulo: 'Detalle del pedido',
+    acceso: accesoPedidoCliente
   })
   .registrar('/carrito', cargadoresVistas.carrito, {
     titulo: 'Carrito',

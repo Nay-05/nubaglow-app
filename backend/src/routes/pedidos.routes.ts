@@ -10,6 +10,7 @@ import {
   crearPedido,
   listarMisPedidos,
   obtenerDetallePedido,
+  obtenerDetallePedidoPorCodigo,
   registrarComprobantePago
 } from '../controllers/pedidos.controller';
 import { validar } from '../middlewares/validar';
@@ -19,7 +20,7 @@ import {
   cotizarPedidoSchema,
   subirComprobantePagoSchema
 } from '../schemas/compra.schema';
-import { idParamSchema } from '../schemas/comun.schema';
+import { idParamSchema, codigoRastreoParamSchema } from '../schemas/comun.schema';
 
 const router = Router();
 
@@ -47,6 +48,15 @@ router.post(
 // Listar mis pedidos
 router.get('/', verificarToken, listarMisPedidos);
 router.get('/mis-pedidos', verificarToken, listarMisPedidos);
+
+// Detalle de un pedido propio por codigo de rastreo (debe ir antes de /:id)
+router.get(
+  '/codigo/:codigo',
+  verificarToken,
+  requerirRol('cliente'),
+  validar({ params: codigoRastreoParamSchema }),
+  obtenerDetallePedidoPorCodigo
+);
 
 // Obtener detalle de pedido por ID (validando param id)
 router.get('/:id', verificarToken, validar({ params: idParamSchema }), obtenerDetallePedido);

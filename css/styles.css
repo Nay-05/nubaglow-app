@@ -2245,6 +2245,269 @@ textarea:focus-visible {
 }
 
 /* --------------------------------------------------------------------------
+   7.1 Detalle de pedido, pago y comprobante
+   -------------------------------------------------------------------------- */
+.pedido-contenido {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.pedido-cabecera {
+  display: grid;
+  gap: var(--space-4);
+  padding: 22px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.pedido-codigo-bloque {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pedido-codigo {
+  font-size: clamp(24px, 5vw, 32px);
+  letter-spacing: 0.04em;
+}
+
+.pedido-copiar {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.pedido-copiar-aviso {
+  min-height: 18px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.pedido-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pedido-panel {
+  display: grid;
+  gap: var(--space-3);
+  padding: 20px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.pedido-panel-titulo {
+  font-size: 20px;
+}
+
+.pedido-items {
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pedido-item {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pedido-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.pedido-item .imagen-producto {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+
+.pedido-item-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pedido-item-info strong {
+  font-weight: 500;
+}
+
+.pedido-item-subtotal {
+  font-weight: 700;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.pedido-totales {
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.pedido-total-linea {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.pedido-total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.pedido-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+.pedido-datos dt {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-subtle);
+}
+
+.pedido-datos dd {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.pedido-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.pago-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pago-qr {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  padding: var(--space-4);
+  background-color: var(--color-surface-alt);
+  border-radius: var(--radius-lg);
+}
+
+.pago-qr-imagen {
+  width: min(240px, 100%);
+  height: auto;
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+}
+
+.pago-datos {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pago-dato {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.pago-aviso {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.pago-form {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.pago-form-grilla {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pago-form-mensajes {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.pago-form-mensajes:empty {
+  display: none;
+}
+
+.pago-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pago-deshabilitado {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.estado-verificacion {
+  background-color: var(--color-surface-alt);
+  color: var(--color-primary);
+}
+
+.estado-aprobado {
+  background-color: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.estado-rechazado {
+  background-color: var(--color-error-soft);
+  color: var(--color-error);
+}
+
+.estado-empacado {
+  background-color: var(--color-estado-preparacion-bg);
+  color: var(--color-estado-preparacion-text);
+}
+
+@media (min-width: 860px) {
+  .pedido-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+    align-items: start;
+  }
+
+  .pedido-panel--ancho {
+    grid-column: 1 / -1;
+  }
+
+  .pago-form-grilla {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* --------------------------------------------------------------------------
    8. Layout de autenticacion
    -------------------------------------------------------------------------- */
 .layout-auth {

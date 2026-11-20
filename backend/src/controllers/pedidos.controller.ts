@@ -90,6 +90,29 @@ export async function obtenerDetallePedido(req: Request, res: Response, next: Ne
   }
 }
 
+export async function obtenerDetallePedidoPorCodigo(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const codigoRastreo = String(req.params.codigo || '').trim().toUpperCase();
+    const usuarioId = req.usuario!.id;
+    const rolUsuario = req.usuario!.rol;
+    const pedido = await pedidosService.obtenerDetallePorCodigo(
+      codigoRastreo,
+      usuarioId,
+      rolUsuario
+    );
+    res.status(200).json({
+      exito: true,
+      datos: { pedido }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function cancelarPedidoAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const pedidoId = Number(req.params.id);

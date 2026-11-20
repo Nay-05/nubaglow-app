@@ -12,6 +12,7 @@ import {
   capturarOrdenPaypal,
   aprobarOrdenPaypalSimulada
 } from '../controllers/paypal.controller';
+import { obtenerDatosCobroCliente } from '../controllers/pagos.controller';
 import { validar } from '../middlewares/validar';
 import { verificarToken, requerirRol } from '../middlewares/autenticacion';
 import {
@@ -21,6 +22,14 @@ import {
 } from '../schemas/compra.schema';
 
 const router = Router();
+
+// Datos bancarios y QR de simulacion para clientes autenticados
+router.get(
+  '/datos-cobro',
+  verificarToken,
+  requerirRol('cliente'),
+  obtenerDatosCobroCliente
+);
 
 router.post(
   '/paypal/crear',

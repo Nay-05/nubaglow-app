@@ -15,11 +15,14 @@ const router = Router();
 router.get('/', (req, res) => {
   const modo = modoPaypal();
   const simulado = esPaypalSimulado();
+  const whatsappNumero =
+    process.env.WHATSAPP_NUMERO?.trim() || '59170000000';
   res.json({
     exito: true,
     datos: {
       modo,
       simulado,
+      whatsappNumero: whatsappNumero.replace(/[^\d]/g, ''),
       mensajePaypal: simulado
         ? 'PayPal (simulación académica)'
         : 'PayPal (modo sandbox)'

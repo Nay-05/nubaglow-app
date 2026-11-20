@@ -6,6 +6,33 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { pagosService } from '../services/pagos.service';
+import {
+  obtenerDatosCobro,
+  obtenerImagenQrPublica
+} from '../config/cobro';
+
+/**
+ * Datos de cobro para el cliente autenticado. Los valores bancarios salen
+ * exclusivamente del entorno del servidor; nunca se escriben en el frontend.
+ */
+export async function obtenerDatosCobroCliente(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const datos = obtenerDatosCobro();
+    res.status(200).json({
+      exito: true,
+      datos: {
+        ...datos,
+        qrImagenUrl: obtenerImagenQrPublica()
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function listarPagosEnVerificacion(
   _req: Request,

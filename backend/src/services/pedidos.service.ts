@@ -63,6 +63,7 @@ export interface PedidoCompleto {
     pagadoEn: string | null;
     fechaVencimiento?: string | null;
     comprobanteUrl?: string | null;
+    motivoRechazo?: string | null;
     qrDataUrl?: string;
     avisoSimulacion?: string;
   };
@@ -351,6 +352,28 @@ export class PedidosService {
   }
 
   /**
+   * Obtiene la ficha completa de un pedido por codigo de rastreo.
+   * Reutiliza obtenerDetalle para aplicar exactamente la misma regla de
+   * propiedad: el cliente solo puede leer pedidos de su propia cuenta.
+   */
+  async obtenerDetallePorCodigo(
+    codigoRastreo: string,
+    usuarioId: number,
+    rolUsuario: RolUsuario
+  ): Promise<PedidoCompleto> {
+    const res = await consultar(
+      'SELECT id FROM pedidos WHERE codigo_rastreo = $1',
+      [codigoRastreo]
+    );
+
+    if (res.rows.length === 0) {
+      throw new AppError('Pedido no encontrado', 404);
+    }
+
+    return this.obtenerDetalle(Number(res.rows[0].id), usuarioId, rolUsuario);
+  }
+
+  /**
    * Obtiene la ficha completa de un pedido.
    * Regla de seguridad: un cliente NO puede ver pedidos ajenos (403/404).
    */
@@ -419,6 +442,7 @@ export class PedidosService {
     const resPago = await consultar(
       `SELECT metodo, monto, moneda, estado, referencia, pagado_en AS "pagadoEn",
               fecha_vencimiento AS "fechaVencimiento", comprobante_url AS "comprobanteUrl",
+              motivo_rechazo AS "motivoRechazo",
               monto_usd AS "montoUsd", tipo_cambio_bob_usd AS "tipoCambioBobUsd",
               paypal_order_id AS "paypalOrderId"
        FROM pagos WHERE pedido_id = $1`,
