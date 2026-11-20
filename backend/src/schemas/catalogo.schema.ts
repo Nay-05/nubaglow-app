@@ -42,6 +42,7 @@ export const consultaProductosSchema = z.object({
   precio_min: z.coerce.number().min(0, 'El precio minimo no puede ser negativo').optional(),
   precio_max: z.coerce.number().min(0, 'El precio maximo no puede ser negativo').optional(),
   buscar: z.string().trim().optional(),
+  todos: z.enum(['true', 'false']).optional(),
   orden: z
     .enum([
       'precio_asc',
@@ -117,8 +118,39 @@ export const crearVarianteSchema = z.object({
 
 export const actualizarVarianteSchema = crearVarianteSchema.partial();
 
+// ----------------------------------------------------------------------------
+// 4. IMAGENES DE PRODUCTO
+// ----------------------------------------------------------------------------
+const urlImagenSchema = z
+  .string({ required_error: 'La URL de la imagen es obligatoria' })
+  .trim()
+  .min(1, 'La URL de la imagen es obligatoria')
+  .max(500, 'La URL no puede exceder 500 caracteres')
+  .refine(
+    (url) =>
+      /^https:\/\//i.test(url) ||
+      (url.startsWith('/') && !url.startsWith('//')) ||
+      url.startsWith('assets/'),
+    'Use una URL https, una ruta /assets o una ruta relativa assets/'
+  );
+
+export const crearImagenProductoSchema = z.object({
+  url: urlImagenSchema,
+  es_principal: z.boolean().default(false).optional(),
+  orden: z.coerce.number().int().min(0).max(999).default(0).optional()
+});
+
+export const actualizarImagenProductoSchema =
+  crearImagenProductoSchema.partial();
+
 export type ConsultaProductosInput = z.infer<typeof consultaProductosSchema>;
 export type CrearProductoInput = z.infer<typeof crearProductoSchema>;
 export type ActualizarProductoInput = z.infer<typeof actualizarProductoSchema>;
 export type CrearVarianteInput = z.infer<typeof crearVarianteSchema>;
 export type ActualizarVarianteInput = z.infer<typeof actualizarVarianteSchema>;
+export type CrearImagenProductoInput = z.infer<
+  typeof crearImagenProductoSchema
+>;
+export type ActualizarImagenProductoInput = z.infer<
+  typeof actualizarImagenProductoSchema
+>;

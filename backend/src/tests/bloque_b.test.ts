@@ -436,7 +436,17 @@ async function ejecutarPruebas() {
     server.close(async () => {
       // Limpieza de datos temporales
       if (productoTestId) {
-        await consultar('DELETE FROM variantes WHERE producto_id = $1', [productoTestId]);
+        await consultar(
+          `DELETE FROM movimientos_inventario
+           WHERE variante_id IN (
+             SELECT id FROM variantes WHERE producto_id = $1
+           )`,
+          [productoTestId]
+        );
+        await consultar(
+          'DELETE FROM variantes WHERE producto_id = $1',
+          [productoTestId]
+        );
         await consultar('DELETE FROM productos WHERE id = $1', [productoTestId]);
       }
       await consultar('DELETE FROM usuarios WHERE email IN ($1, $2)', [emailClientePrueba, emailStaffPrueba]);
@@ -447,7 +457,17 @@ async function ejecutarPruebas() {
     console.error('Error critico durante la ejecucion de la suite Bloque B:', error);
     server.close(async () => {
       if (productoTestId) {
-        await consultar('DELETE FROM variantes WHERE producto_id = $1', [productoTestId]);
+        await consultar(
+          `DELETE FROM movimientos_inventario
+           WHERE variante_id IN (
+             SELECT id FROM variantes WHERE producto_id = $1
+           )`,
+          [productoTestId]
+        );
+        await consultar(
+          'DELETE FROM variantes WHERE producto_id = $1',
+          [productoTestId]
+        );
         await consultar('DELETE FROM productos WHERE id = $1', [productoTestId]);
       }
       await consultar('DELETE FROM usuarios WHERE email IN ($1, $2)', [emailClientePrueba, emailStaffPrueba]);

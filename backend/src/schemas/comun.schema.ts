@@ -33,6 +33,17 @@ export const varianteIdParamSchema = z.object({
     .transform(Number)
 });
 
+export const imagenProductoParamSchema = z.object({
+  productoId: z
+    .string()
+    .regex(/^\d+$/, 'El parametro productoId debe ser un numero entero valido')
+    .transform(Number),
+  imagenId: z
+    .string()
+    .regex(/^\d+$/, 'El parametro imagenId debe ser un numero entero valido')
+    .transform(Number)
+});
+
 export const itemIdParamSchema = z.object({
   itemId: z
     .string()

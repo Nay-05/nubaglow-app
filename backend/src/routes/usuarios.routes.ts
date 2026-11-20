@@ -18,6 +18,7 @@ import {
   actualizarUsuarioStaffSchema,
   restablecerPasswordStaffSchema
 } from '../schemas/staff.schema';
+import { idParamSchema } from '../schemas/comun.schema';
 
 const router = Router();
 
@@ -25,8 +26,23 @@ const router = Router();
 router.use(verificarToken, requerirRol('admin'));
 
 router.get('/', listarStaff);
-router.post('/', validar({ body: crearUsuarioStaffSchema }), crearStaff);
-router.put('/:id', validar({ body: actualizarUsuarioStaffSchema }), actualizarStaff);
-router.patch('/:id/password', validar({ body: restablecerPasswordStaffSchema }), restablecerPassword);
+router.post(
+  '/',
+  validar({ body: crearUsuarioStaffSchema }),
+  crearStaff
+);
+router.put(
+  '/:id',
+  validar({ params: idParamSchema, body: actualizarUsuarioStaffSchema }),
+  actualizarStaff
+);
+router.patch(
+  '/:id/password',
+  validar({
+    params: idParamSchema,
+    body: restablecerPasswordStaffSchema
+  }),
+  restablecerPassword
+);
 
 export default router;

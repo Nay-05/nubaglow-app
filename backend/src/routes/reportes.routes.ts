@@ -10,9 +10,16 @@ import {
   ingresosPorDia,
   rankingProductos
 } from '../controllers/reportes.controller';
+import {
+  opcionesAuditoria,
+  listarAuditoria
+} from '../controllers/auditoria.controller';
 import { validar } from '../middlewares/validar';
 import { verificarToken, requerirRol } from '../middlewares/autenticacion';
-import { consultaReportesSchema } from '../schemas/staff.schema';
+import {
+  consultaAuditoriaSchema,
+  consultaReportesSchema
+} from '../schemas/staff.schema';
 
 const router = Router();
 
@@ -20,7 +27,17 @@ const router = Router();
 router.use(verificarToken, requerirRol('admin'));
 
 router.get('/web-vs-pos', resumenWebVsPos);
-router.get('/ingresos-diarios', validar({ query: consultaReportesSchema }), ingresosPorDia);
+router.get(
+  '/ingresos-diarios',
+  validar({ query: consultaReportesSchema }),
+  ingresosPorDia
+);
 router.get('/ranking', rankingProductos);
+router.get('/auditoria/opciones', opcionesAuditoria);
+router.get(
+  '/auditoria',
+  validar({ query: consultaAuditoriaSchema }),
+  listarAuditoria
+);
 
 export default router;

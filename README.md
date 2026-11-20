@@ -163,7 +163,7 @@ npm run test:bloque-b
 # Ejecutar suite Bloque C (Carrito persistente, pedidos atomicos, rastreo y resenas) - 36 pruebas
 npm run test:bloque-c
 
-# Ejecutar suite Bloque D (POS, facturacion, inventario, reportes y auditoria) - 86 pruebas
+# Ejecutar suite Bloque D (POS, facturacion, inventario, reportes y auditoria) - 106 pruebas
 npm run test:bloque-d
 
 # Verificar que el costo y el umbral de envio se leen de ENVIO_COSTO / ENVIO_GRATIS_DESDE
@@ -245,8 +245,17 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 |---|---|---|---|---|
 | `GET` | `/api/productos/:productoId/variantes` | `público` | Lista variantes de un producto con stock y precio | `GET /api/productos/1/variantes` |
 | `POST` | `/api/productos/:productoId/variantes` | `admin` | Crea variante con SKU único | `POST /api/productos/1/variantes`<br>`{"sku": "NB-SERUM-100ML", "nombre": "Presentacion 100ml", "precio": 140.00, "stock": 20, "punto_reorden": 5}` |
-| `PUT` | `/api/variantes/:id` | `admin` | Modifica precio o stock. Audita `CAMBIO_PRECIO` si el precio cambia | `PUT /api/variantes/1`<br>`{"precio": 150.00, "stock": 25}` |
+| `PUT` | `/api/variantes/:id` | `admin` | Modifica precio, stock o estado. Audita `CAMBIO_PRECIO`, `CAMBIO_ESTADO_VARIANTE` y registra el ajuste de stock en el Kardex | `PUT /api/variantes/1`<br>`{"precio": 150.00, "stock": 25}` |
 | `DELETE` | `/api/variantes/:id` | `admin` | Elimina variante si no tiene historial de ventas | `DELETE /api/variantes/1` |
+
+### 6.5.1. Cat?logo: Im?genes de producto
+
+| M?todo | Ruta | Rol Requerido | Descripci?n | Ejemplo de Petici?n / Body |
+|---|---|---|---|---|
+| `GET` | `/api/productos/:productoId/imagenes` | `p?blico` | Lista las im?genes y marca la principal | `GET /api/productos/1/imagenes` |
+| `POST` | `/api/productos/:productoId/imagenes` | `admin` | Agrega una imagen. Garantiza una sola principal. Audita `CREAR_IMAGEN_PRODUCTO` | `POST /api/productos/1/imagenes`<br>`{"url": "/assets/brand/icono1.png", "es_principal": true, "orden": 0}` |
+| `PUT` | `/api/productos/:productoId/imagenes/:imagenId` | `admin` | Edita URL, orden o imagen principal. Audita `ACTUALIZAR_IMAGEN_PRODUCTO` | `PUT /api/productos/1/imagenes/3`<br>`{"orden": 1, "es_principal": false}` |
+| `DELETE` | `/api/productos/:productoId/imagenes/:imagenId` | `admin` | Elimina una imagen y promueve otra como principal. Audita `ELIMINAR_IMAGEN_PRODUCTO` | `DELETE /api/productos/1/imagenes/3` |
 
 ---
 

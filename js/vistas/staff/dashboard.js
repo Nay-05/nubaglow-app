@@ -1,55 +1,59 @@
 /**
  * ============================================================================
- * NUBAGLOW APP - VISTA STAFF: PANEL (/staff/dashboard)
+ * NUBAGLOW APP - VISTA STAFF: PANEL ADMINISTRATIVO (/staff/dashboard)
  * ============================================================================
- * Landing del rol admin. Muestra tarjetas hacia los modulos permitidos.
- * Los permisos reales se validan en el backend en cada llamada a la API.
+ * Panel ejecutivo con ventas web vs POS, ingresos diarios y ranking. Los
+ * permisos reales se validan otra vez en el backend con requerirRol('admin').
  */
 
-import { el, icono } from '../../core/dom.js';
-import { modulosPermitidos, ETIQUETA_ROL } from '../../core/permisos.js';
-import { encabezadoPagina } from '../comunes.js';
-
-function tarjetaModulo(modulo) {
-  return el(
-    'a',
-    {
-      clase: 'tarjeta-modulo',
-      href: modulo.ruta,
-      atributos: { 'data-ruta': '' }
-    },
-    el('span', { clase: 'tarjeta-modulo-icono' }, icono(modulo.icono, 22)),
-    el('strong', { clase: 'tarjeta-modulo-titulo', texto: modulo.etiqueta }),
-    el('span', { clase: 'texto-suave', texto: modulo.descripcion })
-  );
-}
+import { el } from '../../core/dom.js';
+import { alerta, encabezadoPagina } from '../comunes.js';
+import {
+  cargarMetricas,
+  crearAccesosAdmin,
+  crearTarjetasMetricas
+} from './panelMetricas.js';
+import {
+  crearComparativoWebPos,
+  crearGraficoIngresos,
+  crearRankingBarras
+} from './graficos.js';
 
 export const vistaDashboard = {
   async render({ usuario }) {
-    const rol = usuario ? usuario.rol : '';
-    const modulos = modulosPermitidos(rol);
-
-    return el(
+    const contenido = el('div', { clase: 'admin-contenido' });
+    const seccion = el(
       'section',
-      { clase: 'pagina' },
+      { clase: 'pagina admin-metricas' },
       encabezadoPagina(
-        `Hola, ${usuario?.nombre || 'equipo'}`,
-        `Sesión activa como ${ETIQUETA_ROL[rol] || rol}. Elige un módulo para trabajar.`
+        `Hola, ${usuario?.nombre || 'administrador'}`,
+        'Resumen ejecutivo de ventas, ingresos y productos destacados.'
       ),
-      el(
-        'div',
-        { clase: 'grilla-modulos' },
-        ...modulos.map(tarjetaModulo)
-      ),
-      el(
-        'div',
-        { clase: 'panel-nota' },
-        el('h2', { clase: 'panel-nota-titulo', texto: 'Seguridad del portal' }),
-        el('p', {
-          texto:
-            'El sidebar solo muestra los módulos permitidos para tu rol, pero cada acción se valida otra vez en el servidor con JWT, RBAC y protección CSRF.'
-        })
-      )
+      contenido
     );
+
+    try {
+      const metricas = await cargarMetricas();
+      contenido.append(
+        crearTarjetasMetricas(metricas.resumen),
+        el(
+          'div',
+          { clase: 'admin-grid-graficos' },
+          crearComparativoWebPos(metricas.resumen),
+          crearGraficoIngresos(
+            metricas.ingresos.dias.slice(0, 14),
+            'Ingresos de los últimos 14 días'
+          )
+        ),
+        crearRankingBarras(metricas.ranking, 'Productos más vendidos'),
+        crearAccesosAdmin()
+      );
+    } catch (error) {
+      contenido.replaceChildren(
+        alerta(error.message || 'No se pudieron cargar las métricas.')
+      );
+    }
+
+    return seccion;
   }
 };

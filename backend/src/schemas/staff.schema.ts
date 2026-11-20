@@ -6,6 +6,17 @@
 
 import { z } from 'zod';
 
+const fechaCalendarioSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato YYYY-MM-DD')
+  .refine((fecha) => {
+    const valor = new Date(`${fecha}T00:00:00Z`);
+    return (
+      !Number.isNaN(valor.getTime()) &&
+      valor.toISOString().startsWith(fecha)
+    );
+  }, 'La fecha no es valida');
+
 // ----------------------------------------------------------------------------
 // 1. VENTAS POS (MOSTRADOR)
 // ----------------------------------------------------------------------------
@@ -15,15 +26,7 @@ export const crearVentaPosItemSchema = z.object({
 });
 
 export const consultaFechaPosSchema = z.object({
-  fecha: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato YYYY-MM-DD')
-    .refine((fecha) => {
-      const valor = new Date(`${fecha}T00:00:00Z`);
-      return !Number.isNaN(valor.getTime()) &&
-        valor.toISOString().startsWith(fecha);
-    }, 'La fecha no es válida')
-    .optional()
+  fecha: fechaCalendarioSchema.optional()
 });
 
 export const crearVentaPosSchema = z.object({
@@ -56,8 +59,22 @@ export const ajusteInventarioSchema = z.object({
 // 3. REPORTES
 // ----------------------------------------------------------------------------
 export const consultaReportesSchema = z.object({
-  desde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha invalido (esperado YYYY-MM-DD)').optional(),
-  hasta: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha invalido (esperado YYYY-MM-DD)').optional()
+  desde: fechaCalendarioSchema.optional(),
+  hasta: fechaCalendarioSchema.optional()
+});
+
+export const consultaAuditoriaSchema = z.object({
+  usuario_id: z.coerce.number().int().positive().optional(),
+  accion: z.string().trim().max(100).optional(),
+  fecha: fechaCalendarioSchema.optional(),
+  pagina: z.coerce.number().int().min(1).default(1).optional(),
+  limite: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(100, 'El limite maximo es 100')
+    .default(25)
+    .optional()
 });
 
 // ----------------------------------------------------------------------------
@@ -133,6 +150,7 @@ export const cancelarPedidoSchema = z.object({
 });
 
 export type ConsultaReportesInput = z.infer<typeof consultaReportesSchema>;
+export type ConsultaAuditoriaInput = z.infer<typeof consultaAuditoriaSchema>;
 export type ConsultaPagosInput = z.infer<typeof consultaPagosSchema>;
 export type RechazarPagoInput = z.infer<typeof rechazarPagoSchema>;
 export type CancelarPedidoInput = z.infer<typeof cancelarPedidoSchema>;

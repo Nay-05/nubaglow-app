@@ -165,14 +165,22 @@ export function tabla(cabeceras, filas, { clase } = {}) {
 }
 
 export function imagenProducto(url, alt) {
+  const valor = typeof url === 'string' ? url.trim() : '';
   const esRelativaSegura =
-    typeof url === 'string' &&
-    (url.startsWith('/') && !url.startsWith('//') || url.startsWith('assets/'));
-  const fuente = esRelativaSegura
-    ? (url.startsWith('assets/') ? `/${url}` : url)
-    : '/assets/brand/icono1.png';
+    (valor.startsWith('/') && !valor.startsWith('//')) ||
+    valor.startsWith('assets/');
+  const esHttps = /^https:\/\//i.test(valor);
+  const fuente = esHttps
+    ? valor
+    : esRelativaSegura
+      ? (valor.startsWith('assets/') ? `/${valor}` : valor)
+      : '/assets/brand/icono1.png';
 
-  return el('img', { clase: 'imagen-producto', src: fuente, alt: alt || 'Producto NubaGlow' });
+  return el('img', {
+    clase: 'imagen-producto',
+    src: fuente,
+    alt: alt || 'Producto NubaGlow'
+  });
 }
 
 export function precioRango(min, max) {

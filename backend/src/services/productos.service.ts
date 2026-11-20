@@ -416,10 +416,31 @@ export class ProductosService {
 
     // Auditoria
     await consultar(
-      `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, detalles)
+      `INSERT INTO auditoria
+       (usuario_id, accion, tabla_afectada, registro_id, detalles)
        VALUES ($1, 'ACTUALIZAR_PRODUCTO', 'productos', $2, $3)`,
       [usuarioId, id, JSON.stringify({ antes: actual, cambios: datos })]
     );
+
+    if (
+      datos.activo !== undefined &&
+      Boolean(datos.activo) !== Boolean(actual.activo)
+    ) {
+      await consultar(
+        `INSERT INTO auditoria
+         (usuario_id, accion, tabla_afectada, registro_id, detalles)
+         VALUES ($1, 'CAMBIO_ESTADO_PRODUCTO', 'productos', $2, $3)`,
+        [
+          usuarioId,
+          id,
+          JSON.stringify({
+            slug: nuevoSlug,
+            activoAnterior: Boolean(actual.activo),
+            activoNuevo: Boolean(datos.activo)
+          })
+        ]
+      );
+    }
 
     return this.obtenerPorSlug(nuevoSlug, false);
   }
@@ -434,28 +455,62 @@ export class ProductosService {
       throw new AppError('Producto no encontrado', 404);
     }
 
-    // Verificar si alguna variante del producto tiene pedidos vinculados
-    const tienePedidos = await consultar(
-      `SELECT pi.id 
+    // Verificar pedidos, Kardex o ventas POS vinculadas a sus variantes.
+    const tieneHistorial = await consultar(
+      `SELECT 1
        FROM pedido_items pi
        INNER JOIN variantes v ON v.id = pi.variante_id
-       WHERE v.producto_id = $1 
+       WHERE v.producto_id = $1
+       UNION ALL
+       SELECT 1
+       FROM movimientos_inventario mi
+       INNER JOIN variantes v ON v.id = mi.variante_id
+       WHERE v.producto_id = $1
+       UNION ALL
+       SELECT 1
+       FROM ventas_pos vp
+       CROSS JOIN LATERAL jsonb_array_elements(vp.detalle) AS item
+       INNER JOIN variantes v ON v.sku = (item->>'sku')
+       WHERE v.producto_id = $1
        LIMIT 1`,
       [id]
     );
 
-    if (tienePedidos.rows.length > 0) {
+    if (tieneHistorial.rows.length > 0) {
       // Desactivacion logica
-      await consultar('UPDATE productos SET activo = FALSE, actualizado_en = NOW() WHERE id = $1', [id]);
-      await consultar('UPDATE variantes SET activo = FALSE, actualizado_en = NOW() WHERE producto_id = $1', [id]);
-
       await consultar(
-        `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id, detalles)
-         VALUES ($1, 'DESACTIVAR_PRODUCTO_SOFT_DELETE', 'productos', $2, $3)`,
-        [usuarioId, id, JSON.stringify({ motivo: 'Tiene pedidos historicos vinculados' })]
+        `UPDATE productos
+         SET activo = FALSE, actualizado_en = NOW()
+         WHERE id = $1`,
+        [id]
+      );
+      await consultar(
+        `UPDATE variantes
+         SET activo = FALSE, actualizado_en = NOW()
+         WHERE producto_id = $1`,
+        [id]
       );
 
-      return { mensaje: 'Producto desactivado del catalogo (conservado por trazabilidad de ventas)', tipo: 'logica' };
+      await consultar(
+        `INSERT INTO auditoria
+         (usuario_id, accion, tabla_afectada, registro_id, detalles)
+         VALUES ($1, 'DESACTIVAR_PRODUCTO_SOFT_DELETE',
+                 'productos', $2, $3)`,
+        [
+          usuarioId,
+          id,
+          JSON.stringify({
+            motivo: 'Tiene historial de ventas o inventario vinculado'
+          })
+        ]
+      );
+
+      return {
+        mensaje:
+          'Producto desactivado del catalogo ' +
+          '(conservado por trazabilidad de ventas)',
+        tipo: 'logica'
+      };
     }
 
     // Eliminacion fisica si no tiene transacciones

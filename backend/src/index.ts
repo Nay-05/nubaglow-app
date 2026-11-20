@@ -51,7 +51,7 @@ app.use(
         scriptSrc: ["'self'"], // Scripts solo propios (sin inline)
         styleSrc: ["'self'", 'https://fonts.googleapis.com'], // Estilos solo propios y Google Fonts (sin inline)
         fontSrc: ["'self'", 'https://fonts.gstatic.com'], // Fuentes de Google Fonts
-        imgSrc: ["'self'", 'data:'], // Imagenes propias y data:
+        imgSrc: ["'self'", 'data:', 'https:'], // Imagenes propias, data y CDN https
         connectSrc: ["'self'"], // Comunicacion fetch con la API
         frameAncestors: ["'none'"],
         objectSrc: ["'none'"],

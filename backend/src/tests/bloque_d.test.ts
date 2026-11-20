@@ -523,6 +523,12 @@ async function ejecutarPruebas() {
     const dataRanking = (await resRanking.json()) as any;
     asegurar(resRanking.status === 200, 'Ranking de productos mas vendidos responde 200');
     asegurar(Array.isArray(dataRanking.datos.ranking), 'Ranking contiene lista ordenada por ventas');
+    asegurar(
+      dataRanking.datos.ranking.every(
+        (producto: any) => producto.unidadesVendidas > 0
+      ),
+      'El ranking solo incluye productos con ventas'
+    );
 
     // ------------------------------------------------------------------------
     // 6. GESTION DE USUARIOS STAFF Y REGLAS DE PROTECCION
@@ -894,6 +900,277 @@ async function ejecutarPruebas() {
     asegurar(
       accionesRegistradas.includes('RESTABLECER_PASSWORD'),
       'Accion de auditoria registrada: RESTABLECER_PASSWORD'
+    );
+
+    // ------------------------------------------------------------------------
+    // 8. ADMINISTRACION: PRODUCTOS, IMAGENES, AUDITORIA Y RANKING
+    // ------------------------------------------------------------------------
+    console.log('\n--- 8. Administracion, imagenes y visor de auditoria ---');
+    const authAdmin = { Authorization: `Bearer ${tokenAdmin}` };
+
+    const resCrearImagen1 = await fetch(
+      `${baseUrl}/api/productos/${productoTestId}/imagenes`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authAdmin
+        },
+        body: JSON.stringify({
+          url: '/assets/brand/icono1.png',
+          es_principal: true,
+          orden: 0
+        })
+      }
+    );
+    const dataImagen1 = (await resCrearImagen1.json()) as any;
+    const imagen1Id = dataImagen1.datos?.imagen?.id;
+    asegurar(resCrearImagen1.status === 201, 'Admin agrega una imagen (201)');
+    asegurar(
+      dataImagen1.datos?.imagen?.esPrincipal === true,
+      'La primera imagen queda marcada como principal'
+    );
+
+    const resCrearImagen2 = await fetch(
+      `${baseUrl}/api/productos/${productoTestId}/imagenes`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authAdmin
+        },
+        body: JSON.stringify({
+          url: 'assets/brand/icono2.png',
+          es_principal: false,
+          orden: 1
+        })
+      }
+    );
+    const dataImagen2 = (await resCrearImagen2.json()) as any;
+    const imagen2Id = dataImagen2.datos?.imagen?.id;
+    asegurar(resCrearImagen2.status === 201, 'Admin agrega una segunda imagen (201)');
+
+    const resMarcarImagen2 = await fetch(
+      `${baseUrl}/api/productos/${productoTestId}/imagenes/${imagen2Id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authAdmin
+        },
+        body: JSON.stringify({ es_principal: true, orden: 0 })
+      }
+    );
+    const dataMarcarImagen2 = (await resMarcarImagen2.json()) as any;
+    asegurar(
+      resMarcarImagen2.status === 200 &&
+        dataMarcarImagen2.datos?.imagen?.esPrincipal === true,
+      'Admin cambia la imagen principal sin dejar duplicados'
+    );
+
+    const resListarImagenes = await fetch(
+      `${baseUrl}/api/productos/${productoTestId}/imagenes`,
+      { headers: authAdmin }
+    );
+    const dataListarImagenes = (await resListarImagenes.json()) as any;
+    const principales = dataListarImagenes.datos.imagenes.filter(
+      (imagen: any) => imagen.esPrincipal
+    );
+    asegurar(
+      resListarImagenes.status === 200 && principales.length === 1,
+      'La galeria conserva exactamente una imagen principal'
+    );
+
+    const resEliminarImagen2 = await fetch(
+      `${baseUrl}/api/productos/${productoTestId}/imagenes/${imagen2Id}`,
+      { method: 'DELETE', headers: authAdmin }
+    );
+    const resTrasEliminarImagen = await fetch(
+      `${baseUrl}/api/productos/${productoTestId}/imagenes`,
+      { headers: authAdmin }
+    );
+    const dataTrasEliminarImagen = (await resTrasEliminarImagen.json()) as any;
+    const imagen1Restante = dataTrasEliminarImagen.datos.imagenes.find(
+      (imagen: any) => imagen.id === imagen1Id
+    );
+    asegurar(
+      resEliminarImagen2.status === 200 &&
+        imagen1Restante?.esPrincipal === true,
+      'Al eliminar la principal se promueve la imagen restante'
+    );
+
+    const resVendedorImagen = await fetch(
+      `${baseUrl}/api/productos/${productoTestId}/imagenes`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${tokenVendedor1}`
+        },
+        body: JSON.stringify({ url: '/assets/brand/icono1.png' })
+      }
+    );
+    asegurar(
+      resVendedorImagen.status === 403,
+      'Vendedor no puede modificar imagenes de producto (403)'
+    );
+
+    const resDesactivarProducto = await fetch(
+      `${baseUrl}/api/productos/${productoTestId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authAdmin
+        },
+        body: JSON.stringify({ activo: false })
+      }
+    );
+    asegurar(
+      resDesactivarProducto.status === 200,
+      'Admin puede desactivar un producto (200)'
+    );
+    const resAuditEstadoProducto = await consultar(
+      `SELECT accion FROM auditoria
+       WHERE accion = 'CAMBIO_ESTADO_PRODUCTO' AND registro_id = $1`,
+      [productoTestId]
+    );
+    asegurar(
+      resAuditEstadoProducto.rows.length > 0,
+      'El cambio de estado del producto queda auditado'
+    );
+
+    const resListarInactivos = await fetch(
+      `${baseUrl}/api/productos?todos=true&limite=50` +
+        `&buscar=${encodeURIComponent(`Producto POS Test ${sufijo}`)}`,
+      { headers: authAdmin }
+    );
+    const dataListarInactivos = (await resListarInactivos.json()) as any;
+    asegurar(
+      dataListarInactivos.datos.productos.some(
+        (producto: any) =>
+          producto.id === productoTestId && producto.activo === false
+      ),
+      'El admin ve productos inactivos en el listado'
+    );
+
+    const resReactivarProducto = await fetch(
+      `${baseUrl}/api/productos/${productoTestId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authAdmin
+        },
+        body: JSON.stringify({ activo: true })
+      }
+    );
+    asegurar(
+      resReactivarProducto.status === 200,
+      'Admin puede reactivar el producto (200)'
+    );
+
+    const resCambioEstadoVariante = await fetch(
+      `${baseUrl}/api/variantes/${varianteTestId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authAdmin
+        },
+        body: JSON.stringify({ activo: false, stock: 23 })
+      }
+    );
+    asegurar(
+      resCambioEstadoVariante.status === 200,
+      'Admin actualiza estado y stock de una variante (200)'
+    );
+    const resAuditEstadoVariante = await consultar(
+      `SELECT accion FROM auditoria
+       WHERE accion = 'CAMBIO_ESTADO_VARIANTE' AND registro_id = $1`,
+      [varianteTestId]
+    );
+    asegurar(
+      resAuditEstadoVariante.rows.length > 0,
+      'El cambio de estado de la variante queda auditado'
+    );
+    const resMovimientoVariante = await consultar(
+      `SELECT tipo, cantidad, stock_anterior, stock_nuevo
+       FROM movimientos_inventario
+       WHERE variante_id = $1
+       ORDER BY id DESC
+       LIMIT 1`,
+      [varianteTestId]
+    );
+    asegurar(
+      resMovimientoVariante.rows[0]?.tipo === 'ajuste' &&
+        resMovimientoVariante.rows[0]?.stock_nuevo === 23,
+      'El cambio de stock desde productos se registra en el Kardex'
+    );
+
+    await fetch(`${baseUrl}/api/variantes/${varianteTestId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authAdmin
+      },
+      body: JSON.stringify({ activo: true, stock: 22 })
+    });
+
+    const resOpcionesAuditoria = await fetch(
+      `${baseUrl}/api/reportes/auditoria/opciones`,
+      { headers: authAdmin }
+    );
+    const dataOpcionesAuditoria = (await resOpcionesAuditoria.json()) as any;
+    asegurar(
+      resOpcionesAuditoria.status === 200 &&
+        dataOpcionesAuditoria.datos.acciones.includes('CAMBIO_PRECIO'),
+      'El visor de auditoria expone las acciones filtrables'
+    );
+    asegurar(
+      dataOpcionesAuditoria.datos.usuarios.some(
+        (usuario: any) => usuario.id === adminId
+      ),
+      'El visor de auditoria expone los usuarios filtrables'
+    );
+
+    const hoyBolivia = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/La_Paz'
+    }).format(new Date());
+    const resAuditoriaFiltrada = await fetch(
+      `${baseUrl}/api/reportes/auditoria?usuario_id=${adminId}` +
+        `&accion=CAMBIO_PRECIO&fecha=${hoyBolivia}&limite=5`,
+      { headers: authAdmin }
+    );
+    const dataAuditoriaFiltrada =
+      (await resAuditoriaFiltrada.json()) as any;
+    const registrosFiltrados = dataAuditoriaFiltrada.datos.registros;
+    asegurar(
+      resAuditoriaFiltrada.status === 200 &&
+        registrosFiltrados.length > 0 &&
+        registrosFiltrados.every(
+          (registro: any) =>
+            registro.accion === 'CAMBIO_PRECIO' &&
+            registro.usuarioId === adminId
+        ),
+      'El visor filtra por usuario, accion y fecha'
+    );
+    asegurar(
+      dataAuditoriaFiltrada.datos.paginacion.limite === 5,
+      'El visor de auditoria aplica paginacion'
+    );
+
+    const resRankingUnidades = await fetch(
+      `${baseUrl}/api/reportes/ranking?limite=50`,
+      { headers: authAdmin }
+    );
+    const dataRankingUnidades = (await resRankingUnidades.json()) as any;
+    const productoEnRanking = dataRankingUnidades.datos.ranking.find(
+      (producto: any) => producto.productoId === productoTestId
+    );
+    asegurar(
+      productoEnRanking && productoEnRanking.unidadesVendidas >= 3,
+      'El ranking combina unidades vendidas por web y POS'
     );
 
     console.log(`\n============================================================`);
