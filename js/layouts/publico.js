@@ -13,15 +13,29 @@ import { solicitar } from '../core/api.js';
 import { CLAVE_CARRITO_VISITANTE } from '../core/carritoVisitante.js';
 import { EVENTO_CARRITO, cargarCarrito } from '../core/carrito.js';
 import { crearMiniCarrito } from './miniCarrito.js';
+import { crearAsistente } from './asistente.js';
 
 const CLAVE_ANUNCIO_CERRADO = 'nubaglow:anuncio-cerrado';
 const SIMBOLO_CONTROLADOR = Symbol.for('nubaglow.layout.contadorCarrito');
+
+const RUTAS_ASISTENTE = [
+  '/',
+  '/catalogo',
+  '/pedidos',
+  '/carrito',
+  '/cuenta'
+];
 
 const ENLACES_PUBLICOS = [
   { ruta: '/catalogo', etiqueta: 'Catálogo' },
   { ruta: '/pedidos', etiqueta: 'Pedidos' },
   { ruta: '/cuenta', etiqueta: 'Cuenta' }
 ];
+
+function permiteAsistente(ruta) {
+  if (RUTAS_ASISTENTE.includes(ruta)) return true;
+  return ruta.startsWith('/producto/');
+}
 
 function esActiva(rutaActual, rutaEnlace) {
   if (rutaEnlace === '/') return rutaActual === '/';
@@ -392,10 +406,30 @@ function crearPie() {
   const enlacesTienda = el(
     'ul',
     { clase: 'pie-lista' },
-    el('li', {}, el('a', { clase: 'pie-enlace', href: '/catalogo', atributos: { 'data-ruta': '' }, texto: 'Catálogo' })),
-    el('li', {}, el('a', { clase: 'pie-enlace', href: '/pedidos', atributos: { 'data-ruta': '' }, texto: 'Rastrear pedido' })),
-    el('li', {}, el('a', { clase: 'pie-enlace', href: '/carrito', atributos: { 'data-ruta': '' }, texto: 'Carrito' })),
-    el('li', {}, el('a', { clase: 'pie-enlace', href: '/cuenta', atributos: { 'data-ruta': '' }, texto: 'Mi cuenta' }))
+    el('li', {}, el('a', {
+      clase: 'pie-enlace',
+      href: '/catalogo',
+      atributos: { 'data-ruta': '' },
+      texto: 'Catálogo'
+    })),
+    el('li', {}, el('a', {
+      clase: 'pie-enlace',
+      href: '/pedidos',
+      atributos: { 'data-ruta': '' },
+      texto: 'Rastrear pedido'
+    })),
+    el('li', {}, el('a', {
+      clase: 'pie-enlace',
+      href: '/carrito',
+      atributos: { 'data-ruta': '' },
+      texto: 'Carrito'
+    })),
+    el('li', {}, el('a', {
+      clase: 'pie-enlace',
+      href: '/cuenta',
+      atributos: { 'data-ruta': '' },
+      texto: 'Mi cuenta'
+    }))
   );
 
   return el(
@@ -433,8 +467,16 @@ function crearPie() {
           'ul',
           { clase: 'pie-lista' },
           el('li', { clase: 'pie-texto', texto: 'Pago contra entrega en Sucre' }),
-          el('li', {}, el('a', { clase: 'pie-enlace', href: '/pedidos', atributos: { 'data-ruta': '' }, texto: 'Rastreo de pedidos' })),
-          el('li', { clase: 'pie-texto', texto: 'Contacto por WhatsApp para coordinar tu entrega' })
+          el('li', {}, el('a', {
+            clase: 'pie-enlace',
+            href: '/pedidos',
+            atributos: { 'data-ruta': '' },
+            texto: 'Rastreo de pedidos'
+          })),
+          el('li', {
+            clase: 'pie-texto',
+            texto: 'Contacto por WhatsApp para coordinar tu entrega'
+          })
         )
       )
     ),
@@ -449,6 +491,9 @@ export function crearLayoutPublico({ ruta, usuario, router }) {
   const raiz = el('div', { clase: 'app-publico' });
 
   const miniCarrito = crearMiniCarrito({ usuario, router });
+  const asistente = permiteAsistente(ruta)
+    ? crearAsistente({ usuario, router })
+    : null;
   const anuncio = crearBandaAnuncio();
   const { acciones, formulario, botonCarrito } = crearAcciones(usuario, router);
   const { navegacion, panel } = crearNavegacion(ruta);
@@ -500,7 +545,9 @@ export function crearLayoutPublico({ ruta, usuario, router }) {
   });
 
   raiz.append(
-    ...[anuncio, encabezado, contenido, crearPie(), miniCarrito.raiz].filter(Boolean)
+    ...[anuncio, encabezado, contenido, crearPie(), miniCarrito.raiz]
+      .concat(asistente ? [asistente.raiz] : [])
+      .filter(Boolean)
   );
 
   cargarCategorias(panel, categoriasMovil);

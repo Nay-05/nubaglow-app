@@ -22,10 +22,11 @@
     "test:frontend": "npm --prefix backend run test:frontend",
     "test:todos:1": "npm run test:envio && npm run test:bloque-a && npm run test:bloque-b && npm run test:bloque-c",
     "test:todos:2": "npm run test:bloque-d && npm run test:bloque-e && npm run test:comprobante && npm run test:paypal",
-    "test:todos:3": "npm run test:notificaciones && npm run test:comprobante-pdf",
+    "test:todos:3": "npm run test:notificaciones && npm run test:comprobante-pdf && npm run test:asistente",
     "test:todos:4": "npm run test:seguridad && npm run test:frontend",
     "test:todos": "npm run test:todos:1 && npm run test:todos:2 && npm run test:todos:3 && npm run test:todos:4",
-    "backend:install": "npm --prefix backend install"
+    "backend:install": "npm --prefix backend install",
+    "test:asistente": "npm --prefix backend run test:asistente"
   },
   "keywords": [
     "nubaglow",

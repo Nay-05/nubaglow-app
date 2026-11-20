@@ -31,3 +31,23 @@ export const limitadorRegistro = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
+
+// Asistente IA: limite por IP y, cuando existe sesion, tambien por usuario.
+export const limitadorAsistente = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  keyGenerator: (req) => {
+    const ip = req.ip || 'sin-ip';
+    const usuario = req.usuario?.id || 'anonimo';
+    return `${ip}:${usuario}`;
+  },
+  validate: false,
+  message: {
+    exito: false,
+    error:
+      'Demasiadas consultas al asistente. Espera un minuto antes de ' +
+      'volver a intentarlo.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});

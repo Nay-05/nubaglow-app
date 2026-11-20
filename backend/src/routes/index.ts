@@ -22,6 +22,7 @@ import inventarioRoutes from './inventario.routes';
 import reportesRoutes from './reportes.routes';
 import usuariosRoutes from './usuarios.routes';
 import configRoutes from './config.routes';
+import asistenteRoutes from './asistente.routes';
 import staffAlmacenRoutes from './staff-almacen.routes';
 import staffLogisticaRoutes from './staff-logistica.routes';
 import staffPagosRoutes from './staff-pagos.routes';
@@ -56,6 +57,9 @@ apiRouter.use('/usuarios', usuariosRoutes);
 
 // Modulo de configuracion publico (modos de pago, etc)
 apiRouter.use('/config', configRoutes);
+
+// Asistente IA publico con grounding en el catalogo y rate limiting
+apiRouter.use('/asistente', asistenteRoutes);
 
 // Envoltorios por rol para el portal interno (reutilizan los servicios existentes)
 apiRouter.use('/staff/almacen', staffAlmacenRoutes);

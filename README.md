@@ -63,6 +63,10 @@ PAYPAL_CLIENT_ID=tu_client_id_de_sandbox_aqui
 PAYPAL_CLIENT_SECRET=tu_client_secret_de_sandbox_aqui
 PAYPAL_BASE_URL=https://api-m.sandbox.paypal.com
 # Bs. por 1 USD. DEFINIR POR EL NEGOCIO (ejemplo academico).
+
+# Asistente IA: la clave solo se usa en el backend.
+GEMINI_API_KEY=tu_api_key_de_gemini_aqui
+GEMINI_MODEL=gemini-2.5-flash
 PAYPAL_TIPO_CAMBIO_BOB_USD=6.96
 ```
 
@@ -175,6 +179,9 @@ npm run test:comprobante
 # Probar PayPal en modo simulado (crear, aprobar, capturar e idempotencia)
 npm run test:paypal
 
+# Probar el asistente IA (Zod, grounding, fallback y rate limit)
+npm run test:asistente
+
 # Ejecutar todas las suites secuencialmente
 npm run test:todos
 ```
@@ -231,7 +238,7 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 
 | Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
 |---|---|---|---|---|
-| `GET` | `/api/productos` | `público` | Listado con búsqueda (`q`), filtros combinables (`categoria`, `tipo_piel`, `precio_min`, `precio_max`), orden y paginación | `GET /api/productos?categoria=serums&tipo_piel=Seca&precio_min=50&precio_max=200&orden=precio_asc&pagina=1&limite=10` |
+| `GET` | `/api/productos` | `público` | Listado con búsqueda (`q`), filtros combinables (`categoría`, `tipo_piel`, `precio_min`, `precio_max`), orden y paginación | `GET /api/productos?categoria=serums&tipo_piel=Seca&precio_min=50&precio_max=200&orden=precio_asc&pagina=1&limite=10` |
 | `GET` | `/api/productos/:slug` | `público` | Detalle completo de producto por slug con variantes, imágenes y promedio de reseñas | `GET /api/productos/serum-acido-hialuronico-multi-molecular-b5` |
 | `POST` | `/api/productos` | `admin` | Crea producto maestro con validación Zod | `POST /api/productos`<br>`{"categoria_id": 1, "nombre": "Gel Limpiador Suave", "slug": "gel-limpiador-suave", "marca": "NubaGlow", "tipo_piel": "Sensible", "descripcion": "...", "ingredientes": "...", "modo_uso": "..."}` |
 | `PUT` | `/api/productos/:id` | `admin` | Actualiza información del producto | `PUT /api/productos/1`<br>`{"nombre": "Serum Acido Hialuronico Pro Edition"}` |
@@ -248,11 +255,11 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 | `PUT` | `/api/variantes/:id` | `admin` | Modifica precio, stock o estado. Audita `CAMBIO_PRECIO`, `CAMBIO_ESTADO_VARIANTE` y registra el ajuste de stock en el Kardex | `PUT /api/variantes/1`<br>`{"precio": 150.00, "stock": 25}` |
 | `DELETE` | `/api/variantes/:id` | `admin` | Elimina variante si no tiene historial de ventas | `DELETE /api/variantes/1` |
 
-### 6.5.1. Cat?logo: Im?genes de producto
+### 6.5.1. Catálogo: Imágenes de producto
 
-| M?todo | Ruta | Rol Requerido | Descripci?n | Ejemplo de Petici?n / Body |
+| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
 |---|---|---|---|---|
-| `GET` | `/api/productos/:productoId/imagenes` | `p?blico` | Lista las im?genes y marca la principal | `GET /api/productos/1/imagenes` |
+| `GET` | `/api/productos/:productoId/imagenes` | `público` | Lista las imágenes y marca la principal | `GET /api/productos/1/imagenes` |
 | `POST` | `/api/productos/:productoId/imagenes` | `admin` | Agrega una imagen. Garantiza una sola principal. Audita `CREAR_IMAGEN_PRODUCTO` | `POST /api/productos/1/imagenes`<br>`{"url": "/assets/brand/icono1.png", "es_principal": true, "orden": 0}` |
 | `PUT` | `/api/productos/:productoId/imagenes/:imagenId` | `admin` | Edita URL, orden o imagen principal. Audita `ACTUALIZAR_IMAGEN_PRODUCTO` | `PUT /api/productos/1/imagenes/3`<br>`{"orden": 1, "es_principal": false}` |
 | `DELETE` | `/api/productos/:productoId/imagenes/:imagenId` | `admin` | Elimina una imagen y promueve otra como principal. Audita `ELIMINAR_IMAGEN_PRODUCTO` | `DELETE /api/productos/1/imagenes/3` |
@@ -332,12 +339,22 @@ Todos los endpoints responden en formato JSON estructurado y siguen las convenci
 | Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición |
 |---|---|---|---|---|
 | `GET` | `/api/reportes/web-vs-pos` | `admin` | Comparativa de rendimiento entre ventas web y ventas mostrador POS (ingresos y porcentajes) | `GET /api/reportes/web-vs-pos` |
-| `GET` | `/api/reportes/ingresos-diarios` | `admin` | Ingresos día por día filtrables por rango de fechas | `GET /api/reportes/ingresos-diarios?fecha_inicio=2026-01-01&fecha_fin=2026-12-31` |
-| `GET` | `/api/reportes/ranking` | `admin` | Top de productos más vendidos ordenados por cantidad vendida e ingresos | `GET /api/reportes/ranking?limite=10` |
+| `GET` | `/api/reportes/ingresos-diarios` | `admin` | Ingresos por día con rango opcional en fecha local de Bolivia | `GET /api/reportes/ingresos-diarios?desde=2026-01-01&hasta=2026-12-31` |
+| `GET` | `/api/reportes/ranking` | `admin` | Top de productos vendidos combinando web y POS, ordenado por unidades e ingresos | `GET /api/reportes/ranking?limite=10` |
 
 ---
 
-### 6.13. Gestión Interna: Usuarios de Staff y Auditoría
+### 6.13. Asistente IA Público
+
+| Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
+|---|---|---|---|---|
+| `POST` | `/api/asistente` | `público` | Consulta el catálogo real con stock, responde con Gemini o con el motor local de reglas y devuelve `respuesta`, `slugsRecomendados`, `productos` y `modoBasico` | `POST /api/asistente`<br>`{"mensaje": "Busco un hidratante para piel seca por menos de 150 Bs", "historial": []}` |
+
+El endpoint aplica Zod, rate limiting por IP/sesión y grounding obligatorio en PostgreSQL. Si `GEMINI_API_KEY` falta, Gemini falla o se agota la cuota, responde `200` con `modoBasico: true`.
+
+---
+
+### 6.14. Gestión Interna: Usuarios de Staff y Auditoría
 
 | Método | Ruta | Rol Requerido | Descripción | Ejemplo de Petición / Body |
 |---|---|---|---|---|

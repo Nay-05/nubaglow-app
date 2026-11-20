@@ -2909,6 +2909,64 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "15. Asistente IA",
+      "item": [
+        {
+          "name": "Consultar asistente con grounding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code es 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Respuesta es JSON valido\", function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "pm.test(\"Devuelve modoBasico booleano\", function () {",
+                  "    const datos = pm.response.json().datos || {};",
+                  "    pm.expect(typeof datos.modoBasico).to.eql(\"boolean\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mensaje\": \"Busco un hidratante para piel seca por menos de 150 Bs\",\n  \"historial\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/asistente",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "asistente"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

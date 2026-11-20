@@ -20,7 +20,8 @@
     "test:notificaciones": "ts-node src/tests/notificaciones.test.ts",
     "test:comprobante-pdf": "ts-node src/tests/comprobante_pdf.test.ts",
     "test:seguridad": "ts-node src/tests/seguridad.test.ts",
-    "test:frontend": "ts-node src/tests/frontend.test.ts"
+    "test:frontend": "ts-node src/tests/frontend.test.ts",
+    "test:asistente": "ts-node src/tests/asistente.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
