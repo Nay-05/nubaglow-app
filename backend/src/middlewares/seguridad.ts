@@ -32,6 +32,21 @@ export const limitadorRegistro = rateLimit({
   legacyHeaders: false
 });
 
+// Totem de autoservicio: frena intentos de cobro masivos desde una misma IP.
+// El limite es amplio para no interrumpir una demostracion academica.
+export const limitadorTotem = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: {
+    exito: false,
+    error:
+      'Demasiadas operaciones en el totem desde esta direccion. ' +
+      'Espere un minuto antes de reintentar.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Asistente IA: limite por IP y, cuando existe sesion, tambien por usuario.
 export const limitadorAsistente = rateLimit({
   windowMs: 60 * 1000,

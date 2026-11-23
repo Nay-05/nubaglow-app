@@ -26,6 +26,7 @@ const cargadoresVistas = {
     import('./vistas/publicas/producto.js').then((m) => m.vistaProducto),
   pedidos: () =>
     import('./vistas/publicas/pedidos.js').then((m) => m.vistaPedidos),
+  totem: () => import('./vistas/publicas/totem.js').then((m) => m.vistaTotem),
   pedidoDetalle: () =>
     import('./vistas/publicas/pedidoDetalle.js').then((m) => m.vistaPedidoDetalle),
   carrito: () =>
@@ -121,6 +122,10 @@ router
   })
   .registrar('/pedidos', cargadoresVistas.pedidos, {
     titulo: 'Rastreo de pedidos'
+  })
+  .registrar('/totem', cargadoresVistas.totem, {
+    titulo: 'Autoservicio',
+    diseno: 'totem'
   })
   .registrar('/pedido/:codigo', cargadoresVistas.pedidoDetalle, {
     titulo: 'Detalle del pedido',

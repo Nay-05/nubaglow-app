@@ -185,7 +185,16 @@ CREATE TABLE IF NOT EXISTS pedidos (
     CONSTRAINT chk_pedidos_subtotal CHECK (subtotal >= 0),
     CONSTRAINT chk_pedidos_costo_envio CHECK (costo_envio >= 0),
     CONSTRAINT chk_pedidos_total CHECK (total >= 0),
-    CONSTRAINT chk_pedidos_estado CHECK (estado IN ('Pendiente', 'En preparación', 'Empacado', 'En tránsito', 'Entregado', 'Cancelado'))
+    CONSTRAINT chk_pedidos_estado CHECK (
+        estado IN (
+            'Pendiente',
+            'En preparación',
+            'Empacado',
+            'En tránsito',
+            'Entregado',
+            'Cancelado'
+        )
+    )
 );
 
 CREATE INDEX IF NOT EXISTS idx_pedidos_codigo_rastreo ON pedidos(codigo_rastreo);
@@ -262,7 +271,9 @@ CREATE TABLE IF NOT EXISTS pago_eventos (
     descripcion TEXT NOT NULL,
     usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_pago_eventos_estado_nuevo CHECK (estado_nuevo IN ('Pendiente', 'En verificación', 'Aprobado', 'Rechazado'))
+    CONSTRAINT chk_pago_eventos_estado_nuevo CHECK (
+        estado_nuevo IN ('Pendiente', 'En verificación', 'Aprobado', 'Rechazado')
+    )
 );
 
 CREATE INDEX IF NOT EXISTS idx_pago_eventos_pago ON pago_eventos(pago_id);
@@ -312,7 +323,9 @@ CREATE TABLE IF NOT EXISTS envios (
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_envios_pedido UNIQUE (pedido_id),
     CONSTRAINT uq_envios_codigo_rastreo UNIQUE (codigo_rastreo),
-    CONSTRAINT chk_envios_estado CHECK (estado IN ('Pendiente', 'En preparación', 'Empacado', 'En tránsito', 'Entregado'))
+    CONSTRAINT chk_envios_estado CHECK (
+        estado IN ('Pendiente', 'En preparación', 'Empacado', 'En tránsito', 'Entregado')
+    )
 );
 
 CREATE INDEX IF NOT EXISTS idx_envios_codigo_rastreo ON envios(codigo_rastreo);
@@ -351,7 +364,9 @@ CREATE TABLE IF NOT EXISTS envio_eventos (
     descripcion TEXT NOT NULL,
     usuario_id INTEGER REFERENCES usuarios(id) ON DELETE RESTRICT,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_envio_eventos_estado CHECK (estado IN ('Pendiente', 'En preparación', 'Empacado', 'En tránsito', 'Entregado'))
+    CONSTRAINT chk_envio_eventos_estado CHECK (
+        estado IN ('Pendiente', 'En preparación', 'Empacado', 'En tránsito', 'Entregado')
+    )
 );
 
 CREATE INDEX IF NOT EXISTS idx_envio_eventos_envio ON envio_eventos(envio_id);
@@ -373,10 +388,19 @@ CREATE TABLE IF NOT EXISTS ventas_pos (
     cliente_nit_ci VARCHAR(50),
     cliente_correo VARCHAR(255),
     detalle JSONB NOT NULL DEFAULT '[]'::jsonb,
+    canal VARCHAR(20) NOT NULL DEFAULT 'mostrador',
+    codigo_autorizacion VARCHAR(40),
+    tarjeta_ultimos4 VARCHAR(4),
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_ventas_pos_ticket UNIQUE (numero_ticket),
     CONSTRAINT chk_ventas_pos_total CHECK (total >= 0),
-    CONSTRAINT chk_ventas_pos_metodo CHECK (metodo_pago IN ('Efectivo', 'QR Simple'))
+    CONSTRAINT chk_ventas_pos_canal CHECK (canal IN ('mostrador', 'totem')),
+    CONSTRAINT chk_ventas_pos_metodo CHECK (metodo_pago IN (
+        'Efectivo',
+        'QR Simple',
+        'Tarjeta Débito ATM (POS)',
+        'QR Bancario'
+    ))
 );
 
 CREATE INDEX IF NOT EXISTS idx_ventas_pos_vendedor ON ventas_pos(vendedor_id);
@@ -417,7 +441,16 @@ CREATE TABLE IF NOT EXISTS movimientos_inventario (
     usuario_id INTEGER REFERENCES usuarios(id) ON DELETE RESTRICT,
     pedido_id INTEGER REFERENCES pedidos(id) ON DELETE RESTRICT,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_movimientos_tipo CHECK (tipo IN ('entrada', 'salida', 'ajuste', 'venta_web', 'venta_pos', 'reposicion_cancelacion')),
+    CONSTRAINT chk_movimientos_tipo CHECK (
+        tipo IN (
+            'entrada',
+            'salida',
+            'ajuste',
+            'venta_web',
+            'venta_pos',
+            'reposicion_cancelacion'
+        )
+    ),
     CONSTRAINT chk_movimientos_stock_nuevo CHECK (stock_nuevo >= 0)
 );
 
@@ -563,3 +596,25 @@ ALTER TABLE notificaciones
 -- 7. Ventas POS: detalle de artículos para comprobantes posteriores.
 ALTER TABLE ventas_pos
     ADD COLUMN IF NOT EXISTS detalle JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+-- 8. Totem de autoservicio: canal de venta y autorizacion de tarjeta ATM.
+ALTER TABLE ventas_pos
+    ADD COLUMN IF NOT EXISTS canal VARCHAR(20) NOT NULL DEFAULT 'mostrador';
+ALTER TABLE ventas_pos
+    ADD COLUMN IF NOT EXISTS codigo_autorizacion VARCHAR(40);
+ALTER TABLE ventas_pos
+    ADD COLUMN IF NOT EXISTS tarjeta_ultimos4 VARCHAR(4);
+ALTER TABLE ventas_pos DROP CONSTRAINT IF EXISTS chk_ventas_pos_canal;
+ALTER TABLE ventas_pos
+    ADD CONSTRAINT chk_ventas_pos_canal
+    CHECK (canal IN ('mostrador', 'totem'));
+ALTER TABLE ventas_pos DROP CONSTRAINT IF EXISTS chk_ventas_pos_metodo;
+ALTER TABLE ventas_pos
+    ADD CONSTRAINT chk_ventas_pos_metodo
+    CHECK (metodo_pago IN (
+        'Efectivo',
+        'QR Simple',
+        'Tarjeta Débito ATM (POS)',
+        'QR Bancario'
+    ));
+CREATE INDEX IF NOT EXISTS idx_ventas_pos_canal ON ventas_pos(canal);

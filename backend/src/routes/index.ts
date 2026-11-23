@@ -28,6 +28,7 @@ import staffLogisticaRoutes from './staff-logistica.routes';
 import staffPagosRoutes from './staff-pagos.routes';
 import staffPedidosRoutes from './staff-pedidos.routes';
 import staffProductosRoutes from './staff-productos.routes';
+import totemRoutes from './totem.routes';
 
 const apiRouter = Router();
 
@@ -61,6 +62,9 @@ apiRouter.use('/config', configRoutes);
 
 // Asistente IA publico con grounding en el catalogo y rate limiting
 apiRouter.use('/asistente', asistenteRoutes);
+
+// Modo autoservicio para totem Android (catalogo y cobro con tarjeta/QR)
+apiRouter.use('/totem', totemRoutes);
 
 // Envoltorios por rol para el portal interno (reutilizan los servicios existentes)
 apiRouter.use('/staff/almacen', staffAlmacenRoutes);

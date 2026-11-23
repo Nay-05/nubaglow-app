@@ -9,9 +9,11 @@
 import { crearLayoutPublico } from './publico.js';
 import { crearLayoutAutenticacion } from './auth.js';
 import { crearLayoutStaff } from './staff.js';
+import { crearLayoutTotem } from './totem.js';
 
 export function crearDiseno(diseno, contexto) {
   if (diseno === 'staff') return crearLayoutStaff(contexto);
+  if (diseno === 'totem') return crearLayoutTotem(contexto);
   if (diseno === 'auth') {
     return crearLayoutAutenticacion({ titulo: contexto.titulo || 'Acceso al sistema' });
   }

@@ -29,10 +29,15 @@ const PROPIEDADES_DIRECTAS = new Set([
 
 const ESQUEMA_PELIGROSO = /^\s*(javascript|vbscript|data):/i;
 
+// Solo se permiten imagenes embebidas generadas por el backend (por ejemplo
+// el QR del ticket del totem). Cualquier otro data: sigue bloqueado.
+const DATA_IMAGEN = /^data:image\/(png|jpe?g|webp|gif|avif);base64,[a-z0-9+/=\s]+$/i;
+
 function normalizarUrl(valor) {
   if (typeof valor !== 'string') return '';
   const url = valor.trim();
   if (!url) return '';
+  if (DATA_IMAGEN.test(url)) return url;
   if (ESQUEMA_PELIGROSO.test(url)) return '#';
   if (url.startsWith('//')) return '#';
   if (/^blob:/i.test(url)) return url;
@@ -185,6 +190,8 @@ const ICONOS = {
   tarjeta: ['M3 6h18v12H3z', 'M3 10h18', 'M7 15h4'],
   efectivo: ['M3 7h18v10H3z', 'M7 12h.01', 'M17 12h.01', 'M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'],
   copiar: ['M9 9h11v11H9z', 'M5 15H4V4h11v1'],
+  reloj: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 7v5l3 2'],
+  reiniciar: ['M3 12a9 9 0 1 0 3-6.7', 'M3 4v5h5'],
   subir: ['M12 16V4', 'M7 9l5-5 5 5', 'M4 20h16'],
   descargar: ['M12 4v12', 'M7 11l5 5 5-5', 'M4 20h16'],
   whatsapp: ['M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.4A8.5 8.5 0 1 1 21 11.5z', 'M8.5 9h7', 'M8.5 12.5h4.5']

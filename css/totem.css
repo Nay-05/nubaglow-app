@@ -1,0 +1,1093 @@
+﻿/**
+ * ============================================================================
+ * NUBAGLOW APP - MODO AUTOSERVICIO (TOTEM ANDROID)
+ * ============================================================================
+ * Interfaz tactil fullscreen, sin barra de navegacion publica.
+ * Botones de al menos 56px de alto y tipografia legible a distancia.
+ * Paleta oficial: wine-plum, sand-dune, ivory y acentos almond/smoky.
+ */
+
+:root {
+  /* Alias solicitado por la especificacion del totem. */
+  --color-ivory-silk: var(--color-ivory);
+}
+
+.app-totem {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-sand-dune);
+}
+
+.totem-contenido {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.totem {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 15% 0%, var(--color-hero-glow), transparent 55%),
+    var(--color-ivory);
+  color: var(--color-text);
+  font-size: 18px;
+}
+
+/* --------------------------------------------------------------------------
+ * Cabecera de marca
+ * -------------------------------------------------------------------------- */
+.totem-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 36px;
+  background-color: var(--color-wine-plum);
+  color: var(--color-on-primary);
+}
+
+.totem-marca {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.totem-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  padding: 8px;
+  border-radius: 18px;
+  background-color: var(--color-ivory);
+}
+
+.totem-marca-nombre {
+  font-family: var(--font-heading);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-on-primary);
+}
+
+.totem-marca-sub {
+  margin-top: 6px;
+  font-size: 18px;
+  color: var(--color-on-primary-muted);
+}
+
+.totem-cabecera-acciones {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.totem-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 20px;
+  border: 1px solid var(--color-on-primary-line);
+  border-radius: 999px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-on-primary);
+  background-color: var(--color-on-primary-hover);
+}
+
+.totem-timer-alerta {
+  color: var(--color-charcoal);
+  background-color: var(--color-sand-dune);
+  border-color: var(--color-almond-silk);
+}
+
+.totem-timer-texto {
+  min-width: 54px;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+ * Botones tactiles
+ * -------------------------------------------------------------------------- */
+.totem-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 26px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.2s ease, opacity 0.2s ease;
+  touch-action: manipulation;
+}
+
+.totem-btn:active {
+  transform: scale(0.98);
+}
+
+.totem-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.totem-btn-primario {
+  background-color: var(--color-wine-plum);
+  border-color: var(--color-wine-plum);
+  color: var(--color-white);
+}
+
+.totem-btn-claro {
+  background-color: var(--color-ivory);
+  border-color: var(--color-border-strong);
+  color: var(--color-wine-plum);
+}
+
+.totem-btn-exito {
+  width: 100%;
+  min-height: 64px;
+  margin-top: 4px;
+  background-color: var(--color-wine-plum);
+  color: var(--color-white);
+  font-size: 22px;
+}
+
+.totem:focus-within .totem-btn:focus-visible,
+.totem-chip:focus-visible,
+.totem-stepper:focus-visible,
+.totem-tecla:focus-visible,
+.totem-metodo:focus-visible {
+  outline: 3px solid var(--color-smoky-rose);
+  outline-offset: 3px;
+}
+
+/* --------------------------------------------------------------------------
+ * Progreso de pasos
+ * -------------------------------------------------------------------------- */
+.totem-pasos {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 16px 36px;
+  list-style: none;
+  background-color: var(--color-sand-dune);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.totem-paso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-height: 56px;
+  padding: 0 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background-color: var(--color-ivory);
+  color: var(--color-text-muted);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.totem-paso-numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: var(--color-sand-dune);
+  color: var(--color-wine-plum);
+  font-size: 18px;
+}
+
+.totem-paso.activo {
+  border-color: var(--color-wine-plum);
+  background-color: var(--color-wine-plum);
+  color: var(--color-white);
+}
+
+.totem-paso.activo .totem-paso-numero {
+  background-color: var(--color-ivory);
+  color: var(--color-wine-plum);
+}
+
+.totem-paso.completado {
+  border-color: var(--color-almond-silk);
+  background-color: var(--color-almond-silk);
+  color: var(--color-wine-plum);
+}
+
+/* --------------------------------------------------------------------------
+ * Paneles y titulos
+ * -------------------------------------------------------------------------- */
+.totem-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 36px 120px;
+}
+
+.totem-panel[hidden] {
+  display: none;
+}
+
+.totem-panel-cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.totem-eyebrow {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-smoky-rose);
+}
+
+.totem-titulo {
+  margin-top: 4px;
+  font-family: var(--font-heading);
+  font-size: 46px;
+  line-height: 1.05;
+  color: var(--color-wine-plum);
+}
+
+.totem-subtitulo {
+  margin-top: 6px;
+  font-size: 20px;
+  color: var(--color-text-muted);
+}
+
+.totem-seccion {
+  margin-bottom: 6px;
+  font-family: var(--font-heading);
+  font-size: 28px;
+  color: var(--color-wine-plum);
+}
+
+/* --------------------------------------------------------------------------
+ * Paso 1: categorias y tarjetas de producto
+ * -------------------------------------------------------------------------- */
+.totem-chips {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.totem-chip {
+  flex: 0 0 auto;
+  min-height: 56px;
+  padding: 0 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background-color: var(--color-ivory);
+  color: var(--color-wine-plum);
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.totem-chip.activo {
+  background-color: var(--color-wine-plum);
+  border-color: var(--color-wine-plum);
+  color: var(--color-white);
+}
+
+.totem-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 22px;
+}
+
+.totem-tarjeta {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background-color: var(--color-white);
+  box-shadow: 0 8px 22px var(--color-primary-softer);
+}
+
+.totem-tarjeta.seleccionada {
+  border-color: var(--color-wine-plum);
+  box-shadow: 0 10px 26px var(--color-primary-soft);
+}
+
+.totem-tarjeta-foto {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background-color: var(--color-sand-dune);
+}
+
+.totem-tarjeta-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.totem-tarjeta-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background-color: var(--color-wine-plum);
+  color: var(--color-white);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.totem-tarjeta-cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+}
+
+.totem-tarjeta-categoria {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-smoky-rose);
+}
+
+.totem-tarjeta-nombre {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--color-wine-plum);
+}
+
+.totem-tarjeta-variante {
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.totem-tarjeta-pie {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.totem-tarjeta-precio {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.totem-tarjeta-precio strong {
+  font-size: 24px;
+  color: var(--color-wine-plum);
+  white-space: nowrap;
+}
+
+.totem-tarjeta-stock {
+  font-size: 18px;
+  color: var(--color-text-subtle);
+}
+
+.totem-stepper-grupo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.totem-stepper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--color-wine-plum);
+  border-radius: 12px;
+  background-color: var(--color-wine-plum);
+  color: var(--color-white);
+  cursor: pointer;
+}
+
+.totem-stepper:disabled {
+  border-color: var(--color-border);
+  background-color: var(--color-sand-dune);
+  color: var(--color-text-subtle);
+  cursor: not-allowed;
+}
+
+.totem-stepper-valor {
+  min-width: 40px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-wine-plum);
+}
+
+/* --------------------------------------------------------------------------
+ * Barra inferior de acciones
+ * -------------------------------------------------------------------------- */
+.totem-barra-acciones {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 36px;
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-ivory);
+  box-shadow: 0 -6px 24px var(--color-primary-softer);
+}
+
+.totem-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.totem-resumen-etiqueta {
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.totem-resumen-total {
+  font-size: 30px;
+  line-height: 1.1;
+  color: var(--color-wine-plum);
+}
+
+.totem-resumen-conteo {
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+ * Paso 2: formulario, metodos y resumen
+ * -------------------------------------------------------------------------- */
+.totem-dos-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.totem-columna {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.totem-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.totem-campo-etiqueta {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.totem-entrada {
+  min-height: 60px;
+  padding: 0 18px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background-color: var(--color-white);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 22px;
+}
+
+.totem-entrada:focus {
+  border-color: var(--color-wine-plum);
+  outline: 3px solid var(--color-primary-soft);
+}
+
+.totem-metodos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.totem-metodo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 96px;
+  padding: 16px 18px;
+  border: 2px solid var(--color-border-strong);
+  border-radius: 16px;
+  background-color: var(--color-white);
+  text-align: left;
+  cursor: pointer;
+}
+
+.totem-metodo.activo {
+  border-color: var(--color-wine-plum);
+  background-color: var(--color-primary-softer);
+}
+
+.totem-metodo-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background-color: var(--color-sand-dune);
+  color: var(--color-wine-plum);
+}
+
+.totem-metodo-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 18px;
+}
+
+.totem-metodo-texto strong {
+  font-size: 21px;
+  color: var(--color-wine-plum);
+}
+
+.totem-resumen-pedido {
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background-color: var(--color-white);
+}
+
+.totem-resumen-lineas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.totem-resumen-linea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--color-border);
+  font-size: 18px;
+}
+
+.totem-resumen-linea strong {
+  color: var(--color-wine-plum);
+  white-space: nowrap;
+}
+
+.totem-resumen-total-linea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 2px solid var(--color-wine-plum);
+  font-size: 20px;
+}
+
+.totem-resumen-total-linea strong {
+  font-size: 28px;
+  color: var(--color-wine-plum);
+}
+
+.totem-acciones-paso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+/* --------------------------------------------------------------------------
+ * Paso 3: terminal POS con pinpad
+ * -------------------------------------------------------------------------- */
+.totem-terminal {
+  width: min(640px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border-radius: 24px;
+  background-color: var(--color-charcoal);
+  box-shadow: 0 18px 44px var(--color-overlay);
+}
+
+.totem-terminal-borde {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 6px;
+  color: var(--color-on-primary-subtle);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.totem-terminal-pantalla {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 250px;
+  padding: 24px;
+  border: 2px solid var(--color-on-primary-line);
+  border-radius: 16px;
+  background-color: var(--color-charcoal);
+  color: var(--color-sand-dune);
+  text-align: center;
+}
+
+.totem-terminal-titulo {
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-on-primary-subtle);
+}
+
+.totem-terminal-tarjeta {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-ivory);
+}
+
+.totem-terminal-instruccion {
+  font-size: 22px;
+  line-height: 1.35;
+  color: var(--color-sand-dune);
+}
+
+.totem-terminal-error {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-almond-silk);
+}
+
+.totem-pin-puntos {
+  display: flex;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.totem-pin-punto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border: 2px solid var(--color-on-primary-border);
+  border-radius: 12px;
+  font-size: 30px;
+  color: var(--color-ivory);
+}
+
+.totem-pin-punto.lleno {
+  border-color: var(--color-sand-dune);
+  background-color: var(--color-wine-plum);
+}
+
+.totem-teclado {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.totem-tecla {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background-color: var(--color-ivory);
+  color: var(--color-wine-plum);
+  font-family: var(--font-body);
+  font-size: 30px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.totem-tecla:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.totem-tecla-borrar {
+  background-color: var(--color-almond-silk);
+}
+
+.totem-tecla-limpiar {
+  background-color: var(--color-sand-dune);
+  font-size: 24px;
+}
+
+/* --------------------------------------------------------------------------
+ * Pago con QR bancario
+ * -------------------------------------------------------------------------- */
+.totem-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.totem-qr-caja {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(520px, 100%);
+  padding: 28px;
+  border: 2px dashed var(--color-wine-plum);
+  border-radius: 22px;
+  background-color: var(--color-white);
+  text-align: center;
+  color: var(--color-wine-plum);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.totem-qr-ayuda {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+ * Ticket termico. En pantalla se ve como una tirilla; al imprimir ocupa
+ * el ancho de 80mm con @page size: 80mm auto y margen de 4mm.
+ * -------------------------------------------------------------------------- */
+.totem-ticket {
+  width: 80mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 8mm 6mm;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background-color: var(--color-white);
+  color: #111111;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 12px 30px var(--color-primary-softer);
+}
+
+.totem-ticket.ancho-58 {
+  width: 58mm;
+}
+
+.ticket-cabecera {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.ticket-logo {
+  width: 22mm;
+  height: 22mm;
+  object-fit: contain;
+  margin-bottom: 2mm;
+}
+
+.ticket-cabecera h2 {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #111111;
+}
+
+.ticket-sub {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ticket-separador {
+  margin: 8px 0;
+  border-top: 1px dashed #444444;
+}
+
+.ticket-linea {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.ticket-linea span {
+  white-space: nowrap;
+}
+
+.ticket-linea strong {
+  text-align: right;
+  font-weight: 700;
+}
+
+.ticket-items {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ticket-items th {
+  padding-bottom: 4px;
+  border-bottom: 1px solid #444444;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.ticket-items td {
+  padding: 5px 0;
+  vertical-align: top;
+}
+
+.ticket-items td small {
+  display: block;
+  font-size: 10px;
+  color: #444444;
+}
+
+.ticket-numero {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ticket-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ticket-total strong {
+  font-size: 20px;
+}
+
+.ticket-pago {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.ticket-rastreo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.ticket-qr {
+  width: 34mm;
+  height: 34mm;
+  image-rendering: pixelated;
+}
+
+.ticket-nota {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.totem-ticket-acciones {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+ * Mensajes y estados
+ * -------------------------------------------------------------------------- */
+.totem-avisos {
+  position: fixed;
+  right: 28px;
+  bottom: 120px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 440px;
+}
+
+.totem-aviso {
+  padding: 16px 20px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background-color: var(--color-ivory);
+  color: var(--color-text);
+  font-size: 18px;
+  box-shadow: 0 10px 24px var(--color-primary-soft);
+}
+
+.totem-aviso-exito {
+  border-color: var(--color-wine-plum);
+  color: var(--color-wine-plum);
+}
+
+.totem-aviso-error,
+.totem-error {
+  color: var(--color-error);
+}
+
+.totem-error {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.totem-cargando,
+.totem-vacio {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 20px;
+}
+
+/* --------------------------------------------------------------------------
+ * Adaptacion a pantallas angostas (totem 1080x1920 y telefonos)
+ * -------------------------------------------------------------------------- */
+@media (max-width: 1000px) {
+  .totem-cabecera {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .totem-cabecera-acciones {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .totem-pasos {
+    flex-direction: column;
+    padding: 14px 20px;
+  }
+
+  .totem-panel {
+    padding: 22px 20px 150px;
+  }
+
+  .totem-titulo {
+    font-size: 38px;
+  }
+
+  .totem-grilla {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+
+  .totem-dos-columnas {
+    grid-template-columns: 1fr;
+  }
+
+  .totem-barra-acciones {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px 20px;
+  }
+
+  .totem-barra-acciones .totem-btn {
+    width: 100%;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Impresion termica: solo el ticket, 80mm de ancho, sin fondos ni sombras.
+ * La regla @page se declara a nivel global porque Chrome solo la respeta
+ * fuera de @media al combinar con preferCSSPageSize / impresion nativa.
+ * -------------------------------------------------------------------------- */
+@page {
+  size: 80mm auto;
+  margin: 4mm;
+}
+
+@media print {
+  html,
+  body {
+    width: 80mm;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #totem-ticket,
+  #totem-ticket * {
+    visibility: visible;
+  }
+
+  #totem-ticket {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 72mm;
+    max-width: 72mm;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: #ffffff;
+    color: #000000;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  #totem-ticket .ticket-qr {
+    width: 30mm;
+    height: 30mm;
+  }
+
+  .totem-no-print,
+  .totem-aviso,
+  .totem-cabecera,
+  .totem-pasos {
+    display: none !important;
+  }
+}
