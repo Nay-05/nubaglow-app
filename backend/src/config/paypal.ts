@@ -8,6 +8,8 @@
  * de cambio definido por el negocio.
  */
 
+import { urlAplicacion as urlAplicacionEntorno } from './env';
+
 export type ModoPaypal = 'simulado' | 'sandbox';
 
 const TIPO_CAMBIO_POR_DEFECTO = 6.96;
@@ -65,10 +67,7 @@ export function convertirBobAUsd(montoBob: number): number {
  * servidor con esta variable; nunca se usan datos enviados por el cliente.
  */
 export function urlAplicacion(): string {
-  return (process.env.APP_URL?.trim() || 'http://localhost:4000').replace(
-    /\/+$/,
-    ''
-  );
+  return urlAplicacionEntorno();
 }
 
 export function urlsRetornoPaypal(

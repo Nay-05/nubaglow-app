@@ -13,7 +13,7 @@ Se va a **defender oralmente**: el código debe ser limpio, modular, comentado e
 - **Frontend:** HTML5 + CSS3 + JavaScript vanilla modular (carpeta raíz, `css/`, `js/`). Sin frameworks externos.
 - **Autenticación:** JWT (Access + Refresh Token en cookies `httpOnly`) + `bcrypt` + control de acceso basado en roles (RBAC).
 - **Pagos:** **PayPal REST API en modo sandbox** (llamadas server-side, secretos en `.env`) + QR/depósito bancario con comprobante y verificación manual por `vendedor`/`admin`.
-- **Deploy:** Render (`https://nubaglow-app.onrender.com`). Secretos únicamente en variables de entorno.
+- **Deploy:** Render (`https://nubaglow-web.onrender.com`). Secretos únicamente en variables de entorno.
 - **Pruebas de API:** Colección de **Postman** documentada en `docs/postman/`.
 
 ## 3. Arquitectura de Acceso y Roles Unificados (RBAC)

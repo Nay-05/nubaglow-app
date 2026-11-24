@@ -19,6 +19,7 @@ import { proteccionCsrf } from './middlewares/csrf';
 import { AppError, manejadorErrores, rutaNoEncontrada } from './middlewares/errores';
 import { cerrarPool } from './db';
 import { limiteCuerpoComprobante } from './config/comprobantes';
+import { registrarDiagnosticoNotificaciones } from './config/env';
 
 // 1. Cargar variables de entorno desde la raiz del workspace o backend/
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -36,7 +37,7 @@ const origenesConfigurados = [
   process.env.APP_URL,
   process.env.FRONTEND_URL,
   process.env.CLIENT_URL,
-  'https://nubaglow-app.onrender.com',
+  'https://nubaglow-web.onrender.com',
   `http://localhost:${PUERTO}`,
   `http://127.0.0.1:${PUERTO}`,
   'http://localhost:4000',
@@ -208,6 +209,7 @@ app.use(manejadorErrores);
 let servidor: any;
 
 if (require.main === module && process.env.NODE_ENV !== 'test') {
+  registrarDiagnosticoNotificaciones();
   servidor = app.listen(PUERTO, () => {
     console.log('============================================================');
     console.log(`NubaGlow Backend iniciado exitosamente`);

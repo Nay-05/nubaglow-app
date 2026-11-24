@@ -94,8 +94,8 @@ archivo `.env` real.
 |---|---|---|
 | `PORT` | `4000` | Puerto del servidor |
 | `NODE_ENV` | `production` | Entorno de ejecución |
-| `APP_URL` | `https://nubaglow-app.onrender.com` | URL pública del sistema |
-| `FRONTEND_URL` | `https://nubaglow-app.onrender.com` | Origen permitido por CORS |
+| `APP_URL` | `https://nubaglow-web.onrender.com` | URL pública del sistema |
+| `FRONTEND_URL` | `https://nubaglow-web.onrender.com` | Origen permitido por CORS |
 | `CLIENT_URL` | `http://localhost:3000` | Origen alternativo de desarrollo |
 | `DATABASE_URL` | `postgresql://usuario:clave@host:5432/postgres` | PostgreSQL/Supabase |
 | `JWT_SECRET` | `clave_ficticia_larga` | Firma del access token |
@@ -526,7 +526,7 @@ Se verificó con `NODE_ENV=production`:
 - `/api/salud` y los endpoints de API responden JSON.
 - `/assets/images/*` responde `200` con MIME de imagen.
 - `/api/noexiste` y `/js/noexiste.js` responden `404`.
-- CORS acepta `https://nubaglow-app.onrender.com` y bloquea orígenes ajenos.
+- CORS acepta `https://nubaglow-web.onrender.com` y bloquea orígenes ajenos.
 - Helmet entrega CSP, HSTS y `X-Content-Type-Options: nosniff`.
 - Las cookies de autenticación en producción son `HttpOnly`, `Secure` y
   `SameSite=Strict`.

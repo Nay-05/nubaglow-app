@@ -323,11 +323,22 @@ export class PedidosService {
     );
 
     // Las notificaciones se disparan fuera de la transaccion ya confirmada.
-    // El servicio nunca lanza excepciones; un fallo no revierte la compra.
-    try {
-      await notificacionesService.notificarPedido(pedidoCompleto);
-    } catch (error) {
-      console.error('Fallo inesperado al notificar el pedido:', error);
+    // En produccion no bloquean la respuesta del checkout: corren en segundo
+    // plano y cualquier fallo inesperado queda registrado en el log.
+    const notificacion = notificacionesService.notificarPedido(pedidoCompleto);
+    const manejarErrorNotificacion = (error: unknown) => {
+      console.error(
+        `[NubaGlow][Notificaciones] Fallo inesperado al notificar ` +
+          `el pedido ${pedidoCompleto.codigoRastreo}:`,
+        error
+      );
+    };
+
+    if (process.env.NODE_ENV === 'test') {
+      // En pruebas se espera para que las aserciones sean deterministas.
+      await notificacion.catch(manejarErrorNotificacion);
+    } else {
+      void notificacion.catch(manejarErrorNotificacion);
     }
 
     return pedidoCompleto;

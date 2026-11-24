@@ -219,7 +219,7 @@ async function ejecutarPruebas() {
 
     // 2.3.2. Referer con hostname que extiende un dominio permitido -> 403 Forbidden
     const frontendUrlOriginal = process.env.FRONTEND_URL;
-    process.env.FRONTEND_URL = 'https://nubaglow-app.onrender.com';
+    process.env.FRONTEND_URL = 'https://nubaglow-web.onrender.com';
     let statusRefererSufijo = 0;
     try {
       const resRefererSufijo = await fetch(`${baseUrl}/api/carrito/items`, {
@@ -227,7 +227,7 @@ async function ejecutarPruebas() {
         headers: {
           'Content-Type': 'application/json',
           Cookie: cookiesParaEnviar,
-          Referer: 'https://nubaglow-app.onrender.com.sitio-malo.example/pwn'
+          Referer: 'https://nubaglow-web.onrender.com.sitio-malo.example/pwn'
         },
         body: JSON.stringify({ variante_id: variantePruebaId, cantidad: 1 })
       });
@@ -241,7 +241,7 @@ async function ejecutarPruebas() {
     }
     asegurar(
       statusRefererSufijo === 403,
-      'Referer con dominio sufijado (ej. nubaglow-app.onrender.com.sitio-malo.example) es rechazado con 403 Forbidden'
+      'Referer con dominio sufijado (ej. nubaglow-web.onrender.com.sitio-malo.example) es rechazado con 403 Forbidden'
     );
 
     // 2.3.3. Mutacion con Referer malformado (invalido segun RFC) -> 403 Forbidden

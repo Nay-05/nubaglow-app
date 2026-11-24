@@ -52,7 +52,7 @@ export function proteccionCsrf(req: Request, res: Response, next: NextFunction):
     process.env.APP_URL,
     process.env.FRONTEND_URL,
     process.env.CLIENT_URL,
-    'https://nubaglow-app.onrender.com',
+    'https://nubaglow-web.onrender.com',
     ...(esProduccion
       ? []
       : [

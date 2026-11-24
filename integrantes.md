@@ -1,4 +1,4 @@
-enlace a render: https://nubaglow-app.onrender.com
+enlace a render: https://nubaglow-web.onrender.com
 numero de grupo: 11
 nombre de la apps: nubaglow-app
 integrantes:

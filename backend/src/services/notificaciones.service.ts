@@ -10,7 +10,11 @@
 
 import nodemailer from 'nodemailer';
 import { consultar } from '../db';
-import { urlAplicacion } from '../config/paypal';
+import {
+  obtenerConfiguracionSmtp,
+  obtenerConfiguracionTelegram,
+  urlAplicacion
+} from '../config/env';
 import { comprobantePdfService } from './comprobantePdf.service';
 
 export type EstadoNotificacion = 'enviada' | 'fallida' | 'omitida';
@@ -58,39 +62,35 @@ export type EnviadorTelegram = (
 
 const TIEMPO_ESPERA_MS = 10_000;
 
-interface ConfiguracionSmtp {
-  host: string;
-  port: number;
-  user: string;
-  pass: string;
-  from: string;
+interface DetalleErrorEnvio {
+  message: string;
+  code: string | number | null;
+  response: unknown;
+  command?: string | null;
 }
 
-function configuracionSmtp(): ConfiguracionSmtp | null {
-  const host = (process.env.SMTP_HOST || '').trim();
-  const port = Number(process.env.SMTP_PORT || 0);
-  const user = (process.env.SMTP_USER || '').trim();
-  const pass = (process.env.SMTP_PASS || '').trim();
-  const from = (process.env.SMTP_FROM || '').trim();
-
-  if (!host || !Number.isInteger(port) || port <= 0 || !user || !pass || !from) {
-    return null;
-  }
-
-  return { host, port, user, pass, from };
-}
-
-function configuracionTelegram(): { token: string; chatId: string } | null {
-  const token = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
-  const chatId = (process.env.TELEGRAM_CHAT_ID || '').trim();
-
-  if (!token || !chatId) return null;
-  return { token, chatId };
+function detalleErrorEnvio(error: unknown): DetalleErrorEnvio {
+  const detalle = error as any;
+  return {
+    message:
+      detalle?.message ||
+      (error instanceof Error ? error.message : String(error || 'Error desconocido')),
+    code: detalle?.code ?? detalle?.status ?? null,
+    response: detalle?.response ?? detalle?.body ?? null,
+    command: detalle?.command ?? null
+  };
 }
 
 function mensajeError(error: unknown): string {
   if (error instanceof Error) return error.message;
   return String(error || 'Error desconocido');
+}
+
+function registrarFalloEnvio(canal: string, error: unknown): void {
+  console.error(
+    `[NubaGlow][${canal}] Fallo al enviar notificacion:`,
+    detalleErrorEnvio(error)
+  );
 }
 
 const ETIQUETAS_METODO: Record<string, string> = {
@@ -644,62 +644,79 @@ async function registrarNotificacion(registro: {
 export function crearEnviadorCorreo(): EnviadorCorreo | null {
   if (process.env.NODE_ENV === 'test') return null;
 
-  const config = configuracionSmtp();
+  const config = obtenerConfiguracionSmtp().config;
   if (!config) return null;
 
   return async (datos: DatosCorreo) => {
     const transporte = nodemailer.createTransport({
       host: config.host,
       port: config.port,
-      secure: config.port === 465,
+      // 465 usa TLS directo; 587 usa STARTTLS.
+      secure: Number(config.port) === 465,
       auth: { user: config.user, pass: config.pass },
-      connectionTimeout: TIEMPO_ESPERA_MS,
-      greetingTimeout: TIEMPO_ESPERA_MS,
-      socketTimeout: TIEMPO_ESPERA_MS
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 10_000
     });
 
-    await transporte.sendMail({
-      from: config.from,
-      to: datos.destinatario,
-      subject: datos.asunto,
-      text: datos.cuerpo,
-      html: datos.html,
-      attachments: (datos.adjuntos || []).map((adjunto) => ({
-        filename: adjunto.filename,
-        content: adjunto.content,
-        contentType: adjunto.contentType
-      }))
-    });
+    try {
+      await transporte.sendMail({
+        from: config.from,
+        to: datos.destinatario,
+        subject: datos.asunto,
+        text: datos.cuerpo,
+        html: datos.html,
+        attachments: (datos.adjuntos || []).map((adjunto) => ({
+          filename: adjunto.filename,
+          content: adjunto.content,
+          contentType: adjunto.contentType
+        }))
+      });
+    } catch (error) {
+      registrarFalloEnvio('SMTP', error);
+      throw error;
+    }
   };
 }
 
 export function crearEnviadorTelegram(): EnviadorTelegram | null {
   if (process.env.NODE_ENV === 'test') return null;
 
-  const config = configuracionTelegram();
+  const config = obtenerConfiguracionTelegram().config;
   if (!config) return null;
 
   return async (datos: DatosTelegram, destinatario: string) => {
-    const respuesta = await fetch(
-      `https://api.telegram.org/bot${config.token}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: destinatario,
-          text: datos.cuerpo,
-          parse_mode: 'HTML',
-          disable_web_page_preview: true
-        }),
-        signal: AbortSignal.timeout(TIEMPO_ESPERA_MS)
-      }
-    );
+    let respuesta: Response;
+
+    try {
+      respuesta = await fetch(
+        `https://api.telegram.org/bot${config.token}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: destinatario,
+            text: datos.cuerpo,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+          }),
+          signal: AbortSignal.timeout(TIEMPO_ESPERA_MS)
+        }
+      );
+    } catch (error) {
+      registrarFalloEnvio('Telegram', error);
+      throw error;
+    }
 
     if (!respuesta.ok) {
       const detalle = await respuesta.text().catch(() => '');
-      throw new Error(
-        `Telegram respondio ${respuesta.status}: ${detalle.slice(0, 200)}`
-      );
+      const error = new Error(
+        `Telegram respondio ${respuesta.status}: ${detalle.slice(0, 300)}`
+      ) as Error & { code?: string; response?: string };
+      error.code = `TELEGRAM_${respuesta.status}`;
+      error.response = detalle.slice(0, 1000);
+      registrarFalloEnvio('Telegram', error);
+      throw error;
     }
   };
 }
@@ -717,6 +734,7 @@ export class NotificacionesService {
 
     if (!enviador) {
       const error = 'SMTP no configurado';
+      console.log('[NubaGlow][Correo] Omitido: SMTP no configurado.');
       await registrarNotificacion({
         pedidoId: datos.pedidoId,
         canal: 'correo',
@@ -752,6 +770,11 @@ export class NotificacionesService {
       };
     } catch (error) {
       const mensaje = mensajeError(error);
+      console.error(
+        `[NubaGlow][Correo] Fallo al enviar notificacion a ` +
+          `${datos.destinatario}:`,
+        mensaje
+      );
       await registrarNotificacion({
         pedidoId: datos.pedidoId,
         canal: 'correo',
@@ -771,7 +794,7 @@ export class NotificacionesService {
   }
 
   async enviarTelegram(datos: DatosTelegram): Promise<ResultadoNotificacion> {
-    const config = configuracionTelegram();
+    const config = obtenerConfiguracionTelegram().config;
     const destinatario =
       (datos.destinatario || '').trim() ||
       config?.chatId ||
@@ -780,6 +803,7 @@ export class NotificacionesService {
 
     if (!enviador) {
       const error = 'Telegram no configurado';
+      console.log('[NubaGlow][Telegram] Omitido: Telegram no configurado.');
       await registrarNotificacion({
         pedidoId: datos.pedidoId,
         canal: 'telegram',
@@ -810,6 +834,7 @@ export class NotificacionesService {
       };
     } catch (error) {
       const mensaje = mensajeError(error);
+      console.error('[NubaGlow][Telegram] Fallo al enviar alerta:', mensaje);
       await registrarNotificacion({
         pedidoId: datos.pedidoId,
         canal: 'telegram',
@@ -825,6 +850,10 @@ export class NotificacionesService {
 
   async notificarPedido(pedido: any): Promise<ResultadoNotificacionPedido> {
     const asunto = `NubaGlow: pedido ${pedido.codigoRastreo} confirmado`;
+    console.log(
+      `[NubaGlow][Notificaciones] Pedido ${pedido.codigoRastreo}: ` +
+        'enviando correo y alerta Telegram...'
+    );
     const correoGenerado = crearCorreoConfirmacionPedido(pedido);
     const cuerpoTelegram = crearCuerpoTelegram(pedido);
 
@@ -861,6 +890,13 @@ export class NotificacionesService {
         cuerpo: cuerpoTelegram
       })
     ]);
+
+    console.log(
+      `[NubaGlow][Notificaciones] Pedido ${pedido.codigoRastreo}: ` +
+        `correo=${correo.estado}${correo.error ? ` (${correo.error})` : ''}; ` +
+        `telegram=${telegram.estado}` +
+        `${telegram.error ? ` (${telegram.error})` : ''}.`
+    );
 
     return { correo, telegram };
   }
