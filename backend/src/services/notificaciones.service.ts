@@ -802,17 +802,19 @@ async function enviarCorreoPorApiHttp(
 ): Promise<void> {
   if (config.proveedor === 'resend') {
     const remitente = parsearRemitente(config.from);
-    const cuerpo: Record<string, unknown> = {
+        const cuerpo: Record<string, unknown> = {
       from: `${remitente.name} <${remitente.email}>`,
       to: [datos.destinatario],
       subject: datos.asunto,
       text: datos.cuerpo,
-      html: datos.html || undefined,
-      attachments: (datos.adjuntos || []).map((adjunto) => ({
+      html: datos.html || undefined
+    };
+    if (datos.adjuntos && datos.adjuntos.length > 0) {
+      cuerpo.attachments = datos.adjuntos.map((adjunto) => ({
         filename: adjunto.filename,
         content: adjunto.content.toString('base64')
-      }))
-    };
+      }));
+    }
     if (config.replyTo) cuerpo.reply_to = extraerEmailRemitente(config.replyTo);
 
     const respuesta = await fetch(config.apiUrl, {
@@ -833,17 +835,19 @@ async function enviarCorreoPorApiHttp(
   }
 
   const remitente = parsearRemitente(config.from, 'NubaGlow');
-  const cuerpo: Record<string, unknown> = {
+    const cuerpo: Record<string, unknown> = {
     sender: { name: remitente.name, email: remitente.email },
     to: [{ email: datos.destinatario }],
     subject: datos.asunto,
     textContent: datos.cuerpo,
-    htmlContent: datos.html || undefined,
-    attachment: (datos.adjuntos || []).map((adjunto) => ({
+    htmlContent: datos.html || undefined
+  };
+  if (datos.adjuntos && datos.adjuntos.length > 0) {
+    cuerpo.attachment = datos.adjuntos.map((adjunto) => ({
       name: adjunto.filename,
       content: adjunto.content.toString('base64')
-    }))
-  };
+    }));
+  }
   if (config.replyTo) {
     const respuesta = parsearRemitente(config.replyTo, remitente.name);
     cuerpo.replyTo = { name: respuesta.name, email: respuesta.email };
