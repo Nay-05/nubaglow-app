@@ -107,6 +107,13 @@ archivo `.env` real.
 | `SMTP_USER` | `correo@ejemplo.com` | Usuario SMTP |
 | `SMTP_PASS` | `password_ficticio` | Clave SMTP |
 | `SMTP_FROM` | `NubaGlow <correo@ejemplo.com>` | Remitente |
+| `RESEND_API_KEY` | `re_clave_ficticia` | Respaldo de correo por HTTP (Resend) |
+| `RESEND_FROM` | `NubaGlow <no-responder@dominio.com>` | Remitente para Resend |
+| `BREVO_API_KEY` | `clave_ficticia_brevo` | Respaldo de correo por HTTP (Brevo) |
+| `BREVO_FROM` | `NubaGlow <no-responder@dominio.com>` | Remitente para Brevo |
+| `EMAIL_REPLY_TO` | `respuestas@dominio.com` | Responder a (opcional) |
+| `NOTIFICACIONES_TEST_KEY` | `clave_larga_privada` | Autoriza la prueba real sin admin |
+| `NOTIFICACIONES_TEST_EMAIL` | `pruebas@dominio.com` | Destinatario por defecto de la prueba |
 | `PAGO_VENCIMIENTO_HORAS` | `24` | Vencimiento de pagos pendientes |
 | `PAYPAL_MODO` | `simulado` | `simulado` o `sandbox` |
 | `PAYPAL_CLIENT_ID` | `client_id_ficticio` | Credencial sandbox |
@@ -483,6 +490,7 @@ validan el rol en el servidor; no dependen del sidebar.
 | PostgreSQL/Supabase, JWT, bcrypt, RBAC y auditoría | Real |
 | Transacciones de stock, pedidos, POS y Kardex | Real |
 | Comprobantes PDF y envío SMTP | Real si SMTP está configurado |
+| Correo por API HTTP (Resend/Brevo) | Respaldo automático si SMTP falla o no existe |
 | Telegram | Real si el bot y chat están configurados |
 | WhatsApp | Enlace `wa.me` con mensaje prellenado, sin API Business |
 | QR y depósito bancario | Simulación académica con verificación manual |
@@ -517,6 +525,38 @@ En Render se recomienda:
 El servidor compilado sirve la API, `/css`, `/js`, `/assets`, `/favicon.ico`,
 las rutas SPA y el fallback de `index.html`. Las rutas `/api/*` no caen en el
 fallback y los archivos inexistentes responden `404`, no HTML.
+
+### Diagnóstico y prueba de notificaciones en Render
+
+Al arrancar, el servidor imprime siempre el estado de Telegram, SMTP y correo
+HTTP, indicando la longitud y los últimos 4 caracteres de cada secreto (nunca
+el valor completo):
+
+```text
+[NubaGlow][Notificaciones] Telegram: ACTIVO -> chat configurado: si.
+[NubaGlow][Notificaciones]   TELEGRAM_BOT_TOKEN: presente (longitud=46, ultimos4=2pQ4)
+[NubaGlow][Notificaciones] Correo SMTP: ACTIVO -> smtp.gmail.com:587 ...
+[NubaGlow][Notificaciones] Correo HTTP: INACTIVO. Variables faltantes: ...
+```
+
+Endpoints de verificación rápida, sin llenar el carrito:
+
+```bash
+# Solo configuración (público, sin secretos completos)
+curl https://nubaglow-web.onrender.com/api/salud/notificaciones
+
+# Prueba REAL de correo y Telegram con la clave compartida
+curl -X POST https://nubaglow-web.onrender.com/api/salud/probar-notificaciones \
+  -H "Content-Type: application/json" \
+  -H "x-notificaciones-key: TU_NOTIFICACIONES_TEST_KEY" \
+  -d '{"correo":"destino@tudominio.com"}'
+```
+
+La respuesta incluye `resultados.correo` y `resultados.telegram` con el
+resultado exacto de cada intento (SMTP, Resend/Brevo y Telegram API). Si el
+correo SMTP falla, el sistema intenta automáticamente el respaldo HTTP cuando
+`RESEND_API_KEY` o `BREVO_API_KEY` están configuradas. El mismo endpoint acepta
+un JWT de `admin` en lugar de la clave.
 
 ### Verificación de producción
 

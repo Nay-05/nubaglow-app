@@ -11,8 +11,13 @@
 import nodemailer from 'nodemailer';
 import { consultar } from '../db';
 import {
+  ConfiguracionCorreoHttp,
+  ConfiguracionSmtp,
+  leerVariable,
+  obtenerConfiguracionCorreoHttp,
   obtenerConfiguracionSmtp,
   obtenerConfiguracionTelegram,
+  remitenteCorreo,
   urlAplicacion
 } from '../config/env';
 import { comprobantePdfService } from './comprobantePdf.service';
@@ -54,6 +59,29 @@ export interface ResultadoNotificacionPedido {
   telegram: ResultadoNotificacion;
 }
 
+export interface IntentoPruebaCanal {
+  proveedor: string;
+  exito: boolean;
+  mensaje: string | null;
+  codigo: string | number | null;
+  respuesta: unknown;
+}
+
+export interface ResultadoPruebaCanal {
+  canal: CanalNotificacion | 'correo_http';
+  exito: boolean;
+  proveedor?: string | null;
+  destinatario?: string | null;
+  error: string | null;
+  intentos?: IntentoPruebaCanal[];
+  detalles?: unknown;
+}
+
+export interface ResultadoPruebaNotificaciones {
+  correo: ResultadoPruebaCanal;
+  telegram: ResultadoPruebaCanal;
+}
+
 export type EnviadorCorreo = (datos: DatosCorreo) => Promise<void>;
 export type EnviadorTelegram = (
   datos: DatosTelegram,
@@ -84,6 +112,28 @@ function detalleErrorEnvio(error: unknown): DetalleErrorEnvio {
 function mensajeError(error: unknown): string {
   if (error instanceof Error) return error.message;
   return String(error || 'Error desconocido');
+}
+
+/**
+ * Traduce los errores mas comunes de Telegram en una accion concreta.
+ */
+function pistaTelegram(detalle: string): string | null {
+  if (/chat not found/i.test(detalle)) {
+    return (
+      'TELEGRAM_CHAT_ID no existe para este bot o la cuenta nunca inicio ' +
+      'el bot. Envia /start al bot y actualiza TELEGRAM_CHAT_ID en Render.'
+    );
+  }
+  if (/bot was blocked|Forbidden/i.test(detalle)) {
+    return (
+      'La cuenta bloqueo el bot o el bot no es administrador del canal. ' +
+      'Desbloquealo o agregalo como administrador.'
+    );
+  }
+  if (/Unauthorized/i.test(detalle)) {
+    return 'TELEGRAM_BOT_TOKEN invalido o revocado. Genera uno nuevo con BotFather.';
+  }
+  return null;
 }
 
 function registrarFalloEnvio(canal: string, error: unknown): void {
@@ -641,41 +691,194 @@ async function registrarNotificacion(registro: {
   }
 }
 
+/**
+ * Separa un remitente tipo `"NubaGlow" <correo@dominio.com>` en nombre y email.
+ */
+function parsearRemitente(from: string): { name?: string; email: string } {
+  const coincidencia = String(from || '').match(
+    /^\s*"?([^"<]*)"?\s*<([^>]+)>\s*$/
+  );
+  if (coincidencia) {
+    const nombre = coincidencia[1].trim();
+    const email = coincidencia[2].trim();
+    return nombre ? { name: nombre, email } : { email };
+  }
+  return { email: String(from || '').trim() };
+}
+
+function crearErrorProveedorHttp(
+  proveedor: string,
+  status: number,
+  cuerpo: string
+): Error & { code?: string; response?: string } {
+  const error = new Error(
+    `${proveedor} respondio ${status}: ${cuerpo.slice(0, 500)}`
+  ) as Error & { code?: string; response?: string };
+  error.code = `${proveedor.toUpperCase()}_${status}`;
+  error.response = cuerpo.slice(0, 2000);
+  return error;
+}
+
+/**
+ * Envio por SMTP con Nodemailer.
+ * `localAddress: '0.0.0.0'` fuerza IPv4: Nodemailer solo intenta direcciones
+ * de la misma familia que la direccion local, evitando timeouts IPv6 de Gmail
+ * en Render. Tambien se declara family: 4 para clientes/versiones que lo usan.
+ */
+async function enviarCorreoPorSmtp(
+  config: ConfiguracionSmtp,
+  datos: DatosCorreo
+): Promise<void> {
+  const opciones: Record<string, unknown> = {
+    host: config.host,
+    port: config.port,
+    // 465 usa TLS directo; 587 usa STARTTLS.
+    secure: Number(config.port) === 465,
+    auth: { user: config.user, pass: config.pass },
+    family: 4,
+    localAddress: '0.0.0.0',
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 10_000
+  };
+
+  const transporte = nodemailer.createTransport(opciones as any);
+
+  try {
+    await transporte.sendMail({
+      from: config.from,
+      to: datos.destinatario,
+      subject: datos.asunto,
+      text: datos.cuerpo,
+      html: datos.html,
+      attachments: (datos.adjuntos || []).map((adjunto) => ({
+        filename: adjunto.filename,
+        content: adjunto.content,
+        contentType: adjunto.contentType
+      }))
+    });
+  } finally {
+    try {
+      transporte.close();
+    } catch {
+      // El cierre del transporte no debe ocultar el error real del envio.
+    }
+  }
+}
+
+/**
+ * Envio por API HTTP (Resend o Brevo). No usa los puertos SMTP, por lo que
+ * funciona en Render incluso cuando Gmail bloquea 465/587.
+ */
+async function enviarCorreoPorApiHttp(
+  config: ConfiguracionCorreoHttp,
+  datos: DatosCorreo
+): Promise<void> {
+  if (config.proveedor === 'resend') {
+    const cuerpo: Record<string, unknown> = {
+      from: config.from,
+      to: [datos.destinatario],
+      subject: datos.asunto,
+      text: datos.cuerpo,
+      html: datos.html || undefined,
+      attachments: (datos.adjuntos || []).map((adjunto) => ({
+        filename: adjunto.filename,
+        content: adjunto.content.toString('base64')
+      }))
+    };
+    if (config.replyTo) cuerpo.reply_to = config.replyTo;
+
+    const respuesta = await fetch(config.apiUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(cuerpo),
+      signal: AbortSignal.timeout(TIEMPO_ESPERA_MS)
+    });
+    const texto = await respuesta.text().catch(() => '');
+    if (!respuesta.ok) {
+      const error = crearErrorProveedorHttp('Resend', respuesta.status, texto);
+      registrarFalloEnvio('Resend', error);
+      throw error;
+    }
+    return;
+  }
+
+  const remitente = parsearRemitente(config.from);
+  const cuerpo: Record<string, unknown> = {
+    sender: remitente,
+    to: [{ email: datos.destinatario }],
+    subject: datos.asunto,
+    textContent: datos.cuerpo,
+    htmlContent: datos.html || undefined,
+    attachment: (datos.adjuntos || []).map((adjunto) => ({
+      name: adjunto.filename,
+      content: adjunto.content.toString('base64')
+    }))
+  };
+  if (config.replyTo) cuerpo.replyTo = { email: config.replyTo };
+
+  const respuesta = await fetch(config.apiUrl, {
+    method: 'POST',
+    headers: {
+      'api-key': config.apiKey,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(cuerpo),
+    signal: AbortSignal.timeout(TIEMPO_ESPERA_MS)
+  });
+  const texto = await respuesta.text().catch(() => '');
+  if (!respuesta.ok) {
+    const error = crearErrorProveedorHttp('Brevo', respuesta.status, texto);
+    registrarFalloEnvio('Brevo', error);
+    throw error;
+  }
+}
+
 export function crearEnviadorCorreo(): EnviadorCorreo | null {
   if (process.env.NODE_ENV === 'test') return null;
 
-  const config = obtenerConfiguracionSmtp().config;
-  if (!config) return null;
+  const smtp = obtenerConfiguracionSmtp().config;
+  const http = obtenerConfiguracionCorreoHttp().config;
+  if (!smtp && !http) return null;
 
   return async (datos: DatosCorreo) => {
-    const transporte = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      // 465 usa TLS directo; 587 usa STARTTLS.
-      secure: Number(config.port) === 465,
-      auth: { user: config.user, pass: config.pass },
-      connectionTimeout: 10_000,
-      greetingTimeout: 10_000,
-      socketTimeout: 10_000
-    });
+    const errores: string[] = [];
 
-    try {
-      await transporte.sendMail({
-        from: config.from,
-        to: datos.destinatario,
-        subject: datos.asunto,
-        text: datos.cuerpo,
-        html: datos.html,
-        attachments: (datos.adjuntos || []).map((adjunto) => ({
-          filename: adjunto.filename,
-          content: adjunto.content,
-          contentType: adjunto.contentType
-        }))
-      });
-    } catch (error) {
-      registrarFalloEnvio('SMTP', error);
-      throw error;
+    // 1. Intentar SMTP si esta configurado.
+    if (smtp) {
+      try {
+        await enviarCorreoPorSmtp(smtp, datos);
+        return;
+      } catch (error) {
+        const detalle = detalleErrorEnvio(error);
+        errores.push(`SMTP: ${detalle.message}`);
+        registrarFalloEnvio('SMTP', error);
+        if (!http) throw error;
+        console.warn(
+          '[NubaGlow][Correo] SMTP fallo; se intentara el respaldo HTTP...'
+        );
+      }
     }
+
+    // 2. Respaldo por API HTTP (Resend/Brevo).
+    if (http) {
+      try {
+        await enviarCorreoPorApiHttp(http, datos);
+        return;
+      } catch (error) {
+        const detalle = detalleErrorEnvio(error);
+        errores.push(`${http.proveedor}: ${detalle.message}`);
+        registrarFalloEnvio(`Correo ${http.proveedor}`, error);
+      }
+    }
+
+    throw new Error(
+      errores.join(' | ') || 'No hay canal de correo configurado'
+    );
   };
 }
 
@@ -716,6 +919,8 @@ export function crearEnviadorTelegram(): EnviadorTelegram | null {
       error.code = `TELEGRAM_${respuesta.status}`;
       error.response = detalle.slice(0, 1000);
       registrarFalloEnvio('Telegram', error);
+      const pista = pistaTelegram(detalle);
+      if (pista) console.error(`[NubaGlow][Telegram] ${pista}`);
       throw error;
     }
   };
@@ -752,6 +957,10 @@ export class NotificacionesService {
       };
     }
 
+    console.log(
+      `[NubaGlow][Correo] Enviando a ${datos.destinatario} ` +
+        `(pedido #${datos.pedidoId ?? 'n/d'})...`
+    );
     try {
       await enviador(datos);
       await registrarNotificacion({
@@ -762,6 +971,9 @@ export class NotificacionesService {
         cuerpo: datos.cuerpo,
         estado: 'enviada'
       });
+      console.log(
+        `[NubaGlow][Correo] Resultado: enviada -> ${datos.destinatario}.`
+      );
       return {
         canal: 'correo',
         destinatario: datos.destinatario,
@@ -816,6 +1028,10 @@ export class NotificacionesService {
       return { canal: 'telegram', destinatario, estado: 'omitida', error };
     }
 
+    console.log(
+      `[NubaGlow][Telegram] Enviando alerta a ${destinatario} ` +
+        `(pedido #${datos.pedidoId ?? 'n/d'})...`
+    );
     try {
       await enviador(datos, destinatario);
       await registrarNotificacion({
@@ -826,6 +1042,9 @@ export class NotificacionesService {
         cuerpo: datos.cuerpo,
         estado: 'enviada'
       });
+      console.log(
+        `[NubaGlow][Telegram] Resultado: enviada -> ${destinatario}.`
+      );
       return {
         canal: 'telegram',
         destinatario,
@@ -848,12 +1067,287 @@ export class NotificacionesService {
     }
   }
 
-  async notificarPedido(pedido: any): Promise<ResultadoNotificacionPedido> {
-    const asunto = `NubaGlow: pedido ${pedido.codigoRastreo} confirmado`;
+  /**
+   * Prueba REAL de envio por correo usando las variables actuales del entorno.
+   * No registra en la tabla notificaciones: devuelve el detalle exacto de cada
+   * intento (SMTP y respaldo HTTP) para diagnosticar en Render al instante.
+   */
+  async probarCorreo(destinatario: string): Promise<ResultadoPruebaCanal> {
+    if (process.env.NODE_ENV === 'test') {
+      return {
+        canal: 'correo',
+        exito: false,
+        error: 'NODE_ENV=test: envios externos deshabilitados.'
+      };
+    }
+
+    const smtp = obtenerConfiguracionSmtp();
+    const http = obtenerConfiguracionCorreoHttp();
+    const intentos: IntentoPruebaCanal[] = [];
+
+    if (!smtp.config && !http.config) {
+      return {
+        canal: 'correo',
+        exito: false,
+        error:
+          'Sin configuracion de correo. Faltan SMTP ' +
+          `(${smtp.faltantes.join(', ') || 'revisar formato'}) y API HTTP ` +
+          `(${http.faltantes.join(', ') || 'revisar formato'}).`,
+        intentos
+      };
+    }
+
+    const datos: DatosCorreo = {
+      destinatario,
+      asunto: 'NubaGlow: prueba de notificaciones',
+      cuerpo:
+        'Prueba real de correo desde NubaGlow. Si recibes este mensaje, ' +
+        'el canal de correo esta operativo en produccion.',
+      html:
+        '<p><strong>NubaGlow</strong></p><p>Prueba real de correo desde ' +
+        'el servidor de produccion. Si recibes este mensaje, el canal de ' +
+        'correo esta operativo.</p>'
+    };
+
+    if (smtp.config) {
+      console.log('[NubaGlow][Correo][Prueba] Intentando SMTP...');
+      try {
+        await enviarCorreoPorSmtp(smtp.config, datos);
+        console.log('[NubaGlow][Correo][Prueba] SMTP OK.');
+        return {
+          canal: 'correo',
+          exito: true,
+          proveedor: 'smtp',
+          destinatario,
+          error: null,
+          intentos: [
+            ...intentos,
+            {
+              proveedor: 'smtp',
+              exito: true,
+              mensaje: null,
+              codigo: null,
+              respuesta: null
+            }
+          ]
+        };
+      } catch (error) {
+        const detalle = detalleErrorEnvio(error);
+        console.error('[NubaGlow][Correo][Prueba] SMTP fallo:', detalle);
+        intentos.push({
+          proveedor: 'smtp',
+          exito: false,
+          mensaje: detalle.message,
+          codigo: detalle.code,
+          respuesta: detalle.response
+        });
+      }
+    }
+
+    if (http.config) {
+      console.log(
+        `[NubaGlow][Correo][Prueba] Intentando ${http.config.proveedor}...`
+      );
+      try {
+        await enviarCorreoPorApiHttp(http.config, datos);
+        console.log(
+          `[NubaGlow][Correo][Prueba] ${http.config.proveedor} OK.`
+        );
+        return {
+          canal: 'correo',
+          exito: true,
+          proveedor: http.config.proveedor,
+          destinatario,
+          error: null,
+          intentos: [
+            ...intentos,
+            {
+              proveedor: http.config.proveedor,
+              exito: true,
+              mensaje: null,
+              codigo: null,
+              respuesta: null
+            }
+          ]
+        };
+      } catch (error) {
+        const detalle = detalleErrorEnvio(error);
+        console.error(
+          `[NubaGlow][Correo][Prueba] ${http.config.proveedor} fallo:`,
+          detalle
+        );
+        intentos.push({
+          proveedor: http.config.proveedor,
+          exito: false,
+          mensaje: detalle.message,
+          codigo: detalle.code,
+          respuesta: detalle.response
+        });
+      }
+    }
+
+    return {
+      canal: 'correo',
+      exito: false,
+      destinatario,
+      error: intentos
+        .map((intento) => `${intento.proveedor}: ${intento.mensaje}`)
+        .join(' | '),
+      intentos
+    };
+  }
+
+  /**
+   * Prueba REAL de Telegram usando las variables actuales. Devuelve el codigo
+   * HTTP y el cuerpo exacto que respondio la API de Telegram.
+   */
+  async probarTelegram(chatId?: string): Promise<ResultadoPruebaCanal> {
+    if (process.env.NODE_ENV === 'test') {
+      return {
+        canal: 'telegram',
+        exito: false,
+        error: 'NODE_ENV=test: envios externos deshabilitados.'
+      };
+    }
+
+    const configuracion = obtenerConfiguracionTelegram();
+    if (!configuracion.config) {
+      return {
+        canal: 'telegram',
+        exito: false,
+        error:
+          'Telegram sin configurar. Variables faltantes: ' +
+          configuracion.faltantes.join(', '),
+        intentos: []
+      };
+    }
+
+    const config = configuracion.config;
+    const destino = (chatId || '').trim() || config.chatId;
+    console.log(`[NubaGlow][Telegram][Prueba] Enviando a ${destino}...`);
+
+    try {
+      const respuesta = await fetch(
+        `https://api.telegram.org/bot${config.token}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: destino,
+            text:
+              '<b>NubaGlow</b> — prueba de notificaciones desde produccion.\n' +
+              'Si lees este mensaje, el canal de Telegram esta operativo.',
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+          }),
+          signal: AbortSignal.timeout(TIEMPO_ESPERA_MS)
+        }
+      );
+      const texto = await respuesta.text().catch(() => '');
+      let cuerpo: any = texto;
+      try {
+        cuerpo = JSON.parse(texto);
+      } catch {
+        // Mantener texto plano si Telegram no respondio JSON.
+      }
+
+      const descripcion =
+        cuerpo && cuerpo.description ? String(cuerpo.description) : texto;
+
+      if (!respuesta.ok || (cuerpo && cuerpo.ok === false)) {
+        const pista = pistaTelegram(descripcion);
+        console.error(
+          `[NubaGlow][Telegram][Prueba] Fallo ${respuesta.status}:`,
+          descripcion
+        );
+        if (pista) console.error(`[NubaGlow][Telegram][Prueba] ${pista}`);
+        return {
+          canal: 'telegram',
+          exito: false,
+          destinatario: destino,
+          error: `Telegram respondio ${respuesta.status}: ${descripcion.slice(
+            0,
+            500
+          )}`,
+          detalles: {
+            status: respuesta.status,
+            respuesta: cuerpo,
+            sugerencia: pista
+          }
+        };
+      }
+
+      console.log('[NubaGlow][Telegram][Prueba] OK.');
+      return {
+        canal: 'telegram',
+        exito: true,
+        destinatario: destino,
+        error: null,
+        detalles: {
+          status: respuesta.status,
+          messageId: cuerpo?.result?.message_id ?? null
+        }
+      };
+    } catch (error) {
+      const detalle = detalleErrorEnvio(error);
+      console.error('[NubaGlow][Telegram][Prueba] Excepcion:', detalle);
+      return {
+        canal: 'telegram',
+        exito: false,
+        destinatario: destino,
+        error: detalle.message,
+        detalles: detalle
+      };
+    }
+  }
+
+  /**
+   * Ejecuta una prueba real de ambos canales y devuelve el resultado exacto.
+   */
+  async probarNotificaciones(opciones: {
+    correo?: string;
+    chatId?: string;
+  } = {}): Promise<ResultadoPruebaNotificaciones> {
+    const destinatario =
+      (opciones.correo || '').trim() ||
+      leerVariable('NOTIFICACIONES_TEST_EMAIL') ||
+      remitenteCorreo();
+
     console.log(
-      `[NubaGlow][Notificaciones] Pedido ${pedido.codigoRastreo}: ` +
-        'enviando correo y alerta Telegram...'
+      '[NubaGlow][Notificaciones] Iniciando prueba real de correo y Telegram...'
     );
+
+    const correo = destinatario
+      ? await this.probarCorreo(destinatario)
+      : {
+          canal: 'correo' as const,
+          exito: false,
+          error:
+            'No hay destinatario de correo. Envia `correo` en el body o ' +
+            'configura NOTIFICACIONES_TEST_EMAIL / SMTP_FROM.',
+          intentos: []
+        };
+    const telegram = await this.probarTelegram(opciones.chatId);
+
+    console.log(
+      '[NubaGlow][Notificaciones] Resultado prueba -> ' +
+        `correo=${correo.exito ? 'ok' : 'fallo'}` +
+        `${correo.error ? ` (${correo.error})` : ''}; ` +
+        `telegram=${telegram.exito ? 'ok' : 'fallo'}` +
+        `${telegram.error ? ` (${telegram.error})` : ''}.`
+    );
+
+    return { correo, telegram };
+  }
+
+  async notificarPedido(pedido: any): Promise<ResultadoNotificacionPedido> {
+    const referencia = `Pedido #${pedido.id ?? 'n/d'} (${pedido.codigoRastreo})`;
+    const asunto = `NubaGlow: pedido ${pedido.codigoRastreo} confirmado`;
+
+    console.log(
+      `[${referencia}] Disparando notificaciones (correo + Telegram)...`
+    );
+
     const correoGenerado = crearCorreoConfirmacionPedido(pedido);
     const cuerpoTelegram = crearCuerpoTelegram(pedido);
 
@@ -875,26 +1369,31 @@ export class NotificacionesService {
       );
     }
 
-    const [correo, telegram] = await Promise.all([
-      this.enviarCorreo({
-        pedidoId: pedido.id,
-        destinatario: pedido.correoCliente,
-        asunto,
-        cuerpo: correoGenerado.texto,
-        html: correoGenerado.html,
-        adjuntos
-      }),
-      this.enviarTelegram({
-        pedidoId: pedido.id,
-        asunto,
-        cuerpo: cuerpoTelegram
-      })
-    ]);
-
+    // Se envian en secuencia para registrar antes y despues de cada canal.
     console.log(
-      `[NubaGlow][Notificaciones] Pedido ${pedido.codigoRastreo}: ` +
-        `correo=${correo.estado}${correo.error ? ` (${correo.error})` : ''}; ` +
-        `telegram=${telegram.estado}` +
+      `[${referencia}] Correo -> ${pedido.correoCliente}: enviando...`
+    );
+    const correo = await this.enviarCorreo({
+      pedidoId: pedido.id,
+      destinatario: pedido.correoCliente,
+      asunto,
+      cuerpo: correoGenerado.texto,
+      html: correoGenerado.html,
+      adjuntos
+    });
+    console.log(
+      `[${referencia}] Correo -> resultado: ${correo.estado}` +
+        `${correo.error ? ` (${correo.error})` : ''}.`
+    );
+
+    console.log(`[${referencia}] Telegram -> enviando alerta...`);
+    const telegram = await this.enviarTelegram({
+      pedidoId: pedido.id,
+      asunto,
+      cuerpo: cuerpoTelegram
+    });
+    console.log(
+      `[${referencia}] Telegram -> resultado: ${telegram.estado}` +
         `${telegram.error ? ` (${telegram.error})` : ''}.`
     );
 

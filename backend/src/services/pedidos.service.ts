@@ -325,7 +325,24 @@ export class PedidosService {
     // Las notificaciones se disparan fuera de la transaccion ya confirmada.
     // En produccion no bloquean la respuesta del checkout: corren en segundo
     // plano y cualquier fallo inesperado queda registrado en el log.
-    const notificacion = notificacionesService.notificarPedido(pedidoCompleto);
+    console.log(
+      `[Pedido #${pedidoCompleto.id}] Disparando notificaciones ` +
+        `(correo a ${pedidoCompleto.correoCliente} + Telegram admin)...`
+    );
+
+    const notificacion = notificacionesService
+      .notificarPedido(pedidoCompleto)
+      .then((resultado) => {
+        console.log(
+          `[Pedido #${pedidoCompleto.id}] Resultado notificaciones -> ` +
+            `correo=${resultado.correo.estado}` +
+            `${resultado.correo.error ? ` (${resultado.correo.error})` : ''}; ` +
+            `telegram=${resultado.telegram.estado}` +
+            `${resultado.telegram.error ? ` (${resultado.telegram.error})` : ''}.`
+        );
+        return resultado;
+      });
+
     const manejarErrorNotificacion = (error: unknown) => {
       console.error(
         `[NubaGlow][Notificaciones] Fallo inesperado al notificar ` +

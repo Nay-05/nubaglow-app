@@ -6,11 +6,13 @@
  */
 
 import { consultar, cerrarPool } from '../db';
+import { diagnosticoNotificaciones, obtenerConfiguracionCorreoHttp } from '../config/env';
 import {
   NotificacionesService,
   crearCorreoCambioEnvio,
   crearCorreoConfirmacionPedido,
   crearCorreoReciboPos,
+  crearEnviadorCorreo,
   notificacionesService
 } from '../services/notificaciones.service';
 import { pedidosService } from '../services/pedidos.service';
@@ -35,6 +37,49 @@ function asegurar(condicion: boolean, descripcion: string) {
 
 async function ejecutarPruebas() {
   console.log('Iniciando pruebas de notificaciones...');
+
+  // 0. Diagnostico de configuracion (nunca revela secretos completos)
+  const diagnostico = diagnosticoNotificaciones();
+  asegurar(
+    typeof diagnostico.telegram.token.longitud === 'number' &&
+      typeof diagnostico.telegram.chatId.longitud === 'number',
+    'El diagnostico describe Telegram con longitud y ultimos 4 caracteres'
+  );
+  asegurar(
+    typeof diagnostico.smtp.usuario.longitud === 'number' &&
+      typeof diagnostico.smtp.remitente !== 'undefined',
+    'El diagnostico describe SMTP y su remitente'
+  );
+  asegurar(
+    Array.isArray(diagnostico.correoHttp.faltantes) &&
+      typeof diagnostico.correoHttp.apiKey.presente === 'boolean',
+    'El diagnostico describe el respaldo HTTP de correo (Resend/Brevo)'
+  );
+
+  const configuracionHttp = obtenerConfiguracionCorreoHttp();
+  asegurar(
+    Array.isArray(configuracionHttp.faltantes),
+    'La configuracion HTTP devuelve faltantes sin lanzar excepciones'
+  );
+
+  asegurar(
+    crearEnviadorCorreo() === null,
+    'En NODE_ENV=test no se crea el enviador real de correo'
+  );
+
+  const servicioPrueba = new NotificacionesService();
+  const pruebaCorreoTest = await servicioPrueba.probarCorreo('destino@test.bo');
+  const pruebaTelegramTest = await servicioPrueba.probarTelegram();
+  asegurar(
+    pruebaCorreoTest.exito === false &&
+      String(pruebaCorreoTest.error).includes('test'),
+    'La prueba real de correo se bloquea en NODE_ENV=test'
+  );
+  asegurar(
+    pruebaTelegramTest.exito === false &&
+      String(pruebaTelegramTest.error).includes('test'),
+    'La prueba real de Telegram se bloquea en NODE_ENV=test'
+  );
 
   const correoExito = `notif_exito_${sufijo}@test.bo`;
   const chatExito = `chat_exito_${sufijo}`;

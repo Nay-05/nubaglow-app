@@ -216,6 +216,12 @@ if (require.main === module && process.env.NODE_ENV !== 'test') {
     console.log(`Puerto: ${PUERTO}`);
     console.log(`Entorno: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Endpoint de salud: http://localhost:${PUERTO}/api/salud`);
+    console.log(
+      `Diagnostico de notificaciones: http://localhost:${PUERTO}/api/salud/notificaciones`
+    );
+    console.log(
+      `Prueba real de notificaciones: POST http://localhost:${PUERTO}/api/salud/probar-notificaciones`
+    );
     console.log(`Frontends permitidos (CORS): ${origenesConfigurados.join(', ')}`);
     console.log('============================================================');
   });

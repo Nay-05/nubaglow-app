@@ -47,6 +47,20 @@ export const limitadorTotem = rateLimit({
   legacyHeaders: false
 });
 
+// Prueba real de notificaciones: evita abuso del endpoint de diagnostico.
+export const limitadorPruebaNotificaciones = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: {
+    exito: false,
+    error:
+      'Demasiadas pruebas de notificaciones. Espera un minuto antes de ' +
+      'volver a intentarlo.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Asistente IA: limite por IP y, cuando existe sesion, tambien por usuario.
 export const limitadorAsistente = rateLimit({
   windowMs: 60 * 1000,
