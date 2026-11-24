@@ -691,19 +691,45 @@ async function registrarNotificacion(registro: {
   }
 }
 
+const PATRON_EMAIL = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+
 /**
- * Separa un remitente tipo `"NubaGlow" <correo@dominio.com>` en nombre y email.
+ * Extrae unicamente el email de un remitente configurado como
+ * `NubaGlow <correo@dominio.com>`, `"NubaGlow" <correo@dominio.com>` o
+ * simplemente `correo@dominio.com`. Brevo exige `sender.email` limpio.
  */
-function parsearRemitente(from: string): { name?: string; email: string } {
-  const coincidencia = String(from || '').match(
-    /^\s*"?([^"<]*)"?\s*<([^>]+)>\s*$/
-  );
-  if (coincidencia) {
-    const nombre = coincidencia[1].trim();
-    const email = coincidencia[2].trim();
-    return nombre ? { name: nombre, email } : { email };
+export function extraerEmailRemitente(valor: string): string {
+  const texto = String(valor || '').trim();
+  const entreAngulos = texto.match(/<([^>]+)>/);
+  const candidato = (entreAngulos ? entreAngulos[1] : texto).trim();
+  return candidato.replace(/^["']+|["']+$/g, '').trim();
+}
+
+/**
+ * Separa un remitente en nombre y email limpio. Si no hay nombre usa
+ * `nombrePorDefecto` y valida el email para evitar el 400 de Brevo.
+ */
+export function parsearRemitente(
+  from: string,
+  nombrePorDefecto = 'NubaGlow'
+): { name: string; email: string } {
+  const texto = String(from || '').trim();
+  const coincidencia = texto.match(/<([^>]+)>/);
+  const email = extraerEmailRemitente(texto);
+  const nombreCrudo = coincidencia
+    ? texto.slice(0, coincidencia.index).trim()
+    : '';
+  const nombre =
+    nombreCrudo.replace(/^["']+|["']+$/g, '').trim() || nombrePorDefecto;
+
+  if (!PATRON_EMAIL.test(email)) {
+    throw new Error(
+      `Remitente de correo invalido: "${email || 'vacio'}". ` +
+        'Configura SMTP_FROM o BREVO_FROM con un email valido.'
+    );
   }
-  return { email: String(from || '').trim() };
+
+  return { name: nombre, email };
 }
 
 function crearErrorProveedorHttp(
@@ -775,8 +801,9 @@ async function enviarCorreoPorApiHttp(
   datos: DatosCorreo
 ): Promise<void> {
   if (config.proveedor === 'resend') {
+    const remitente = parsearRemitente(config.from);
     const cuerpo: Record<string, unknown> = {
-      from: config.from,
+      from: `${remitente.name} <${remitente.email}>`,
       to: [datos.destinatario],
       subject: datos.asunto,
       text: datos.cuerpo,
@@ -786,7 +813,7 @@ async function enviarCorreoPorApiHttp(
         content: adjunto.content.toString('base64')
       }))
     };
-    if (config.replyTo) cuerpo.reply_to = config.replyTo;
+    if (config.replyTo) cuerpo.reply_to = extraerEmailRemitente(config.replyTo);
 
     const respuesta = await fetch(config.apiUrl, {
       method: 'POST',
@@ -800,15 +827,14 @@ async function enviarCorreoPorApiHttp(
     const texto = await respuesta.text().catch(() => '');
     if (!respuesta.ok) {
       const error = crearErrorProveedorHttp('Resend', respuesta.status, texto);
-      registrarFalloEnvio('Resend', error);
       throw error;
     }
     return;
   }
 
-  const remitente = parsearRemitente(config.from);
+  const remitente = parsearRemitente(config.from, 'NubaGlow');
   const cuerpo: Record<string, unknown> = {
-    sender: remitente,
+    sender: { name: remitente.name, email: remitente.email },
     to: [{ email: datos.destinatario }],
     subject: datos.asunto,
     textContent: datos.cuerpo,
@@ -818,7 +844,10 @@ async function enviarCorreoPorApiHttp(
       content: adjunto.content.toString('base64')
     }))
   };
-  if (config.replyTo) cuerpo.replyTo = { email: config.replyTo };
+  if (config.replyTo) {
+    const respuesta = parsearRemitente(config.replyTo, remitente.name);
+    cuerpo.replyTo = { name: respuesta.name, email: respuesta.email };
+  }
 
   const respuesta = await fetch(config.apiUrl, {
     method: 'POST',
@@ -833,46 +862,84 @@ async function enviarCorreoPorApiHttp(
   const texto = await respuesta.text().catch(() => '');
   if (!respuesta.ok) {
     const error = crearErrorProveedorHttp('Brevo', respuesta.status, texto);
-    registrarFalloEnvio('Brevo', error);
     throw error;
   }
+}
+
+const ETIQUETA_CANAL_CORREO: Record<string, string> = {
+  smtp: 'SMTP',
+  resend: 'Resend',
+  brevo: 'Brevo'
+};
+
+interface CanalCorreo {
+  proveedor: 'smtp' | 'resend' | 'brevo';
+  enviar: (datos: DatosCorreo) => Promise<void>;
+}
+
+/**
+ * Ordena los canales de correo. Brevo va primero porque su API HTTP responde
+ * en cerca de 1 segundo y evita esperar el timeout de SMTP en Render.
+ */
+function crearCanalesCorreo(
+  smtp: ConfiguracionSmtp | null,
+  http: ConfiguracionCorreoHttp | null
+): CanalCorreo[] {
+  const canales: CanalCorreo[] = [];
+
+  if (http && http.proveedor === 'brevo') {
+    const config = http;
+    canales.push({
+      proveedor: 'brevo',
+      enviar: (datos) => enviarCorreoPorApiHttp(config, datos)
+    });
+  }
+
+  if (smtp) {
+    const config = smtp;
+    canales.push({
+      proveedor: 'smtp',
+      enviar: (datos) => enviarCorreoPorSmtp(config, datos)
+    });
+  }
+
+  if (http && http.proveedor === 'resend') {
+    const config = http;
+    canales.push({
+      proveedor: 'resend',
+      enviar: (datos) => enviarCorreoPorApiHttp(config, datos)
+    });
+  }
+
+  return canales;
 }
 
 export function crearEnviadorCorreo(): EnviadorCorreo | null {
   if (process.env.NODE_ENV === 'test') return null;
 
-  const smtp = obtenerConfiguracionSmtp().config;
-  const http = obtenerConfiguracionCorreoHttp().config;
-  if (!smtp && !http) return null;
+  const canales = crearCanalesCorreo(
+    obtenerConfiguracionSmtp().config,
+    obtenerConfiguracionCorreoHttp().config
+  );
+  if (canales.length === 0) return null;
 
   return async (datos: DatosCorreo) => {
     const errores: string[] = [];
 
-    // 1. Intentar SMTP si esta configurado.
-    if (smtp) {
+    for (const canal of canales) {
+      const nombre = ETIQUETA_CANAL_CORREO[canal.proveedor] || canal.proveedor;
       try {
-        await enviarCorreoPorSmtp(smtp, datos);
+        await canal.enviar(datos);
         return;
       } catch (error) {
         const detalle = detalleErrorEnvio(error);
-        errores.push(`SMTP: ${detalle.message}`);
-        registrarFalloEnvio('SMTP', error);
-        if (!http) throw error;
-        console.warn(
-          '[NubaGlow][Correo] SMTP fallo; se intentara el respaldo HTTP...'
-        );
-      }
-    }
-
-    // 2. Respaldo por API HTTP (Resend/Brevo).
-    if (http) {
-      try {
-        await enviarCorreoPorApiHttp(http, datos);
-        return;
-      } catch (error) {
-        const detalle = detalleErrorEnvio(error);
-        errores.push(`${http.proveedor}: ${detalle.message}`);
-        registrarFalloEnvio(`Correo ${http.proveedor}`, error);
+        errores.push(`${nombre}: ${detalle.message}`);
+        registrarFalloEnvio(nombre, error);
+        if (canales.length > 1) {
+          console.warn(
+            `[NubaGlow][Correo] ${nombre} fallo; se intentara el siguiente canal...`
+          );
+        }
       }
     }
 
